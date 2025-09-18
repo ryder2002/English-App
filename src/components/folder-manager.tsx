@@ -20,6 +20,7 @@ import { Folder, MoreVertical, PlusCircle, Trash2, Edit, Loader2 } from "lucide-
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Badge } from "./ui/badge";
 
 const formSchema = z.object({
   folderName: z.string().min(1, { message: "Folder name cannot be empty." }),
