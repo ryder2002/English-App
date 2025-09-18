@@ -108,7 +108,7 @@ export function VocabularyList() {
 
   if (vocabulary.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg bg-muted/50">
+      <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg bg-card">
         <p className="text-muted-foreground">Danh sách từ vựng của bạn trống.</p>
         <p className="text-sm text-muted-foreground">
           Nhấn "Thêm từ" để bắt đầu học!
@@ -127,23 +127,23 @@ export function VocabularyList() {
     <>
     <Accordion type="multiple" defaultValue={Object.keys(groupedVocabulary)} className="w-full">
       {Object.entries(groupedVocabulary).map(([folder, items]) => (
-        <AccordionItem value={folder} key={folder}>
-          <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline">
-            <div className="flex items-center gap-2">
-              <Folder className="h-5 w-5 text-primary" />
+        <AccordionItem value={folder} key={folder} className="border-b-0">
+          <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline py-4">
+            <div className="flex items-center gap-3">
+              <Folder className="h-6 w-6 text-primary" />
               <span>{folder}</span>
               <Badge variant="secondary">{items.length}</Badge>
             </div>
           </AccordionTrigger>
-          <AccordionContent>
+          <AccordionContent className="pb-4">
             {isMobile ? (
-              <div className="space-y-2 pt-2">
+              <div className="space-y-3 pt-2">
                 {items.map((item) => (
-                  <Card key={item.id}>
+                  <Card key={item.id} className="bg-card/80">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
-                        <div onClick={() => handleEdit(item)} className="flex-grow cursor-pointer">
-                          <h3 className="font-bold text-base flex items-center gap-2">
+                        <div onClick={() => handleEdit(item)} className="flex-grow cursor-pointer pr-2">
+                          <h3 className="font-bold text-lg flex items-center gap-2">
                             {item.word}
                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)}>
                                 {playingAudioFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
@@ -190,16 +190,16 @@ export function VocabularyList() {
                 ))}
               </div>
             ) : (
-              <Card>
+              <Card className="bg-card/80">
                  <CardContent className="p-0">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[250px]">Từ</TableHead>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-[250px] pl-6">Từ</TableHead>
                           <TableHead>Ngôn ngữ</TableHead>
                           <TableHead>Phát âm</TableHead>
                           <TableHead>Tiếng Việt</TableHead>
-                          <TableHead className="text-right w-[100px]">
+                          <TableHead className="text-right w-[100px] pr-6">
                             Hành động
                           </TableHead>
                         </TableRow>
@@ -207,7 +207,7 @@ export function VocabularyList() {
                       <TableBody>
                         {items.map((item) => (
                           <TableRow key={item.id} onClick={() => handleEdit(item)} className="cursor-pointer">
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium pl-6">
                               <div className="flex items-center gap-2">
                                 <span>{item.word}</span>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)}>
@@ -228,7 +228,7 @@ export function VocabularyList() {
                             </TableCell>
                             <TableCell>{item.ipa || item.pinyin}</TableCell>
                             <TableCell>{item.vietnameseTranslation}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right pr-4">
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>

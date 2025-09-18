@@ -82,20 +82,20 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   };
 
   return (
-    <div className="flex flex-col h-full flex-grow mx-auto w-full bg-card rounded-t-xl shadow-lg border">
+    <div className="flex flex-col h-full flex-grow mx-auto w-full bg-card/50 dark:bg-card/80 rounded-t-xl shadow-lg border">
         <ScrollArea className="flex-grow p-4 md:p-6" viewportRef={scrollViewportRef}>
             <div className="space-y-6">
                 {messages.map((message, index) => (
                     <div key={index} className={cn("flex items-start gap-4", message.role === 'user' ? 'justify-end' : '')}>
                         {message.role === 'assistant' && (
-                             <Avatar className="h-9 w-9 border-2 border-primary/50">
-                                <AvatarFallback className="bg-primary/20 text-primary">
+                             <Avatar className="h-9 w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600">
+                                <AvatarFallback className="bg-transparent text-primary-foreground">
                                     <Bot className="h-5 w-5"/>
                                 </AvatarFallback>
                              </Avatar>
                         )}
                          <div className={cn("max-w-[80%] rounded-xl p-3 px-4 text-sm shadow-md", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
-                            <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }} />
+                            <div className="prose prose-sm dark:prose-invert prose-strong:text-foreground" dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }} />
                          </div>
                          {message.role === 'user' && (
                              <Avatar className="h-9 w-9 border-2">
@@ -108,8 +108,8 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
                 ))}
                  {isLoading && (
                     <div className="flex items-start gap-4">
-                        <Avatar className="h-9 w-9 border-2 border-primary/50">
-                            <AvatarFallback className="bg-primary/20 text-primary">
+                        <Avatar className="h-9 w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600">
+                            <AvatarFallback className="bg-transparent text-primary-foreground">
                                 <Bot className="h-5 w-5"/>
                             </AvatarFallback>
                         </Avatar>
@@ -120,7 +120,7 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
                 )}
             </div>
         </ScrollArea>
-        <div className="p-4 md:p-6 border-t bg-background/80 backdrop-blur-sm flex-shrink-0 rounded-b-xl">
+        <div className="p-4 md:p-6 border-t bg-card/30 backdrop-blur-sm flex-shrink-0 rounded-b-xl">
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-4">
             <FormField
@@ -133,7 +133,7 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
                             placeholder="Hỏi về bản dịch, định nghĩa, ngữ pháp..."
                             {...field}
                             disabled={isLoading}
-                            className="h-11 text-base rounded-full px-5 bg-card/50"
+                            className="h-11 text-base rounded-full px-5 bg-background/70 dark:bg-card/70"
                         />
                         </FormControl>
                     </FormItem>
