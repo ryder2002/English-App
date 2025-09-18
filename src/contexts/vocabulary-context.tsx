@@ -43,15 +43,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) {
-      // User is not logged in or logged out, clear state and stop loading.
-      setVocabulary([]);
-      setFolders([]);
-      setIsLoading(false);
-      return;
-    }
-
     const fetchData = async () => {
+        if (!user) {
+            setVocabulary([]);
+            setFolders([]);
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         try {
             const [vocabData, folderData] = await Promise.all([
@@ -59,15 +58,33 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 getFolders(user.uid)
             ]);
             
-            setVocabulary(vocabData);
-            
-            if (folderData.length === 0) {
-              const defaultFolder = "Cơ bản";
+            if (folderData.length === 0 && vocabData.length === 0) {
+              // New user, create sample data
+              const defaultFolder = "Thư mục mẫu";
               await dbAddFolder(defaultFolder, user.uid);
-              setFolders([defaultFolder]);
+              
+              const sampleWord: Omit<VocabularyItem, 'id' | 'createdAt'> = {
+                word: "hello",
+                language: "english",
+                vietnameseTranslation: "xin chào",
+                folder: defaultFolder,
+                ipa: "/həˈloʊ/",
+              };
+              await dbAddVocabularyItem(sampleWord, user.uid);
+
+              // Refetch data to get the new items
+              const [newVocabData, newFolderData] = await Promise.all([
+                  getVocabulary(user.uid),
+                  getFolders(user.uid)
+              ]);
+              setVocabulary(newVocabData);
+              setFolders(newFolderData);
             } else {
-              setFolders(folderData);
+              // Existing user
+              setVocabulary(vocabData);
+              setFolders(folderData.length > 0 ? folderData : ["Cơ bản"]);
             }
+
         } catch (error) {
             console.error("Lỗi khi lấy dữ liệu từ Firestore:", error);
             toast({
