@@ -34,7 +34,15 @@ const interactWithLanguageChatbotPrompt = ai.definePrompt({
   name: 'interactWithLanguageChatbotPrompt',
   input: {schema: InteractWithLanguageChatbotInputSchema},
   output: {schema: InteractWithLanguageChatbotOutputSchema},
-  prompt: `You are a helpful AI language learning assistant. Respond to the user query with relevant information, including translations, definitions, example sentences, and grammar tips as needed.\n\nUser Query: {{{query}}}`,
+  prompt: `You are a helpful and friendly AI language learning assistant. Your goal is to provide clear, concise, and easy-to-understand explanations.
+
+Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured. This includes using things like:
+- **Bold** for emphasis.
+- *Italics* for nuance.
+- Bullet points (-) for lists.
+- Newlines for paragraph breaks.
+
+User Query: {{{query}}}`,
 });
 
 const interactWithLanguageChatbotFlow = ai.defineFlow(
