@@ -39,7 +39,7 @@ const interactWithLanguageChatbotPrompt = ai.definePrompt({
 Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured. This includes using things like:
 - **Bold** for emphasis.
 - *Italics* for nuance.
-- Bullet points (-) for lists.
+- Bullet points (using a hyphen: "-") for lists.
 - Newlines for paragraph breaks.
 
 User Query: {{{query}}}`,
