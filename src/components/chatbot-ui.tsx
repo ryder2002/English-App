@@ -33,7 +33,7 @@ interface Message {
 export function ChatbotUI() {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Xin chào! Tôi có thể giúp gì cho việc học ngôn ngữ của bạn hôm nay?' }
+    { role: 'assistant', content: 'Xin chào, Tớ là trợ lý AI của Công Nhất, rất vui được đồng hành cùng bạn trong việc học ngôn ngữ, hãy hãy hỏi tớ nếu bạn gặp khó nhé!' }
   ]);
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
