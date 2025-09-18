@@ -2,7 +2,7 @@ import { FlashcardPlayer } from "@/components/flashcard-player";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Flashcards - LinguaLeap",
+    title: "Flashcards - RYDER",
 };
 
 export default function FlashcardsPage() {

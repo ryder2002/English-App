@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 
 export const metadata: Metadata = {
-  title: "LinguaLeap",
+  title: "RYDER",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
 };
 

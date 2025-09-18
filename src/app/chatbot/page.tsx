@@ -2,7 +2,7 @@ import { ChatbotUI } from "@/components/chatbot-ui";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Trợ lý AI - LinguaLeap",
+    title: "Trợ lý AI - RYDER",
 };
 
 export default function ChatbotPage() {

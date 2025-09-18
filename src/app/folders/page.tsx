@@ -2,7 +2,7 @@ import { FolderManager } from "@/components/folder-manager";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Quản lý Thư mục - LinguaLeap",
+    title: "Quản lý Thư mục - RYDER",
 };
 
 export default function FoldersPage() {
