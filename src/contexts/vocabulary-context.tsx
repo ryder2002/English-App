@@ -2,7 +2,7 @@
 "use client";
 
 import type { VocabularyItem } from "@/lib/types";
-import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react";
 import { 
     getVocabulary,
     addVocabularyItem as dbAddVocabularyItem,
@@ -45,56 +45,54 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchData = async () => {
-        if (!user) {
-            setVocabulary([]);
-            setFolders([]);
-            setIsLoading(false);
-            return;
-        }
+      if (!user) {
+        setVocabulary([]);
+        setFolders([]);
+        setIsLoading(false);
+        return;
+      }
 
-        setIsLoading(true);
-        try {
-            const [vocabData, folderData] = await Promise.all([
-                getVocabulary(user.uid),
-                getFolders(user.uid)
-            ]);
-            
-            if (folderData.length === 0 && vocabData.length === 0) {
-              // New user, create sample data
-              const defaultFolder = "Thư mục mẫu";
-              await dbAddFolder(defaultFolder, user.uid);
-              
-              const sampleWord: Omit<VocabularyItem, 'id' | 'createdAt'> = {
+      setIsLoading(true);
+      try {
+        const [vocabData, folderData] = await Promise.all([
+            getVocabulary(user.uid),
+            getFolders(user.uid)
+        ]);
+
+        // Logic to create sample data for new users
+        if (vocabData.length === 0 && folderData.length === 0) {
+            const sampleFolder = "Thư mục mẫu";
+            await dbAddFolder(sampleFolder, user.uid);
+
+            const sampleWordData: Omit<VocabularyItem, 'id' | 'createdAt'> = {
                 word: "hello",
                 language: "english",
                 vietnameseTranslation: "xin chào",
-                folder: defaultFolder,
+                folder: sampleFolder,
                 ipa: "/həˈloʊ/",
-              };
-              const newWord = await dbAddVocabularyItem(sampleWord, user.uid);
-              
-              setFolders([defaultFolder]);
-              setVocabulary([newWord]);
-            } else {
-              setVocabulary(vocabData);
-              setFolders(folderData.length > 0 ? folderData : ["Cơ bản"]);
-            }
-
-        } catch (error) {
-            console.error("Lỗi khi lấy dữ liệu từ Firestore:", error);
-            toast({
-                variant: "destructive",
-                title: "Lỗi tải dữ liệu",
-                description: "Không thể tải từ vựng và thư mục.",
-            });
-        } finally {
-            setIsLoading(false);
+            };
+            const newWord = await dbAddVocabularyItem(sampleWordData, user.uid);
+            
+            setFolders([sampleFolder]);
+            setVocabulary([newWord]);
+        } else {
+            setVocabulary(vocabData);
+            setFolders(folderData.length > 0 ? folderData.sort() : ["Cơ bản"]);
         }
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu từ Firestore:", error);
+        toast({
+            variant: "destructive",
+            title: "Lỗi tải dữ liệu",
+            description: "Không thể tải từ vựng và thư mục.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     fetchData();
   }, [user, toast]);
-  
 
   const addVocabularyItem = async (item: Omit<VocabularyItem, "id" | "createdAt">) => {
     if (!user) return;
