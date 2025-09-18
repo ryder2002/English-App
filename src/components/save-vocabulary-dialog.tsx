@@ -59,7 +59,7 @@ type SaveVocabularyFormValues = z.infer<typeof formSchema>;
 interface SaveVocabularyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  itemToEdit?: VocabularyItem | null;
+  itemToEdit?: Omit<VocabularyItem, 'createdAt'> | null;
 }
 
 export function SaveVocabularyDialog({
@@ -95,11 +95,11 @@ export function SaveVocabularyDialog({
         form.reset({
           word: "",
           language: "english",
-          folder: "Cơ bản",
+          folder: folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || "",
         });
       }
     }
-  }, [itemToEdit, form, open]);
+  }, [itemToEdit, form, open, folders]);
 
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
@@ -125,16 +125,14 @@ export function SaveVocabularyDialog({
       };
 
       if (itemToEdit) {
-        updateVocabularyItem(itemToEdit.id, vocabularyData);
+        // Here we are sure itemToEdit has an id.
+        updateVocabularyItem(itemToEdit.id!, vocabularyData);
         toast({
             title: "Thành công!",
             description: `"${values.word}" đã được cập nhật.`,
           });
       } else {
-        addVocabularyItem({
-            id: new Date().toISOString(),
-            ...vocabularyData
-        });
+        addVocabularyItem(vocabularyData);
         toast({
             title: "Thành công!",
             description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,

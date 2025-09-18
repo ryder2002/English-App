@@ -17,24 +17,28 @@ const FOLDERS_COLLECTION = "folders";
 // This service manages folder names by interacting with a separate 'folders' collection
 // to allow for folder creation even before words are added to them.
 
-export const getFolders = async (): Promise<string[]> => {
-  const querySnapshot = await getDocs(collection(db, FOLDERS_COLLECTION));
+export const getFolders = async (userId: string): Promise<string[]> => {
+  if (!userId) return [];
+  const q = query(collection(db, FOLDERS_COLLECTION), where("userId", "==", userId));
+  const querySnapshot = await getDocs(q);
   const folders = querySnapshot.docs.map((doc) => doc.data().name as string);
   return folders;
 };
 
-export const addFolder = async (folderName: string): Promise<void> => {
-    // Check if folder already exists
-    const q = query(collection(db, FOLDERS_COLLECTION), where("name", "==", folderName));
+export const addFolder = async (folderName: string, userId: string): Promise<void> => {
+    if (!userId) return;
+    // Check if folder already exists for this user
+    const q = query(collection(db, FOLDERS_COLLECTION), where("name", "==", folderName), where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
-        await addDoc(collection(db, FOLDERS_COLLECTION), { name: folderName });
+        await addDoc(collection(db, FOLDERS_COLLECTION), { name: folderName, userId });
     }
 };
 
-export const updateFolder = async (oldName: string, newName: string): Promise<void> => {
-    // Find the folder document by oldName
-    const q = query(collection(db, FOLDERS_COLLECTION), where("name", "==", oldName));
+export const updateFolder = async (oldName: string, newName: string, userId: string): Promise<void> => {
+    if (!userId) return;
+    // Find the folder document by oldName and userId
+    const q = query(collection(db, FOLDERS_COLLECTION), where("name", "==", oldName), where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
         const folderDoc = querySnapshot.docs[0];
@@ -42,8 +46,9 @@ export const updateFolder = async (oldName: string, newName: string): Promise<vo
     }
 };
 
-export const deleteFolder = async (folderName: string): Promise<void> => {
-    const q = query(collection(db, FOLDERS_COLLECTION), where("name", "==", folderName));
+export const deleteFolder = async (folderName: string, userId: string): Promise<void> => {
+    if (!userId) return;
+    const q = query(collection(db, FOLDERS_COLLECTION), where("name", "==", folderName), where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
         const folderDoc = querySnapshot.docs[0];

@@ -11,24 +11,40 @@ import {
   writeBatch,
   query,
   where,
+  orderBy,
 } from "firebase/firestore";
 
 const VOCABULARY_COLLECTION = "vocabulary";
 
-export const getVocabulary = async (): Promise<VocabularyItem[]> => {
-  const querySnapshot = await getDocs(collection(db, VOCABULARY_COLLECTION));
+export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> => {
+  if (!userId) return [];
+  const q = query(
+    collection(db, VOCABULARY_COLLECTION),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+  const querySnapshot = await getDocs(q);
   const vocabulary: VocabularyItem[] = [];
   querySnapshot.forEach((doc) => {
     vocabulary.push({ id: doc.id, ...doc.data() } as VocabularyItem);
   });
-  return vocabulary.sort((a, b) => b.id.localeCompare(a.id)); // Sort by creation time desc
+  return vocabulary;
 };
 
 export const addVocabularyItem = async (
-  item: Omit<VocabularyItem, "id">
+  item: Omit<VocabularyItem, "id" | "createdAt">,
+  userId: string
 ): Promise<VocabularyItem> => {
-  const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), item);
-  return { id: docRef.id, ...item };
+  const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), {
+    ...item,
+    userId,
+    createdAt: new Date().toISOString(),
+  });
+  return { 
+    id: docRef.id, 
+    ...item, 
+    createdAt: new Date().toISOString(),
+  };
 };
 
 export const updateVocabularyItem = async (
@@ -43,8 +59,13 @@ export const deleteVocabularyItem = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, VOCABULARY_COLLECTION, id));
 };
 
-export const deleteVocabularyByFolder = async (folderName: string): Promise<void> => {
-    const q = query(collection(db, VOCABULARY_COLLECTION), where("folder", "==", folderName));
+export const deleteVocabularyByFolder = async (folderName: string, userId: string): Promise<void> => {
+    if (!userId) return;
+    const q = query(
+      collection(db, VOCABULARY_COLLECTION),
+      where("folder", "==", folderName),
+      where("userId", "==", userId)
+    );
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) {
@@ -59,8 +80,13 @@ export const deleteVocabularyByFolder = async (folderName: string): Promise<void
     await batch.commit();
 }
 
-export const updateVocabularyFolder = async (oldName: string, newName: string): Promise<void> => {
-    const q = query(collection(db, VOCABULARY_COLLECTION), where("folder", "==", oldName));
+export const updateVocabularyFolder = async (oldName: string, newName: string, userId: string): Promise<void> => {
+    if (!userId) return;
+    const q = query(
+        collection(db, VOCABULARY_COLLECTION), 
+        where("folder", "==", oldName),
+        where("userId", "==", userId)
+    );
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {

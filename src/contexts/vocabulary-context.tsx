@@ -17,11 +17,12 @@ import {
     deleteFolder as dbDeleteFolder
 } from "@/lib/services/folder-service";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "./auth-context";
 
 interface VocabularyContextType {
   vocabulary: VocabularyItem[];
   folders: string[];
-  addVocabularyItem: (item: VocabularyItem) => Promise<void>;
+  addVocabularyItem: (item: Omit<VocabularyItem, 'id' | 'createdAt'>) => Promise<void>;
   removeVocabularyItem: (id: string) => Promise<void>;
   updateVocabularyItem: (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => Promise<void>;
   addFolder: (folderName: string) => Promise<void>;
@@ -37,6 +38,7 @@ const VocabularyContext = createContext<VocabularyContextType | undefined>(
 );
 
 export function VocabularyProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,17 +47,26 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchData = async () => {
+        if (!user) {
+            // Clear data when user logs out
+            setVocabulary([]);
+            setFolders([]);
+            setIsDataReady(false);
+            return;
+        };
+
         setIsLoading(true);
+        setIsDataReady(false);
         try {
             const [vocabData, folderData] = await Promise.all([
-                getVocabulary(),
-                getFolders()
+                getVocabulary(user.uid),
+                getFolders(user.uid)
             ]);
             setVocabulary(vocabData);
             // Add a default folder if none exist
             if (folderData.length === 0) {
               const defaultFolder = "Cơ bản";
-              await dbAddFolder(defaultFolder);
+              await dbAddFolder(defaultFolder, user.uid);
               setFolders([defaultFolder]);
             } else {
               setFolders(folderData);
@@ -73,18 +84,12 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         }
     };
     fetchData();
-  }, [toast]);
+  }, [user, toast]);
   
 
-  const addVocabularyItem = async (item: VocabularyItem) => {
-    const newItem = await dbAddVocabularyItem({
-        word: item.word,
-        language: item.language,
-        folder: item.folder,
-        vietnameseTranslation: item.vietnameseTranslation,
-        ipa: item.ipa,
-        pinyin: item.pinyin,
-    });
+  const addVocabularyItem = async (item: Omit<VocabularyItem, "id" | "createdAt">) => {
+    if (!user) return;
+    const newItem = await dbAddVocabularyItem(item, user.uid);
     setVocabulary((prev) => [newItem, ...prev]);
     if (!folders.includes(item.folder)) {
       await addFolder(item.folder);
@@ -105,22 +110,25 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   }
   
   const addFolder = async (folderName: string) => {
+    if (!user) return;
     if (!folders.includes(folderName)) {
-        await dbAddFolder(folderName);
+        await dbAddFolder(folderName, user.uid);
         setFolders(prev => [folderName, ...prev]);
     }
   }
 
   const removeFolder = async (folderName: string) => {
-    await dbDeleteFolder(folderName);
-    await dbDeleteVocabularyByFolder(folderName);
+    if (!user) return;
+    await dbDeleteFolder(folderName, user.uid);
+    await dbDeleteVocabularyByFolder(folderName, user.uid);
     setFolders(prev => prev.filter(f => f !== folderName));
     setVocabulary(prev => prev.filter(item => item.folder !== folderName));
   }
 
   const updateFolder = async (oldName: string, newName: string) => {
-    await dbUpdateFolder(oldName, newName);
-    await dbUpdateVocabularyFolder(oldName, newName);
+    if (!user) return;
+    await dbUpdateFolder(oldName, newName, user.uid);
+    await dbUpdateVocabularyFolder(oldName, newName, user.uid);
     setFolders(prev => prev.map(f => (f === oldName ? newName : f)));
     setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
   }

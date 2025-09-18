@@ -8,4 +8,5 @@ export interface VocabularyItem {
   folder: string;
   ipa?: string;
   pinyin?: string;
+  createdAt: string; // ISO 8601 date string
 }

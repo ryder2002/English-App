@@ -126,7 +126,7 @@ export function VocabularyList() {
   const vocabularyContent = (
     <>
     <Accordion type="multiple" defaultValue={Object.keys(groupedVocabulary)} className="w-full">
-      {Object.entries(groupedVocabulary).map(([folder, items]) => (
+      {Object.entries(groupedVocabulary).sort(([folderA], [folderB]) => folderA.localeCompare(folderB)).map(([folder, items]) => (
         <AccordionItem value={folder} key={folder} className="border-b-0">
           <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline py-4">
             <div className="flex items-center gap-3">
