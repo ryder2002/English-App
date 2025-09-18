@@ -67,7 +67,7 @@ export function SaveVocabularyDialog({
   onOpenChange,
   itemToEdit,
 }: SaveVocabularyDialogProps) {
-  const { addVocabularyItem, updateVocabularyItem, isLoading, setIsLoading, folders } =
+  const { addVocabularyItem, updateVocabularyItem, isLoading, folders } =
     useVocabulary();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -103,7 +103,6 @@ export function SaveVocabularyDialog({
 
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
-    setIsLoading(true);
     try {
       const details = await getVocabularyDetailsAction(
           values.word,
@@ -126,13 +125,13 @@ export function SaveVocabularyDialog({
 
       if (itemToEdit) {
         // Here we are sure itemToEdit has an id.
-        updateVocabularyItem(itemToEdit.id!, vocabularyData);
+        await updateVocabularyItem(itemToEdit.id!, vocabularyData);
         toast({
             title: "Thành công!",
             description: `"${values.word}" đã được cập nhật.`,
           });
       } else {
-        addVocabularyItem(vocabularyData);
+        await addVocabularyItem(vocabularyData);
         toast({
             title: "Thành công!",
             description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,
@@ -147,8 +146,6 @@ export function SaveVocabularyDialog({
         title: "Ôi! Đã có lỗi xảy ra.",
         description: "Có lỗi khi lưu từ của bạn. Vui lòng thử lại.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

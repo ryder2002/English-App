@@ -29,7 +29,6 @@ interface VocabularyContextType {
   removeFolder: (folderName: string) => Promise<void>;
   updateFolder: (oldName: string, newName: string) => Promise<void>;
   isLoading: boolean;
-  setIsLoading: (isLoading: boolean) => void;
   isDataReady: boolean;
 }
 
@@ -178,7 +177,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         removeVocabularyItem, 
         updateVocabularyItem, 
         isLoading, 
-        setIsLoading,
         isDataReady,
         addFolder,
         removeFolder,
