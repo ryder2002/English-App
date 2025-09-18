@@ -130,7 +130,7 @@ export function FolderManager() {
         {folders.length === 0 && !isLoading && (
              <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
         )}
-        {[...folders].sort((a,b) => a.localeCompare(b)).map((folder) => (
+        {folders.map((folder) => (
             editingFolder === folder ? (
                 <Card key={folder}>
                     <CardContent className="p-4">
