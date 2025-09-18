@@ -12,7 +12,7 @@ export default function VocabularyPage() {
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold font-headline tracking-tight">
+        <h1 className="text-3xl font-bold font-headline tracking-tight bg-gradient-to-r from-primary to-cyan-400 text-transparent bg-clip-text">
           Từ vựng của tôi
         </h1>
         <Button onClick={() => setIsSaveDialogOpen(true)} variant="default">

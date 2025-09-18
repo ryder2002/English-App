@@ -230,7 +230,7 @@ export function DictionarySearch() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
                 <div className="flex items-baseline gap-4">
-                    <span className="text-4xl font-bold font-headline">{result.originalWord}</span>
+                    <span className="text-4xl font-bold font-headline bg-gradient-to-r from-primary to-cyan-400 text-transparent bg-clip-text">{result.originalWord}</span>
                     <Badge variant="secondary">{languageOptions.find(l => l.value === result.sourceLanguage)?.label}</Badge>
                 </div>
                 <Button size="icon" variant="ghost" onClick={() => playAudio(result.originalWord, result.sourceLanguage, 'original')}>

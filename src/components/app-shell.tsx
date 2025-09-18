@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="p-2 rounded-lg bg-primary/20 text-primary">
               <Languages className="h-6 w-6" />
             </div>
-            <h1 className="text-xl font-headline font-bold">RYDER</h1>
+            <h1 className="text-xl font-headline font-bold bg-gradient-to-r from-primary to-cyan-400 text-transparent bg-clip-text">RYDER</h1>
           </div>
         </SidebarHeader>
         <SidebarContent className="p-2">
@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SidebarTrigger />
            <div className="flex items-center gap-2">
             <Languages className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-headline font-bold">RYDER</h1>
+            <h1 className="text-xl font-headline font-bold bg-gradient-to-r from-primary to-cyan-400 text-transparent bg-clip-text">RYDER</h1>
           </div>
         </header>
         <main>{children}</main>
