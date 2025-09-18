@@ -19,7 +19,7 @@ export default function VocabularyPage() {
           open={isAddDialogOpen}
           onOpenChange={setIsAddDialogOpen}
         >
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button onClick={() => setIsAddDialogOpen(true)} variant="default">
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Word
           </Button>
