@@ -36,7 +36,7 @@ export function ChatbotUI() {
     { role: 'assistant', content: 'Hello! How can I help you with your language learning today?' }
   ]);
   const { toast } = useToast();
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(formSchema),
@@ -46,8 +46,8 @@ export function ChatbotUI() {
   });
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth'});
+    if (scrollViewportRef.current) {
+        scrollViewportRef.current.scrollTo({ top: scrollViewportRef.current.scrollHeight, behavior: 'smooth'});
     }
   }, [messages])
 
@@ -75,23 +75,23 @@ export function ChatbotUI() {
   };
 
   return (
-    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-4xl">
-        <ScrollArea className="flex-grow p-4 md:p-6" ref={scrollAreaRef}>
+    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-4xl bg-card rounded-t-xl shadow-lg">
+        <ScrollArea className="flex-grow p-4 md:p-6" viewportRef={scrollViewportRef}>
             <div className="space-y-6">
                 {messages.map((message, index) => (
                     <div key={index} className={cn("flex items-start gap-4", message.role === 'user' ? 'justify-end' : '')}>
                         {message.role === 'assistant' && (
-                             <Avatar className="h-8 w-8 border-2 border-primary/50">
+                             <Avatar className="h-9 w-9 border-2 border-primary/50">
                                 <AvatarFallback className="bg-primary/20 text-primary">
                                     <Bot className="h-5 w-5"/>
                                 </AvatarFallback>
                              </Avatar>
                         )}
-                         <div className={cn("max-w-[75%] rounded-lg p-3 text-sm", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                         <div className={cn("max-w-[80%] rounded-xl p-3 px-4 text-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)]", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none')}>
                             {message.content}
                          </div>
                          {message.role === 'user' && (
-                             <Avatar className="h-8 w-8 border-2">
+                             <Avatar className="h-9 w-9 border-2">
                                 <AvatarFallback>
                                     <User className="h-5 w-5"/>
                                 </AvatarFallback>
@@ -101,19 +101,19 @@ export function ChatbotUI() {
                 ))}
                  {isLoading && (
                     <div className="flex items-start gap-4">
-                        <Avatar className="h-8 w-8 border-2 border-primary/50">
+                        <Avatar className="h-9 w-9 border-2 border-primary/50">
                             <AvatarFallback className="bg-primary/20 text-primary">
                                 <Bot className="h-5 w-5"/>
                             </AvatarFallback>
                         </Avatar>
-                        <div className="max-w-[75%] rounded-lg p-3 text-sm bg-muted flex items-center">
+                        <div className={cn("rounded-xl p-3 px-4 text-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)]", 'bg-background rounded-bl-none flex items-center')}>
                             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                         </div>
                     </div>
                 )}
             </div>
         </ScrollArea>
-        <div className="p-4 md:p-6 border-t bg-background flex-shrink-0">
+        <div className="p-4 md:p-6 border-t bg-background/80 backdrop-blur-sm flex-shrink-0 rounded-b-xl">
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-4">
             <FormField
@@ -126,13 +126,14 @@ export function ChatbotUI() {
                             placeholder="Ask about translations, definitions, grammar..."
                             {...field}
                             disabled={isLoading}
+                            className="h-11 text-base rounded-full px-5"
                         />
                         </FormControl>
                     </FormItem>
                 )}
                 />
-                <Button type="submit" disabled={isLoading} size="icon">
-                    <Send className="h-4 w-4" />
+                <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-11 h-11 shrink-0 bg-accent hover:bg-accent/90">
+                    <Send className="h-5 w-5" />
                 </Button>
             </form>
             </Form>

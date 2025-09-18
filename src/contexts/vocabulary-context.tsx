@@ -7,6 +7,7 @@ interface VocabularyContextType {
   vocabulary: VocabularyItem[];
   addVocabularyItem: (item: VocabularyItem) => void;
   removeVocabularyItem: (id: string) => void;
+  updateVocabularyItem: (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => void;
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
   getFolders: () => string[];
@@ -79,15 +80,22 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const removeVocabularyItem = (id: string) => {
     setVocabulary((prev) => prev.filter((item) => item.id !== id));
   }
+  
+  const updateVocabularyItem = (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => {
+    setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+  }
 
   const getFolders = () => {
-    const folders = new Set(vocabulary.map(item => item.folder));
+    const folders = new Set(vocabulary.map(item => item.folder).filter(Boolean));
+    if (!folders.has("Basics")) {
+        folders.add("Basics");
+    }
     return Array.from(folders);
   }
 
   return (
     <VocabularyContext.Provider
-      value={{ vocabulary, addVocabularyItem, removeVocabularyItem, isLoading, setIsLoading, getFolders }}
+      value={{ vocabulary, addVocabularyItem, removeVocabularyItem, updateVocabularyItem, isLoading, setIsLoading, getFolders }}
     >
       {children}
     </VocabularyContext.Provider>

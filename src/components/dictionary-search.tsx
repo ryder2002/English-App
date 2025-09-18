@@ -21,23 +21,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getVocabularyDetailsAction } from "@/app/actions";
-import { Loader2, Search } from "lucide-react";
-import type { Language, VocabularyItem } from "@/lib/types";
+import { dictionaryLookupAction } from "@/app/actions";
+import { ArrowRightLeft, Languages, Loader2, Search } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { GenerateVocabularyDetailsOutput } from "@/ai/flows/generate-vocabulary-details";
+
+const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
 const formSchema = z.object({
   word: z.string().min(1, { message: "Word cannot be empty." }),
-  language: z.enum(["english", "chinese"], {
-    required_error: "Please select a language.",
-  }),
+  sourceLanguage: languageEnum,
+  targetLanguage: languageEnum,
+}).refine(data => data.sourceLanguage !== data.targetLanguage, {
+    message: "Source and target languages must be different.",
+    path: ["targetLanguage"],
 });
 
 type DictionaryFormValues = z.infer<typeof formSchema>;
 
-type SearchResult = Omit<VocabularyItem, "id">;
+type SearchResult = GenerateVocabularyDetailsOutput & {
+  originalWord: string,
+  sourceLanguage: z.infer<typeof languageEnum>,
+};
 
 export function DictionarySearch() {
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +55,8 @@ export function DictionarySearch() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       word: "",
-      language: "english",
+      sourceLanguage: "english",
+      targetLanguage: "vietnamese",
     },
   });
 
@@ -56,14 +64,15 @@ export function DictionarySearch() {
     setIsLoading(true);
     setResult(null);
     try {
-      const details = await getVocabularyDetailsAction(
-        values.word,
-        values.language as Language
-      );
-      setResult({
+      const details = await dictionaryLookupAction({
         word: values.word,
-        language: values.language as Language,
+        sourceLanguage: values.sourceLanguage,
+        targetLanguage: values.targetLanguage
+      });
+      setResult({
         ...details,
+        originalWord: values.word,
+        sourceLanguage: values.sourceLanguage,
       });
     } catch (error) {
       console.error(error);
@@ -78,14 +87,26 @@ export function DictionarySearch() {
     }
   };
 
+  const swapLanguages = () => {
+    const source = form.getValues("sourceLanguage");
+    const target = form.getValues("targetLanguage");
+    form.setValue("sourceLanguage", target);
+    form.setValue("targetLanguage", source);
+  }
+  
+  const languageOptions = [
+      {value: 'english', label: 'English'},
+      {value: 'chinese', label: 'Chinese'},
+      {value: 'vietnamese', label: 'Vietnamese'}
+  ]
+
   return (
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardContent className="p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
+              <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="word"
@@ -94,7 +115,7 @@ export function DictionarySearch() {
                         <FormLabel>Word to look up</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="e.g., benevolent or 善良"
+                            placeholder="e.g., benevolent, 善良, or tốt bụng"
                             {...field}
                           />
                         </FormControl>
@@ -102,31 +123,57 @@ export function DictionarySearch() {
                       </FormItem>
                     )}
                   />
+                <div className="flex items-end gap-2">
+                    <FormField
+                    control={form.control}
+                    name="sourceLanguage"
+                    render={({ field }) => (
+                        <FormItem className="flex-1">
+                        <FormLabel>From</FormLabel>
+                        <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                        >
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a language" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {languageOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={swapLanguages} className="shrink-0">
+                        <ArrowRightLeft className="h-4 w-4" />
+                    </Button>
+                    <FormField
+                    control={form.control}
+                    name="targetLanguage"
+                    render={({ field }) => (
+                        <FormItem className="flex-1">
+                        <FormLabel>To</FormLabel>
+                        <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                        >
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a language" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {languageOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="language"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Language</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a language" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="english">English</SelectItem>
-                          <SelectItem value="chinese">Chinese</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <Button type="submit" disabled={isLoading} className="w-full">
@@ -151,20 +198,40 @@ export function DictionarySearch() {
       {result && (
         <Card className="mt-8 animate-in fade-in duration-500">
           <CardHeader>
-            <CardTitle className="flex items-center gap-4">
-              <span className="text-3xl font-bold font-headline">{result.word}</span>
-              <Badge variant={result.language === 'english' ? 'secondary' : 'outline'}>{result.language}</Badge>
+            <CardTitle className="flex items-center justify-between">
+                <div className="flex items-baseline gap-4">
+                    <span className="text-3xl font-bold font-headline">{result.originalWord}</span>
+                    <Badge variant={result.sourceLanguage === 'english' ? 'secondary' : 'outline'}>{result.sourceLanguage}</Badge>
+                </div>
             </CardTitle>
+             <CardDescription className="!mt-4 text-lg">
+                <p className="font-semibold text-muted-foreground">Translation</p>
+                <p className="text-2xl text-primary">{result.translation}</p>
+             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-lg">
-            <div>
-              <p className="font-semibold text-muted-foreground">Vietnamese</p>
-              <p className="text-2xl text-primary">{result.vietnameseTranslation}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-muted-foreground">Pronunciation</p>
-              <p>{result.ipa || result.pinyin}</p>
-            </div>
+          <CardContent className="space-y-6 text-lg">
+            
+            {(result.ipa || result.pinyin) && (
+                <div>
+                    <p className="font-semibold text-muted-foreground">Pronunciation</p>
+                    <p>{result.ipa || result.pinyin}</p>
+                </div>
+            )}
+            
+            {result.examples && result.examples.length > 0 && (
+                <div>
+                    <p className="font-semibold text-muted-foreground mb-2">Examples</p>
+                    <div className="space-y-4 text-base">
+                        {result.examples.map((ex, index) => (
+                            <div key={index} className="p-3 rounded-md border bg-muted/50">
+                                <p className="font-medium">{ex.source}</p>
+                                <p className="text-muted-foreground italic">{ex.target}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
           </CardContent>
         </Card>
       )}

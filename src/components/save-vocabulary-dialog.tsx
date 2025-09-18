@@ -32,7 +32,7 @@ import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useToast } from "@/hooks/use-toast";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
-import type { Language } from "@/lib/types";
+import type { Language, VocabularyItem } from "@/lib/types";
 import {
   Command,
   CommandEmpty,
@@ -44,7 +44,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   word: z.string().min(1, { message: "Word cannot be empty." }),
@@ -54,24 +54,26 @@ const formSchema = z.object({
   folder: z.string().min(1, { message: "Folder cannot be empty." }),
 });
 
-type AddVocabularyFormValues = z.infer<typeof formSchema>;
+type SaveVocabularyFormValues = z.infer<typeof formSchema>;
 
-interface AddVocabularyDialogProps {
+interface SaveVocabularyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  itemToEdit?: VocabularyItem | null;
 }
 
-export function AddVocabularyDialog({
+export function SaveVocabularyDialog({
   open,
   onOpenChange,
-}: AddVocabularyDialogProps) {
-  const { addVocabularyItem, isLoading, setIsLoading, getFolders } =
+  itemToEdit,
+}: SaveVocabularyDialogProps) {
+  const { addVocabularyItem, updateVocabularyItem, isLoading, setIsLoading, getFolders } =
     useVocabulary();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);
   const folders = getFolders();
 
-  const form = useForm<AddVocabularyFormValues>({
+  const form = useForm<SaveVocabularyFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       word: "",
@@ -80,24 +82,63 @@ export function AddVocabularyDialog({
     },
   });
 
-  const onSubmit = async (values: AddVocabularyFormValues) => {
+  useEffect(() => {
+    if (itemToEdit) {
+      form.reset({
+        word: itemToEdit.word,
+        language: itemToEdit.language,
+        folder: itemToEdit.folder,
+      });
+    } else {
+      form.reset({
+        word: "",
+        language: "english",
+        folder: "Basics",
+      });
+    }
+  }, [itemToEdit, form, open]);
+
+
+  const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsLoading(true);
     try {
-      const details = await getVocabularyDetailsAction(
-        values.word,
-        values.language as Language
-      );
-      addVocabularyItem({
-        id: new Date().toISOString(),
-        word: values.word,
-        language: values.language as Language,
-        folder: values.folder,
-        ...details,
-      });
-      toast({
-        title: "Success!",
-        description: `"${values.word}" has been added to your vocabulary.`,
-      });
+      if (itemToEdit) {
+        // Update existing item
+        const details = await getVocabularyDetailsAction(
+            values.word,
+            values.language as Language
+        );
+        updateVocabularyItem(itemToEdit.id, {
+          word: values.word,
+          language: values.language as Language,
+          folder: values.folder,
+          vietnameseTranslation: details.translation,
+          ipa: details.ipa,
+          pinyin: details.pinyin,
+        });
+        toast({
+            title: "Success!",
+            description: `"${values.word}" has been updated.`,
+          });
+      } else {
+        // Add new item
+        const details = await getVocabularyDetailsAction(
+            values.word,
+            values.language as Language
+        );
+        addVocabularyItem({
+            id: new Date().toISOString(),
+            word: values.word,
+            language: values.language as Language,
+            folder: values.folder,
+            vietnameseTranslation: details.translation,
+            ...details,
+        });
+        toast({
+            title: "Success!",
+            description: `"${values.word}" has been added to your vocabulary.`,
+        });
+      }
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -105,20 +146,23 @@ export function AddVocabularyDialog({
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",
-        description: "There was a problem adding your word. Please try again.",
+        description: "There was a problem saving your word. Please try again.",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const dialogTitle = itemToEdit ? "Edit Word" : "Add New Word";
+  const buttonText = itemToEdit ? "Save Changes" : "Add Word";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Word</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            Enter a word and our AI will handle the rest.
+            {itemToEdit ? "Update the details of your word." : "Enter a word and our AI will handle the rest."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -145,6 +189,7 @@ export function AddVocabularyDialog({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -238,7 +283,7 @@ export function AddVocabularyDialog({
                 {isLoading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Add Word
+                {buttonText}
               </Button>
             </DialogFooter>
           </form>

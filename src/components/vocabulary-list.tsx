@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "./ui/button";
-import { Folder, Trash2 } from "lucide-react";
+import { Folder, MoreVertical, Trash2, Edit } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -21,11 +21,33 @@ import {
   AccordionTrigger,
 } from "./ui/accordion";
 import type { VocabularyItem } from "@/lib/types";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export function VocabularyList() {
   const { vocabulary, removeVocabularyItem } = useVocabulary();
   const isMobile = useIsMobile();
+  const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+
+  const handleEdit = (item: VocabularyItem) => {
+    setItemToEdit(item);
+    setIsSaveDialogOpen(true);
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    setIsSaveDialogOpen(open);
+    if (!open) {
+      setItemToEdit(null);
+    }
+  };
+
 
   const groupedVocabulary = useMemo(() => {
     return vocabulary.reduce((acc, item) => {
@@ -50,6 +72,7 @@ export function VocabularyList() {
   }
 
   const vocabularyContent = (
+    <>
     <Accordion type="multiple" defaultValue={Object.keys(groupedVocabulary)} className="w-full">
       {Object.entries(groupedVocabulary).map(([folder, items]) => (
         <AccordionItem value={folder} key={folder}>
@@ -64,7 +87,7 @@ export function VocabularyList() {
             {isMobile ? (
               <div className="space-y-2 pt-2">
                 {items.map((item) => (
-                  <Card key={item.id}>
+                  <Card key={item.id} onClick={() => handleEdit(item)} className="cursor-pointer">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
@@ -73,13 +96,21 @@ export function VocabularyList() {
                             {item.vietnameseTranslation}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeVocabularyItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                    <Edit className="mr-2 h-4 w-4"/> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <div className="mt-2 text-sm space-y-1">
                         <Badge
@@ -118,7 +149,7 @@ export function VocabularyList() {
                       </TableHeader>
                       <TableBody>
                         {items.map((item) => (
-                          <TableRow key={item.id}>
+                          <TableRow key={item.id} onClick={() => handleEdit(item)} className="cursor-pointer">
                             <TableCell className="font-medium">
                               {item.word}
                             </TableCell>
@@ -136,13 +167,21 @@ export function VocabularyList() {
                             <TableCell>{item.ipa || item.pinyin}</TableCell>
                             <TableCell>{item.vietnameseTranslation}</TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeVocabularyItem(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                              </Button>
+                               <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                            <Edit className="mr-2 h-4 w-4"/> Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -155,6 +194,12 @@ export function VocabularyList() {
         </AccordionItem>
       ))}
     </Accordion>
+    <SaveVocabularyDialog 
+        open={isSaveDialogOpen}
+        onOpenChange={handleDialogChange}
+        itemToEdit={itemToEdit}
+    />
+    </>
   );
 
   return vocabularyContent;
