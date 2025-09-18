@@ -71,7 +71,7 @@ export function LoginForm() {
 
   return (
     <div className="animated-gradient-border">
-      <Card className="w-full max-w-sm min-h-[520px]">
+      <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
               <div className="flex items-center gap-2 justify-center mb-2">
                   <div className="p-2 rounded-lg bg-primary/20 text-primary">
