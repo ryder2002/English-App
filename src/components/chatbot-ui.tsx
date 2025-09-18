@@ -75,7 +75,7 @@ export function ChatbotUI() {
   };
 
   return (
-    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-4xl bg-card rounded-t-xl shadow-lg">
+    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-4xl bg-card rounded-t-xl shadow-lg border">
         <ScrollArea className="flex-grow p-4 md:p-6" viewportRef={scrollViewportRef}>
             <div className="space-y-6">
                 {messages.map((message, index) => (
@@ -87,8 +87,8 @@ export function ChatbotUI() {
                                 </AvatarFallback>
                              </Avatar>
                         )}
-                         <div className={cn("max-w-[80%] rounded-xl p-3 px-4 text-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)]", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none')}>
-                            {message.content}
+                         <div className={cn("max-w-[80%] rounded-xl p-3 px-4 text-sm shadow-md", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
+                            <div className="prose prose-sm prose-invert" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br />') }} />
                          </div>
                          {message.role === 'user' && (
                              <Avatar className="h-9 w-9 border-2">
@@ -106,7 +106,7 @@ export function ChatbotUI() {
                                 <Bot className="h-5 w-5"/>
                             </AvatarFallback>
                         </Avatar>
-                        <div className={cn("rounded-xl p-3 px-4 text-sm shadow-[0_4px_12px_rgba(0,0,0,0.05)]", 'bg-background rounded-bl-none flex items-center')}>
+                        <div className={cn("rounded-xl p-3 px-4 text-sm shadow-md", 'bg-secondary rounded-bl-none flex items-center')}>
                             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                         </div>
                     </div>
@@ -126,13 +126,13 @@ export function ChatbotUI() {
                             placeholder="Hỏi về bản dịch, định nghĩa, ngữ pháp..."
                             {...field}
                             disabled={isLoading}
-                            className="h-11 text-base rounded-full px-5"
+                            className="h-11 text-base rounded-full px-5 bg-card/50"
                         />
                         </FormControl>
                     </FormItem>
                 )}
                 />
-                <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-11 h-11 shrink-0 bg-accent hover:bg-accent/90">
+                <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-11 h-11 shrink-0 bg-primary hover:bg-primary/90">
                     <Send className="h-5 w-5" />
                 </Button>
             </form>

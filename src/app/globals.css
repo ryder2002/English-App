@@ -4,73 +4,73 @@
 
 @layer base {
   :root {
-    --background: 220 20% 96%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 60% 98%; /* Light cool blue */
+    --foreground: 224 71% 4%; /* Dark blue */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 71% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 210 40% 50%;
-    --primary-foreground: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 190 81% 48%; /* Bright Teal */
+    --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 90%;
     --secondary-foreground: 210 40% 25%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 24 94% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 190 70% 60%; /* Lighter Teal for accents */
+    --accent-foreground: 224 71% 4%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 210 20% 85%;
     --input: 210 20% 85%;
-    --ring: 210 40% 50%;
+    --ring: 190 81% 48%;
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --sidebar-background: 220 15% 15%;
+    --sidebar-background: 224 71% 15%; /* Deep Indigo */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 25%;
+    --sidebar-primary: 190 81% 60%; /* Bright Teal for active items */
+    --sidebar-primary-foreground: 224 71% 10%;
+    --sidebar-accent: 224 71% 25%; /* Slightly lighter Indigo for hover */
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 220 15% 25%;
-    --sidebar-ring: 210 40% 50%;
+    --sidebar-border: 224 71% 20%;
+    --sidebar-ring: 190 81% 48%;
   }
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 0 0% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 210 40% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 217.2 32.6% 17.5%;
+    --background: 224 71% 10%; /* Deep Indigo: #10162A */
+    --foreground: 210 40% 98%; /* Almost white */
+    --card: 224 71% 12%; /* Slightly lighter indigo */
+    --card-foreground: 210 40% 98%;
+    --popover: 224 71% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 180 81% 48%; /* Cyan */
+    --primary-foreground: 224 71% 4%; /* Dark Blue */
+    --secondary: 224 71% 15%; 
+    --secondary-foreground: 210 40% 98%;
+    --muted: 224 71% 15%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 24 94% 50%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 210 40% 50%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
+    --accent: 180 81% 48%; /* Cyan */
+    --accent-foreground: 224 71% 4%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 224 71% 15%;
+    --input: 224 71% 15%;
+    --ring: 180 81% 48%;
+    --chart-1: 180 70% 50%;
+    --chart-2: 210 60% 45%;
+    --chart-3: 160 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 220 15% 15%;
+    --sidebar-background: 224 71% 10%; /* Same as main background */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 25%;
+    --sidebar-primary: 180 81% 48%; /* Cyan for active items */
+    --sidebar-primary-foreground: 224 71% 4%;
+    --sidebar-accent: 224 71% 15%; /* Lighter Indigo for hover */
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 220 15% 25%;
-    --sidebar-ring: 210 40% 50%;
+    --sidebar-border: 224 71% 15%;
+    --sidebar-ring: 180 81% 48%;
   }
 }
 
