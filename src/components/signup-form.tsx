@@ -70,68 +70,70 @@ export function SignupForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-             <div className="flex items-center gap-2 justify-center mb-2">
-                <div className="p-2 rounded-lg bg-primary/20 text-primary">
-                <Languages className="h-6 w-6" />
-                </div>
-                <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">RYDER</h1>
-            </div>
-            <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
-            <CardDescription>Bắt đầu hành trình học ngôn ngữ của bạn.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="ten@email.com"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mật khẩu</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Ít nhất 6 ký tự"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Tạo tài khoản
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter className="flex justify-center text-sm">
-            <p>Đã có tài khoản?&nbsp;</p>
-            <Link href="/login" className="font-medium text-primary hover:underline">
-                Đăng nhập
-            </Link>
-        </CardFooter>
-      </Card>
+    <div className="animated-gradient-border">
+      <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+              <div className="flex items-center gap-2 justify-center mb-2">
+                  <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                  <Languages className="h-6 w-6" />
+                  </div>
+                  <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">RYDER</h1>
+              </div>
+              <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
+              <CardDescription>Bắt đầu hành trình học ngôn ngữ của bạn.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="ten@email.com"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mật khẩu</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Ít nhất 6 ký tự"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={isLoading} className="w-full">
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Tạo tài khoản
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex justify-center text-sm">
+              <p>Đã có tài khoản?&nbsp;</p>
+              <Link href="/login" className="font-medium text-primary hover:underline">
+                  Đăng nhập
+              </Link>
+          </CardFooter>
+        </Card>
+    </div>
   );
 }

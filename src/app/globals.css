@@ -81,3 +81,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .animated-gradient-border {
+    @apply relative rounded-xl p-px;
+    background: linear-gradient(60deg, hsl(var(--primary) / 0.5), hsl(var(--primary)) 50%, hsl(var(--primary) / 0.5) 100%);
+    animation: gradient-spin 4s linear infinite;
+  }
+
+  .animated-gradient-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: conic-gradient(from var(--angle, 0deg), hsl(var(--primary) / 0.8), hsl(var(--accent) / 0.9), hsl(var(--primary) / 0.8));
+    border-radius: inherit; /* Use the parent's border-radius */
+    animation: gradient-spin 4s linear infinite;
+    z-index: -1;
+  }
+}
+
+@keyframes gradient-spin {
+  0% {
+    --angle: 0deg;
+  }
+  100% {
+    --angle: 360deg;
+  }
+}
