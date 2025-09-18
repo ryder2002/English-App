@@ -69,13 +69,17 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
 
-            // Add folders and words to DB
+            // Add folders and words to DB sequentially and safely
             await Promise.all(sampleFolders.map(folder => dbAddFolder(folder, user.uid)));
-            const newWords = await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
+            await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
 
-            // Update local state
-            folderData = sampleFolders;
-            vocabData = newWords;
+            // Fetch the newly created data to ensure UI consistency
+            const [newVocabData, newFolderData] = await Promise.all([
+                getVocabulary(user.uid),
+                getFolders(user.uid),
+            ]);
+            vocabData = newVocabData;
+            folderData = newFolderData;
         }
         
         setFolders(folderData.sort());
