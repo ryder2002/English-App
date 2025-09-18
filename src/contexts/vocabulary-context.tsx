@@ -39,7 +39,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start as true to show initial loading
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         if (!user) {
             setVocabulary([]);
             setFolders([]);
-            setIsLoading(false);
+            setIsLoading(false); // Not loading if no user
             return;
         }
 
@@ -57,9 +57,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 getVocabulary(user.uid),
                 getFolders(user.uid)
             ]);
+            
             setVocabulary(vocabData);
             
             if (folderData.length === 0) {
+              // If no folders exist, create a default one
               const defaultFolder = "Cơ bản";
               await dbAddFolder(defaultFolder, user.uid);
               setFolders([defaultFolder]);
@@ -74,7 +76,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 description: "Không thể tải từ vựng và thư mục từ cơ sở dữ liệu.",
             });
         } finally {
-            setIsLoading(false);
+            setIsLoading(false); // Always set loading to false after fetching
         }
     };
     
@@ -134,14 +136,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   
   const addFolder = async (folderName: string) => {
     if (!user) return;
+    if (folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
+        toast({ variant: "destructive", title: "Thư mục đã tồn tại" });
+        return;
+    }
     setIsLoading(true);
     try {
-        if (!folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
-            await dbAddFolder(folderName, user.uid);
-            setFolders(prev => [...prev, folderName].sort());
-        } else {
-            toast({ variant: "destructive", title: "Thư mục đã tồn tại" });
-        }
+        await dbAddFolder(folderName, user.uid);
+        setFolders(prev => [...prev, folderName].sort());
     } catch (error) {
         console.error("Lỗi khi thêm thư mục:", error);
         toast({ variant: "destructive", title: "Lỗi thêm thư mục" });
@@ -168,6 +170,10 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   const updateFolder = async (oldName: string, newName: string) => {
     if (!user) return;
+    if (folders.find(f => f.toLowerCase() === newName.toLowerCase() && f.toLowerCase() !== oldName.toLowerCase())) {
+        toast({ variant: "destructive", title: "Tên thư mục đã được sử dụng." });
+        return;
+    }
     setIsLoading(true);
     try {
         await dbUpdateFolder(oldName, newName, user.uid);

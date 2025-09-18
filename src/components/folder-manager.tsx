@@ -10,7 +10,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "./ui/form";
 import { Input } from "./ui/input";
@@ -41,37 +40,34 @@ export function FolderManager() {
       folderName: "",
     },
   });
+  
+  const editForm = useForm<FolderFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      folderName: "",
+    },
+  });
 
   const onAddSubmit = async (values: FolderFormValues) => {
-    if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase())) {
-        form.setError("folderName", { message: "Thư mục đã tồn tại." });
-        return;
-    }
     await addFolder(values.folderName);
-    toast({ title: `Thư mục "${values.folderName}" đã được tạo.` });
     form.reset();
     setIsAdding(false);
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
-    if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase() && f.toLowerCase() !== oldName.toLowerCase())) {
-        form.setError("folderName", { message: "Tên thư mục đã được sử dụng." });
-        return;
-    }
     await updateFolder(oldName, values.folderName);
-    toast({ title: `Thư mục "${oldName}" đã được đổi tên thành "${values.folderName}".` });
     setEditingFolder(null);
-    form.reset();
+    editForm.reset();
   };
 
   const startEditing = (name: string) => {
     setEditingFolder(name);
-    form.setValue("folderName", name);
+    editForm.setValue("folderName", name);
   };
   
   const cancelEditing = () => {
     setEditingFolder(null);
-    form.reset();
+    editForm.reset();
   }
 
   const wordsInFolder = (folderName: string) => {
@@ -87,7 +83,7 @@ export function FolderManager() {
       });
   }
 
-  if (isLoading) {
+  if (isLoading && folders.length === 0) {
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             <Skeleton className="h-14 w-full" />
@@ -113,7 +109,7 @@ export function FolderManager() {
                         render={({ field }) => (
                             <FormItem className="flex-grow">
                                 <FormControl>
-                                    <Input placeholder="Tên thư mục mới..." {...field} disabled={isLoading} />
+                                    <Input autoFocus placeholder="Tên thư mục mới..." {...field} disabled={isLoading} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -142,15 +138,15 @@ export function FolderManager() {
             editingFolder === folder ? (
                 <Card key={folder}>
                     <CardContent className="p-4">
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit((values) => onEditSubmit(folder, values))} className="flex items-center gap-2">
+                        <Form {...editForm}>
+                            <form onSubmit={editForm.handleSubmit((values) => onEditSubmit(folder, values))} className="flex items-center gap-2">
                                 <FormField
-                                control={form.control}
+                                control={editForm.control}
                                 name="folderName"
                                 render={({ field }) => (
                                     <FormItem className="flex-grow">
                                         <FormControl>
-                                            <Input {...field} disabled={isLoading}/>
+                                            <Input autoFocus {...field} disabled={isLoading}/>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -180,12 +176,12 @@ export function FolderManager() {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => startEditing(folder)}>
+                            <DropdownMenuItem onClick={() => startEditing(folder)} disabled={isLoading}>
                                 <Edit className="mr-2 h-4 w-4"/> Đổi tên
                             </DropdownMenuItem>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative">
+                                    <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative" disabled={isLoading}>
                                          <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                     </Button>
                                 </AlertDialogTrigger>

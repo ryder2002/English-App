@@ -93,7 +93,7 @@ export function VocabularyList() {
     }, {} as Record<string, VocabularyItem[]>);
   }, [vocabulary]);
 
-  if (isLoading) {
+  if (isLoading && vocabulary.length === 0) {
     return (
         <div className="space-y-4">
             <Skeleton className="h-12 w-1/3" />
@@ -106,7 +106,7 @@ export function VocabularyList() {
     )
   }
 
-  if (vocabulary.length === 0) {
+  if (vocabulary.length === 0 && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg bg-card">
         <p className="text-muted-foreground">Danh sách từ vựng của bạn trống.</p>
@@ -123,7 +123,7 @@ export function VocabularyList() {
     vietnamese: 'Tiếng Việt',
   };
 
-  const vocabularyContent = (
+  return (
     <>
     <Accordion type="multiple" defaultValue={Object.keys(groupedVocabulary)} className="w-full">
       {Object.entries(groupedVocabulary).sort(([folderA], [folderB]) => folderA.localeCompare(folderB)).map(([folder, items]) => (
@@ -155,15 +155,15 @@ export function VocabularyList() {
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} disabled={isLoading}>
                                     <MoreVertical className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                <DropdownMenuItem onClick={() => handleEdit(item)} disabled={isLoading}>
                                     <Edit className="mr-2 h-4 w-4"/> Sửa
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
+                                <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive" disabled={isLoading}>
                                     <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -231,15 +231,15 @@ export function VocabularyList() {
                             <TableCell className="text-right pr-4">
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} disabled={isLoading}>
                                             <MoreVertical className="h-4 w-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                        <DropdownMenuItem onClick={() => handleEdit(item)} disabled={isLoading}>
                                             <Edit className="mr-2 h-4 w-4"/> Sửa
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
+                                        <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive" disabled={isLoading}>
                                             <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -263,6 +263,4 @@ export function VocabularyList() {
     />
     </>
   );
-
-  return vocabularyContent;
 }
