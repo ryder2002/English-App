@@ -48,7 +48,7 @@ export function SignupForm() {
     try {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
       toast({
-        title: "Tạo tài khoản thành công!",
+        title: "Tạo tài khoản thành công-!",
         description: "Chào mừng bạn đến với RYDER.",
       });
       router.push("/");
