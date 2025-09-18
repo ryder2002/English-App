@@ -50,15 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const value = { user, isLoading, signOut };
     
-    // Render a loading state or nothing while checking auth state
-    // to prevent flicker or showing protected content momentarily
-    if (isLoading || (!user && !publicRoutes.includes(pathname))) {
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center h-screen bg-background">
                 {/* You can replace this with a more sophisticated loading spinner */}
             </div>
         );
     }
+
 
     return (
         <AuthContext.Provider value={value}>

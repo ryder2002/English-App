@@ -29,7 +29,7 @@ interface VocabularyContextType {
   removeFolder: (folderName: string) => Promise<void>;
   updateFolder: (oldName: string, newName: string) => Promise<void>;
   isLoading: boolean;
-  isDataReady: boolean; // New state to track if initial data has been loaded
+  isDataReady: boolean;
 }
 
 const VocabularyContext = createContext<VocabularyContextType | undefined>(
@@ -41,20 +41,20 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDataReady, setIsDataReady] = useState(false); // Initialize as false
+  const [isDataReady, setIsDataReady] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
         if (!user) {
-            // If there's no user, reset state and mark as ready
             setVocabulary([]);
             setFolders([]);
-            setIsDataReady(true);
+            setIsDataReady(false);
             return;
         }
 
         setIsLoading(true);
+        setIsDataReady(false);
         try {
             const [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
@@ -78,20 +78,12 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             });
         } finally {
             setIsLoading(false);
-            setIsDataReady(true); // Mark data as ready after fetch attempt
+            setIsDataReady(true);
         }
     };
     
-    // Only fetch if we have a user and data isn't ready yet.
-    if (user && !isDataReady) {
-        fetchData();
-    } else if (!user) {
-        // Handle logout: reset state
-        setVocabulary([]);
-        setFolders([]);
-        setIsDataReady(false); // Reset for the next user
-    }
-  }, [user, isDataReady, toast]);
+    fetchData();
+  }, [user, toast]);
   
 
   const addVocabularyItem = async (item: Omit<VocabularyItem, "id" | "createdAt">) => {
