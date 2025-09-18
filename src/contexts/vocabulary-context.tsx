@@ -47,7 +47,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchData = async () => {
         if (!user) {
-            // Clear data when user logs out
             setVocabulary([]);
             setFolders([]);
             setIsDataReady(false);
@@ -55,14 +54,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         };
 
         setIsLoading(true);
-        setIsDataReady(false);
+        setIsDataReady(false); // Reset readiness state
         try {
             const [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
                 getFolders(user.uid)
             ]);
             setVocabulary(vocabData);
-            // Add a default folder if none exist
+            
             if (folderData.length === 0) {
               const defaultFolder = "Cơ bản";
               await dbAddFolder(defaultFolder, user.uid);
@@ -90,23 +89,29 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-        // If folder is new, add it to the folders list and DB
         if (!folders.includes(item.folder)) {
             await dbAddFolder(item.folder, user.uid);
-            setFolders(prev => [item.folder, ...prev]);
+            setFolders(prev => [...prev, item.folder].sort());
         }
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev]);
+    } catch (error) {
+         console.error("Lỗi khi thêm từ vựng:", error);
+         toast({ variant: "destructive", title: "Lỗi thêm từ vựng" });
     } finally {
         setIsLoading(false);
     }
   };
 
   const removeVocabularyItem = async (id: string) => {
+    if (!user) return;
     setIsLoading(true);
     try {
         await dbDeleteVocabularyItem(id);
         setVocabulary((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+        console.error("Lỗi khi xóa từ vựng:", error);
+        toast({ variant: "destructive", title: "Lỗi xóa từ vựng" });
     } finally {
         setIsLoading(false);
     }
@@ -116,13 +121,15 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-        // If folder is new, add it to the folders list and DB
         if (updates.folder && !folders.includes(updates.folder)) {
            await dbAddFolder(updates.folder, user.uid);
-           setFolders(prev => [updates.folder!, ...prev]);
+           setFolders(prev => [...prev, updates.folder!].sort());
         }
         await dbUpdateVocabularyItem(id, updates);
         setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
+    } catch (error) {
+        console.error("Lỗi khi cập nhật từ vựng:", error);
+        toast({ variant: "destructive", title: "Lỗi cập nhật từ vựng" });
     } finally {
         setIsLoading(false);
     }
@@ -135,7 +142,12 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         if (!folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
             await dbAddFolder(folderName, user.uid);
             setFolders(prev => [...prev, folderName].sort());
+        } else {
+            toast({ variant: "destructive", title: "Thư mục đã tồn tại" });
         }
+    } catch (error) {
+        console.error("Lỗi khi thêm thư mục:", error);
+        toast({ variant: "destructive", title: "Lỗi thêm thư mục" });
     } finally {
         setIsLoading(false);
     }
@@ -149,6 +161,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         await dbDeleteVocabularyByFolder(folderName, user.uid);
         setFolders(prev => prev.filter(f => f !== folderName));
         setVocabulary(prev => prev.filter(item => item.folder !== folderName));
+    } catch (error) {
+        console.error("Lỗi khi xóa thư mục:", error);
+        toast({ variant: "destructive", title: "Lỗi xóa thư mục" });
     } finally {
         setIsLoading(false);
     }
@@ -162,6 +177,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         await dbUpdateVocabularyFolder(oldName, newName, user.uid);
         setFolders(prev => prev.map(f => (f === oldName ? newName : f)).sort());
         setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
+    } catch (error) {
+        console.error("Lỗi khi cập nhật thư mục:", error);
+        toast({ variant: "destructive", title: "Lỗi cập nhật thư mục" });
     } finally {
         setIsLoading(false);
     }
