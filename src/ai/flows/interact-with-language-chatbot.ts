@@ -40,7 +40,7 @@ IMPORTANT: Always respond in the same language as the user's query. If the user 
 
 Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured.
 - DO NOT use bolding with asterisks (**).
-- Use bullet points with a hyphen (-) for lists, with each item on a new line.
+- Use bullet points with a hyphen (-). CRUCIAL: Each bullet point MUST be on a new line.
 - Use newlines for paragraph breaks.
 
 User Query: {{{query}}}`,
