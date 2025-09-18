@@ -43,11 +43,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This effect handles fetching the initial data when the user logs in,
-    // and clearing data when the user logs out.
     const fetchData = async () => {
         if (!user) {
-            // If there's no user, clear the state and stop loading.
+            // Clear state and stop loading if user logs out
             setVocabulary([]);
             setFolders([]);
             setIsLoading(false);
@@ -63,8 +61,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             
             setVocabulary(vocabData);
             
+            // If the user is new and has no folders, create a default one.
             if (folderData.length === 0) {
-              // If the user has no folders, create a default one.
               const defaultFolder = "Cơ bản";
               await dbAddFolder(defaultFolder, user.uid);
               setFolders([defaultFolder]);
@@ -76,10 +74,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             toast({
                 variant: "destructive",
                 title: "Lỗi tải dữ liệu",
-                description: "Không thể tải từ vựng và thư mục từ cơ sở dữ liệu.",
+                description: "Không thể tải từ vựng và thư mục.",
             });
         } finally {
-            // CRITICAL: Always set loading to false after fetching is complete.
             setIsLoading(false);
         }
     };
@@ -92,14 +89,16 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-        // If the folder for the new item doesn't exist, create it first.
         if (!folders.includes(item.folder)) {
             await dbAddFolder(item.folder, user.uid);
             setFolders(prev => [...prev, item.folder].sort());
         }
         const newItem = await dbAddVocabularyItem(item, user.uid);
-        // Add new item to the top of the list for better UX.
         setVocabulary((prev) => [newItem, ...prev]);
+        toast({
+          title: "Thành công!",
+          description: `"${item.word}" đã được thêm vào từ vựng của bạn.`,
+        });
     } catch (error) {
          console.error("Lỗi khi thêm từ vựng:", error);
          toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm từ vựng." });
@@ -110,15 +109,18 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   const removeVocabularyItem = async (id: string) => {
     if (!user) return;
-    // Optimistically remove the item from UI, but keep it in a temp variable to add it back if the DB call fails.
     const originalVocabulary = [...vocabulary];
     setVocabulary((prev) => prev.filter((item) => item.id !== id));
     try {
         await dbDeleteVocabularyItem(id);
+        toast({
+          title: "Đã xóa từ",
+          description: "Từ vựng đã được xóa khỏi danh sách của bạn.",
+      });
     } catch (error) {
         console.error("Lỗi khi xóa từ vựng:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa từ vựng." });
-        setVocabulary(originalVocabulary); // Revert UI change on failure
+        setVocabulary(originalVocabulary);
     }
   }
   
@@ -126,14 +128,16 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-        // If the item is moved to a new folder that doesn't exist, create it.
         if (updates.folder && !folders.includes(updates.folder)) {
            await dbAddFolder(updates.folder, user.uid);
            setFolders(prev => [...prev, updates.folder!].sort());
         }
         await dbUpdateVocabularyItem(id, updates);
-        // Update the item in the local state.
         setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
+        toast({
+            title: "Thành công!",
+            description: `Từ vựng đã được cập nhật.`,
+          });
     } catch (error) {
         console.error("Lỗi khi cập nhật từ vựng:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
@@ -164,13 +168,15 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-        // This transaction should be atomic on the backend, but we do it in two steps on the client.
         await dbDeleteFolder(folderName, user.uid);
         await dbDeleteVocabularyByFolder(folderName, user.uid);
         
-        // Update local state
         setFolders(prev => prev.filter(f => f !== folderName));
         setVocabulary(prev => prev.filter(item => item.folder !== folderName));
+        toast({
+            title: "Đã xóa thư mục",
+            description: `Thư mục "${folderName}" và các từ trong đó đã được xóa.`,
+        });
     } catch (error) {
         console.error("Lỗi khi xóa thư mục:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa thư mục." });
@@ -187,11 +193,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(true);
     try {
-        // This also needs to be atomic, but is handled in two steps on client.
         await dbUpdateFolder(oldName, newName, user.uid);
         await dbUpdateVocabularyFolder(oldName, newName, user.uid);
 
-        // Update local state
         setFolders(prev => prev.map(f => (f === oldName ? newName : f)).sort());
         setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
     } catch (error) {
