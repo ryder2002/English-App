@@ -29,11 +29,10 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading: isContextLoading } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FolderFormValues>({
     resolver: zodResolver(formSchema),
@@ -43,10 +42,8 @@ export function FolderManager() {
   });
 
   const onAddSubmit = async (values: FolderFormValues) => {
-    setIsSubmitting(true);
     if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase())) {
         form.setError("folderName", { message: "Thư mục đã tồn tại." });
-        setIsSubmitting(false);
         return;
     }
     try {
@@ -56,16 +53,12 @@ export function FolderManager() {
         setIsAdding(false);
     } catch (error) {
         toast({ variant: "destructive", title: "Lỗi tạo thư mục" });
-    } finally {
-        setIsSubmitting(false);
     }
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
-    setIsSubmitting(true);
     if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase() && f.toLowerCase() !== oldName.toLowerCase())) {
         form.setError("folderName", { message: "Tên thư mục đã được sử dụng." });
-        setIsSubmitting(false);
         return;
     }
     try {
@@ -75,8 +68,6 @@ export function FolderManager() {
         form.reset();
     } catch (error) {
          toast({ variant: "destructive", title: "Lỗi đổi tên thư mục" });
-    } finally {
-        setIsSubmitting(false);
     }
   };
 
@@ -109,9 +100,6 @@ export function FolderManager() {
           });
       }
   }
-  
-  // Use a combined loading state for the UI
-  const isLoading = isContextLoading || isSubmitting;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -139,7 +127,7 @@ export function FolderManager() {
                     </form>
                 </Form>
             ) : (
-                <Button onClick={() => setIsAdding(true)} className="w-full" variant="outline">
+                <Button onClick={() => setIsAdding(true)} className="w-full" variant="outline" disabled={isLoading}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Tạo thư mục mới
                 </Button>
