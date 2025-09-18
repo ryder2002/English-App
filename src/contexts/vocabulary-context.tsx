@@ -40,7 +40,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true initially
   const [isDataReady, setIsDataReady] = useState(false);
   const { toast } = useToast();
 
@@ -49,12 +49,13 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         if (!user) {
             setVocabulary([]);
             setFolders([]);
-            setIsDataReady(false);
+            setIsDataReady(true);
+            setIsLoading(false); // Unlock loading state if no user
             return;
         };
 
         setIsLoading(true);
-        setIsDataReady(false); // Reset readiness state
+        setIsDataReady(false);
         try {
             const [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
