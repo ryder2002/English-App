@@ -29,7 +29,7 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, isLoading } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, isLoading, vocabulary } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -79,19 +79,6 @@ export function FolderManager() {
       });
   }
 
-  if (isLoading && folders.length === 0) {
-    return (
-        <div className="max-w-2xl mx-auto space-y-6">
-            <Skeleton className="h-14 w-full" />
-             <div className="space-y-2">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-            </div>
-        </div>
-    )
-  }
-
   return (
     <div className="max-w-2xl mx-auto space-y-6">
        <Card>
@@ -125,85 +112,93 @@ export function FolderManager() {
             )}
         </CardContent>
        </Card>
-      
-      <div className="space-y-2">
-        {folders.length === 0 && !isLoading && (
-             <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
-        )}
-        {folders.map((folder) => (
-            editingFolder === folder ? (
+
+        {isLoading && folders.length === 0 ? (
+            <div className="space-y-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+            </div>
+        ) : (
+          <div className="space-y-2">
+            {folders.length === 0 && !isLoading && (
+                 <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
+            )}
+            {folders.map((folder) => (
+                editingFolder === folder ? (
+                    <Card key={folder}>
+                        <CardContent className="p-4">
+                            <Form {...editForm}>
+                                <form onSubmit={editForm.handleSubmit((values) => onEditSubmit(folder, values))} className="flex items-center gap-2">
+                                    <FormField
+                                    control={editForm.control}
+                                    name="folderName"
+                                    render={({ field }) => (
+                                        <FormItem className="flex-grow">
+                                            <FormControl>
+                                                <Input autoFocus {...field} disabled={isLoading}/>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                    />
+                                    <Button type="submit" disabled={isLoading}>
+                                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu"}
+                                    </Button>
+                                    <Button type="button" variant="ghost" onClick={cancelEditing} disabled={isLoading}>Hủy</Button>
+                                </form>
+                            </Form>
+                        </CardContent>
+                    </Card>
+                ) : (
                 <Card key={folder}>
-                    <CardContent className="p-4">
-                        <Form {...editForm}>
-                            <form onSubmit={editForm.handleSubmit((values) => onEditSubmit(folder, values))} className="flex items-center gap-2">
-                                <FormField
-                                control={editForm.control}
-                                name="folderName"
-                                render={({ field }) => (
-                                    <FormItem className="flex-grow">
-                                        <FormControl>
-                                            <Input autoFocus {...field} disabled={isLoading}/>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
-                                <Button type="submit" disabled={isLoading}>
-                                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu"}
+                    <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Folder className="h-5 w-5 text-primary" />
+                        <span className="font-medium">{folder}</span>
+                        <Badge variant="secondary">{wordsInFolder(folder)}</Badge>
+                    </div>
+                    <div>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" disabled={isLoading}>
+                                    <MoreVertical className="h-4 w-4" />
                                 </Button>
-                                <Button type="button" variant="ghost" onClick={cancelEditing} disabled={isLoading}>Hủy</Button>
-                            </form>
-                        </Form>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => startEditing(folder)} disabled={isLoading}>
+                                    <Edit className="mr-2 h-4 w-4"/> Đổi tên
+                                </DropdownMenuItem>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative" disabled={isLoading}>
+                                             <Trash2 className="mr-2 h-4 w-4"/> Xóa
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Bạn có chắc không?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Thao tác này sẽ xóa thư mục và tất cả {wordsInFolder(folder)} từ trong đó. Hành động này không thể hoàn tác.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleRemoveFolder(folder)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                            Xóa
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                     </CardContent>
                 </Card>
-            ) : (
-            <Card key={folder}>
-                <CardContent className="p-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Folder className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{folder}</span>
-                    <Badge variant="secondary">{wordsInFolder(folder)}</Badge>
-                </div>
-                <div>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={isLoading}>
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => startEditing(folder)} disabled={isLoading}>
-                                <Edit className="mr-2 h-4 w-4"/> Đổi tên
-                            </DropdownMenuItem>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative" disabled={isLoading}>
-                                         <Trash2 className="mr-2 h-4 w-4"/> Xóa
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Bạn có chắc không?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Thao tác này sẽ xóa thư mục và tất cả {wordsInFolder(folder)} từ trong đó. Hành động này không thể hoàn tác.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRemoveFolder(folder)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                        Xóa
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-                </CardContent>
-            </Card>
-            )
-        ))}
-      </div>
+                )
+            ))}
+          </div>
+        )}
     </div>
   );
 }
