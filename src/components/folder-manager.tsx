@@ -30,11 +30,10 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, isLoading: isContextLoading, vocabulary } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, isLoading, vocabulary } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FolderFormValues>({
     resolver: zodResolver(formSchema),
@@ -47,19 +46,15 @@ export function FolderManager() {
   });
 
   const onAddSubmit = async (values: FolderFormValues) => {
-    setIsSubmitting(true);
     await addFolder(values.folderName);
     form.reset();
     setIsAdding(false);
-    setIsSubmitting(false);
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
-    setIsSubmitting(true);
     await updateFolder(oldName, values.folderName);
     setEditingFolder(null);
     editForm.reset();
-    setIsSubmitting(false);
   };
 
   const startEditing = (name: string) => {
@@ -85,13 +80,16 @@ export function FolderManager() {
       });
   }
 
-  const isLoading = isContextLoading || isSubmitting;
-
   return (
     <div className="max-w-2xl mx-auto space-y-6">
        <Card>
         <CardContent className="p-4">
-            {isAdding ? (
+            {!isAdding ? (
+                 <Button onClick={() => setIsAdding(true)} className="w-full" variant="outline" disabled={isLoading}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tạo thư mục mới
+                </Button>
+            ) : (
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onAddSubmit)} className="flex items-center gap-2">
                         <FormField
@@ -112,16 +110,11 @@ export function FolderManager() {
                         <Button type="button" variant="ghost" onClick={() => setIsAdding(false)} disabled={isLoading}>Hủy</Button>
                     </form>
                 </Form>
-            ) : (
-                <Button onClick={() => setIsAdding(true)} className="w-full" variant="outline" disabled={isLoading}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tạo thư mục mới
-                </Button>
             )}
         </CardContent>
        </Card>
 
-        {isContextLoading ? (
+        {isLoading && folders.length === 0 ? (
             <div className="space-y-2">
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
@@ -129,7 +122,7 @@ export function FolderManager() {
             </div>
         ) : (
           <div className="space-y-2">
-            {folders.length === 0 && !isContextLoading && (
+            {folders.length === 0 && !isLoading && (
                  <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
             )}
             {folders.map((folder) => (

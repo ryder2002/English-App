@@ -71,7 +71,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             ];
             await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
             
-            // Re-fetch data after creating samples
+            // Re-fetch data after creating samples to ensure consistency
             [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
                 getFolders(user.uid),
@@ -116,6 +116,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   const removeVocabularyItem = async (id: string) => {
     if (!user) return;
+    const originalVocabulary = vocabulary;
     setVocabulary((prev) => prev.filter((item) => item.id !== id));
     try {
         await dbDeleteVocabularyItem(id);
@@ -126,13 +127,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     } catch (error) {
         console.error("Error deleting vocabulary item:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa từ vựng." });
-        setVocabulary(await getVocabulary(user.uid)); // Re-fetch to be safe
+        setVocabulary(originalVocabulary);
     }
   }
   
   const updateVocabularyItem = async (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => {
     if (!user) return;
     setIsLoading(true);
+    const originalVocabulary = vocabulary;
     try {
         if (updates.folder && !folders.includes(updates.folder)) {
            await addFolder(updates.folder);
@@ -142,6 +144,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     } catch (error) {
         console.error("Error updating vocabulary item:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
+        setVocabulary(originalVocabulary);
     } finally {
         setIsLoading(false);
     }
@@ -167,6 +170,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   const removeFolder = async (folderName: string) => {
     if (!user) return;
+    const originalFolders = folders;
+    const originalVocabulary = vocabulary;
     setIsLoading(true);
     try {
         await dbDeleteFolder(folderName, user.uid);
@@ -181,6 +186,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     } catch (error) {
         console.error("Error deleting folder:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa thư mục." });
+        setFolders(originalFolders);
+        setVocabulary(originalVocabulary);
     } finally {
         setIsLoading(false);
     }
@@ -193,6 +200,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         return;
     }
     setIsLoading(true);
+    const originalFolders = folders;
+    const originalVocabulary = vocabulary;
     try {
         await dbUpdateFolder(oldName, newName, user.uid);
         await dbUpdateVocabularyFolder(oldName, newName, user.uid);
@@ -202,6 +211,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     } catch (error) {
         console.error("Error updating folder:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật thư mục." });
+        setFolders(originalFolders);
+        setVocabulary(originalVocabulary);
     } finally {
         setIsLoading(false);
     }
