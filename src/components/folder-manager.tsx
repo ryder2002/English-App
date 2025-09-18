@@ -110,6 +110,7 @@ export function FolderManager() {
       }
   }
   
+  // Use a combined loading state for the UI
   const isLoading = isContextLoading || isSubmitting;
 
   return (
@@ -147,7 +148,7 @@ export function FolderManager() {
        </Card>
       
       <div className="space-y-2">
-        {folders.map((folder) => (
+        {[...folders].sort((a,b) => a.localeCompare(b)).map((folder) => (
             editingFolder === folder ? (
                 <Card key={folder}>
                     <CardContent className="p-4">

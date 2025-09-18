@@ -93,8 +93,10 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     try {
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev]);
+        // If folder is new, add it to the folders list and DB
         if (!folders.includes(item.folder)) {
-            await addFolder(item.folder);
+            await dbAddFolder(item.folder, user.uid);
+            setFolders(prev => [item.folder, ...prev]);
         }
     } finally {
         setIsLoading(false);
@@ -116,9 +118,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
         await dbUpdateVocabularyItem(id, updates);
-        setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
-         if (updates.folder && !folders.includes(updates.folder)) {
-          await addFolder(updates.folder);
+        setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
+        // If folder is new, add it to the folders list and DB
+        if (updates.folder && !folders.includes(updates.folder)) {
+           await dbAddFolder(updates.folder, user.uid);
+           setFolders(prev => [updates.folder!, ...prev]);
         }
     } finally {
         setIsLoading(false);
@@ -127,14 +131,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   
   const addFolder = async (folderName: string) => {
     if (!user) return;
-    setIsLoading(true);
-    try {
-        if (!folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
-            await dbAddFolder(folderName, user.uid);
-            setFolders(prev => [folderName, ...prev]);
-        }
-    } finally {
-        setIsLoading(false);
+    if (!folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
+        await dbAddFolder(folderName, user.uid);
+        setFolders(prev => [folderName, ...prev].sort());
     }
   }
 
@@ -157,7 +156,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     try {
         await dbUpdateFolder(oldName, newName, user.uid);
         await dbUpdateVocabularyFolder(oldName, newName, user.uid);
-        setFolders(prev => prev.map(f => (f === oldName ? newName : f)));
+        setFolders(prev => prev.map(f => (f === oldName ? newName : f)).sort());
         setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
     } finally {
         setIsLoading(false);
