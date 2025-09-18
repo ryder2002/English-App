@@ -113,7 +113,7 @@ export function FolderManager() {
         </CardContent>
        </Card>
 
-        {isLoading && folders.length === 0 ? (
+        {isLoading ? (
             <div className="space-y-2">
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
@@ -121,7 +121,7 @@ export function FolderManager() {
             </div>
         ) : (
           <div className="space-y-2">
-            {folders.length === 0 && !isLoading && (
+            {folders.length === 0 && (
                  <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
             )}
             {folders.map((folder) => (

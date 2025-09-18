@@ -43,15 +43,15 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchData = async () => {
-        if (!user) {
-            // Clear state and stop loading if user logs out
-            setVocabulary([]);
-            setFolders([]);
-            setIsLoading(false);
-            return;
-        }
+    if (!user) {
+      // User is not logged in or logged out, clear state and stop loading.
+      setVocabulary([]);
+      setFolders([]);
+      setIsLoading(false);
+      return;
+    }
 
+    const fetchData = async () => {
         setIsLoading(true);
         try {
             const [vocabData, folderData] = await Promise.all([
@@ -61,7 +61,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             
             setVocabulary(vocabData);
             
-            // If the user is new and has no folders, create a default one.
             if (folderData.length === 0) {
               const defaultFolder = "Cơ bản";
               await dbAddFolder(defaultFolder, user.uid);
@@ -95,10 +94,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         }
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev]);
-        toast({
-          title: "Thành công!",
-          description: `"${item.word}" đã được thêm vào từ vựng của bạn.`,
-        });
     } catch (error) {
          console.error("Lỗi khi thêm từ vựng:", error);
          toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm từ vựng." });
@@ -134,10 +129,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         }
         await dbUpdateVocabularyItem(id, updates);
         setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
-        toast({
-            title: "Thành công!",
-            description: `Từ vựng đã được cập nhật.`,
-          });
     } catch (error) {
         console.error("Lỗi khi cập nhật từ vựng:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
@@ -206,21 +197,20 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const contextValue = {
+    vocabulary,
+    folders,
+    addVocabularyItem,
+    removeVocabularyItem,
+    updateVocabularyItem,
+    isLoading,
+    addFolder,
+    removeFolder,
+    updateFolder,
+  };
 
   return (
-    <VocabularyContext.Provider
-      value={{ 
-        vocabulary, 
-        folders,
-        addVocabularyItem, 
-        removeVocabularyItem, 
-        updateVocabularyItem, 
-        isLoading, 
-        addFolder,
-        removeFolder,
-        updateFolder,
-    }}
-    >
+    <VocabularyContext.Provider value={contextValue}>
       {children}
     </VocabularyContext.Provider>
   );
