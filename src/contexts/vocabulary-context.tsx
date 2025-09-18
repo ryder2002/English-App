@@ -29,7 +29,6 @@ interface VocabularyContextType {
   removeFolder: (folderName: string) => Promise<void>;
   updateFolder: (oldName: string, newName: string) => Promise<void>;
   isLoading: boolean;
-  isDataReady: boolean;
 }
 
 const VocabularyContext = createContext<VocabularyContextType | undefined>(
@@ -40,8 +39,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDataReady, setIsDataReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -49,12 +47,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         if (!user) {
             setVocabulary([]);
             setFolders([]);
-            setIsDataReady(false);
+            setIsLoading(false);
             return;
         }
 
         setIsLoading(true);
-        setIsDataReady(false);
         try {
             const [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
@@ -78,7 +75,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             });
         } finally {
             setIsLoading(false);
-            setIsDataReady(true);
         }
     };
     
@@ -196,7 +192,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         removeVocabularyItem, 
         updateVocabularyItem, 
         isLoading, 
-        isDataReady,
         addFolder,
         removeFolder,
         updateFolder,

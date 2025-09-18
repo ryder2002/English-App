@@ -34,7 +34,7 @@ import { getAudioForWordAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 
 export function VocabularyList() {
-  const { vocabulary, removeVocabularyItem, isDataReady } = useVocabulary();
+  const { vocabulary, removeVocabularyItem, isLoading } = useVocabulary();
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -93,7 +93,7 @@ export function VocabularyList() {
     }, {} as Record<string, VocabularyItem[]>);
   }, [vocabulary]);
 
-  if (!isDataReady) {
+  if (isLoading) {
     return (
         <div className="space-y-4">
             <Skeleton className="h-12 w-1/3" />

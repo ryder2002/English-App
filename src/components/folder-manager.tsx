@@ -30,7 +30,7 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading, isDataReady } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -87,7 +87,7 @@ export function FolderManager() {
       });
   }
 
-  if (!isDataReady) {
+  if (isLoading) {
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             <Skeleton className="h-14 w-full" />
