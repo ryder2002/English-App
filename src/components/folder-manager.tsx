@@ -29,10 +29,11 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading: isContextLoading } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FolderFormValues>({
     resolver: zodResolver(formSchema),
@@ -42,25 +43,41 @@ export function FolderManager() {
   });
 
   const onAddSubmit = async (values: FolderFormValues) => {
+    setIsSubmitting(true);
     if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase())) {
         form.setError("folderName", { message: "Thư mục đã tồn tại." });
+        setIsSubmitting(false);
         return;
     }
-    await addFolder(values.folderName);
-    toast({ title: `Thư mục "${values.folderName}" đã được tạo.` });
-    form.reset();
-    setIsAdding(false);
+    try {
+        await addFolder(values.folderName);
+        toast({ title: `Thư mục "${values.folderName}" đã được tạo.` });
+        form.reset();
+        setIsAdding(false);
+    } catch (error) {
+        toast({ variant: "destructive", title: "Lỗi tạo thư mục" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
+    setIsSubmitting(true);
     if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase() && f.toLowerCase() !== oldName.toLowerCase())) {
         form.setError("folderName", { message: "Tên thư mục đã được sử dụng." });
+        setIsSubmitting(false);
         return;
     }
-    await updateFolder(oldName, values.folderName);
-    toast({ title: `Thư mục "${oldName}" đã được đổi tên thành "${values.folderName}".` });
-    setEditingFolder(null);
-    form.reset();
+    try {
+        await updateFolder(oldName, values.folderName);
+        toast({ title: `Thư mục "${oldName}" đã được đổi tên thành "${values.folderName}".` });
+        setEditingFolder(null);
+        form.reset();
+    } catch (error) {
+         toast({ variant: "destructive", title: "Lỗi đổi tên thư mục" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const startEditing = (name: string) => {
@@ -92,6 +109,8 @@ export function FolderManager() {
           });
       }
   }
+  
+  const isLoading = isContextLoading || isSubmitting;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

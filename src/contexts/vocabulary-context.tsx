@@ -89,51 +89,79 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   const addVocabularyItem = async (item: Omit<VocabularyItem, "id" | "createdAt">) => {
     if (!user) return;
-    const newItem = await dbAddVocabularyItem(item, user.uid);
-    setVocabulary((prev) => [newItem, ...prev]);
-    if (!folders.includes(item.folder)) {
-      // The addFolder function needs the userId, which it gets from the context hook.
-      // However, let's pass it explicitly to be safe and clear.
-      await addFolder(item.folder);
+    setIsLoading(true);
+    try {
+        const newItem = await dbAddVocabularyItem(item, user.uid);
+        setVocabulary((prev) => [newItem, ...prev]);
+        if (!folders.includes(item.folder)) {
+            await addFolder(item.folder);
+        }
+    } finally {
+        setIsLoading(false);
     }
   };
 
   const removeVocabularyItem = async (id: string) => {
-    await dbDeleteVocabularyItem(id);
-    setVocabulary((prev) => prev.filter((item) => item.id !== id));
+    setIsLoading(true);
+    try {
+        await dbDeleteVocabularyItem(id);
+        setVocabulary((prev) => prev.filter((item) => item.id !== id));
+    } finally {
+        setIsLoading(false);
+    }
   }
   
   const updateVocabularyItem = async (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => {
     if (!user) return;
-    await dbUpdateVocabularyItem(id, updates);
-    setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
-     if (updates.folder && !folders.includes(updates.folder)) {
-      await addFolder(updates.folder);
+    setIsLoading(true);
+    try {
+        await dbUpdateVocabularyItem(id, updates);
+        setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+         if (updates.folder && !folders.includes(updates.folder)) {
+          await addFolder(updates.folder);
+        }
+    } finally {
+        setIsLoading(false);
     }
   }
   
   const addFolder = async (folderName: string) => {
     if (!user) return;
-    if (!folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
-        await dbAddFolder(folderName, user.uid);
-        setFolders(prev => [folderName, ...prev]);
+    setIsLoading(true);
+    try {
+        if (!folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
+            await dbAddFolder(folderName, user.uid);
+            setFolders(prev => [folderName, ...prev]);
+        }
+    } finally {
+        setIsLoading(false);
     }
   }
 
   const removeFolder = async (folderName: string) => {
     if (!user) return;
-    await dbDeleteFolder(folderName, user.uid);
-    await dbDeleteVocabularyByFolder(folderName, user.uid);
-    setFolders(prev => prev.filter(f => f !== folderName));
-    setVocabulary(prev => prev.filter(item => item.folder !== folderName));
+    setIsLoading(true);
+    try {
+        await dbDeleteFolder(folderName, user.uid);
+        await dbDeleteVocabularyByFolder(folderName, user.uid);
+        setFolders(prev => prev.filter(f => f !== folderName));
+        setVocabulary(prev => prev.filter(item => item.folder !== folderName));
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   const updateFolder = async (oldName: string, newName: string) => {
     if (!user) return;
-    await dbUpdateFolder(oldName, newName, user.uid);
-    await dbUpdateVocabularyFolder(oldName, newName, user.uid);
-    setFolders(prev => prev.map(f => (f === oldName ? newName : f)));
-    setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
+    setIsLoading(true);
+    try {
+        await dbUpdateFolder(oldName, newName, user.uid);
+        await dbUpdateVocabularyFolder(oldName, newName, user.uid);
+        setFolders(prev => prev.map(f => (f === oldName ? newName : f)));
+        setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
+    } finally {
+        setIsLoading(false);
+    }
   }
 
 
