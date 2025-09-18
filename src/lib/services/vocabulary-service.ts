@@ -35,15 +35,15 @@ export const addVocabularyItem = async (
   item: Omit<VocabularyItem, "id" | "createdAt">,
   userId: string
 ): Promise<VocabularyItem> => {
-  const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), {
+  const newDocData = {
     ...item,
     userId,
     createdAt: new Date().toISOString(),
-  });
+  };
+  const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), newDocData);
   return { 
     id: docRef.id, 
-    ...item, 
-    createdAt: new Date().toISOString(),
+    ...newDocData,
   };
 };
 

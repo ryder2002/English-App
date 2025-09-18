@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { VocabularyItem } from "@/lib/types";
@@ -70,17 +71,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 folder: defaultFolder,
                 ipa: "/həˈloʊ/",
               };
-              await dbAddVocabularyItem(sampleWord, user.uid);
-
-              // Refetch data to get the new items
-              const [newVocabData, newFolderData] = await Promise.all([
-                  getVocabulary(user.uid),
-                  getFolders(user.uid)
-              ]);
-              setVocabulary(newVocabData);
-              setFolders(newFolderData);
+              const newWord = await dbAddVocabularyItem(sampleWord, user.uid);
+              
+              setFolders([defaultFolder]);
+              setVocabulary([newWord]);
             } else {
-              // Existing user
               setVocabulary(vocabData);
               setFolders(folderData.length > 0 ? folderData : ["Cơ bản"]);
             }
