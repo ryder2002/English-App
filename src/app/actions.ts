@@ -9,6 +9,7 @@ import {
   interactWithLanguageChatbot,
   type InteractWithLanguageChatbotInput,
 } from "@/ai/flows/interact-with-language-chatbot";
+import { textToSpeech, type TextToSpeechInput } from "@/ai/flows/text-to-speech";
 import type { Language } from "@/lib/types";
 
 export async function getVocabularyDetailsAction(
@@ -23,9 +24,7 @@ export async function getVocabularyDetailsAction(
     const details = await generateVocabularyDetails(input);
 
     return {
-        ipa: details.ipa,
-        pinyin: details.pinyin,
-        translation: details.translation,
+        definitions: details.definitions,
         examples: details.examples,
     };
 }
@@ -44,4 +43,10 @@ export async function getChatbotResponseAction(
   const input: InteractWithLanguageChatbotInput = { query };
   const result = await interactWithLanguageChatbot(input);
   return result.response;
+}
+
+export async function getAudioForWordAction(text: string, language: string): Promise<string> {
+    const input: TextToSpeechInput = { text, language };
+    const result = await textToSpeech(input);
+    return result.audioDataUri;
 }

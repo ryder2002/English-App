@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <h1 className="text-xl font-headline font-bold">LinguaLeap</h1>
           </div>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="p-2">
           <SidebarNav />
         </SidebarContent>
       </Sidebar>

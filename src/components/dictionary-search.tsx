@@ -21,12 +21,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { dictionaryLookupAction } from "@/app/actions";
-import { ArrowRightLeft, Languages, Loader2, Search } from "lucide-react";
-import { useState } from "react";
+import { dictionaryLookupAction, getAudioForWordAction } from "@/app/actions";
+import { ArrowRightLeft, Languages, Loader2, Search, Volume2 } from "lucide-react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { GenerateVocabularyDetailsOutput } from "@/ai/flows/generate-vocabulary-details";
+import { Separator } from "./ui/separator";
 
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
@@ -44,12 +45,15 @@ type DictionaryFormValues = z.infer<typeof formSchema>;
 type SearchResult = GenerateVocabularyDetailsOutput & {
   originalWord: string,
   sourceLanguage: z.infer<typeof languageEnum>,
+  targetLanguage: z.infer<typeof languageEnum>,
 };
 
 export function DictionarySearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const { toast } = useToast();
+  const [playingAudioFor, setPlayingAudioFor] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<DictionaryFormValues>({
     resolver: zodResolver(formSchema),
@@ -73,6 +77,7 @@ export function DictionarySearch() {
         ...details,
         originalWord: values.word,
         sourceLanguage: values.sourceLanguage,
+        targetLanguage: values.targetLanguage,
       });
     } catch (error) {
       console.error(error);
@@ -84,6 +89,31 @@ export function DictionarySearch() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const playAudio = async (text: string, lang: string, id: string) => {
+    if (playingAudioFor === id) {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      setPlayingAudioFor(null);
+      return;
+    }
+
+    setPlayingAudioFor(id);
+    try {
+      const audioDataUri = await getAudioForWordAction(text, lang);
+      const audio = new Audio(audioDataUri);
+      audioRef.current = audio;
+      audio.play();
+      audio.onended = () => {
+        setPlayingAudioFor(null);
+        audioRef.current = null;
+      };
+    } catch (error) {
+      console.error("Failed to play audio", error);
+      toast({ variant: "destructive", title: "Could not play audio." });
+      setPlayingAudioFor(null);
     }
   };
 
@@ -101,7 +131,7 @@ export function DictionarySearch() {
   ]
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <Card>
         <CardContent className="p-6">
           <Form {...form}>
@@ -200,27 +230,39 @@ export function DictionarySearch() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
                 <div className="flex items-baseline gap-4">
-                    <span className="text-3xl font-bold font-headline">{result.originalWord}</span>
-                    <Badge variant={result.sourceLanguage === 'english' ? 'secondary' : 'outline'}>{result.sourceLanguage}</Badge>
+                    <span className="text-4xl font-bold font-headline">{result.originalWord}</span>
+                    <Badge variant="secondary">{result.sourceLanguage}</Badge>
                 </div>
+                <Button size="icon" variant="ghost" onClick={() => playAudio(result.originalWord, result.sourceLanguage, 'original')}>
+                    {playingAudioFor === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                </Button>
             </CardTitle>
-             <CardDescription className="!mt-4 text-lg">
-                <p className="font-semibold text-muted-foreground">Translation</p>
-                <p className="text-2xl text-primary">{result.translation}</p>
-             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 text-lg">
-            
-            {(result.ipa || result.pinyin) && (
-                <div>
-                    <p className="font-semibold text-muted-foreground">Pronunciation</p>
-                    <p>{result.ipa || result.pinyin}</p>
+          <CardContent className="space-y-6">
+            {result.definitions.map((def, index) => (
+              <div key={index} className="space-y-4">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="capitalize text-sm">{def.partOfSpeech}</Badge>
+                        {def.pronunciation && <p className="text-muted-foreground text-sm">{def.pronunciation}</p>}
+                    </div>
+                    <p className="pl-2">{def.meaning}</p>
+                    <div className="pl-2 flex items-center gap-2">
+                         <p className="text-lg text-primary font-semibold">{def.translation}</p>
+                         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => playAudio(def.translation, result.targetLanguage, `def-${index}`)}>
+                            {playingAudioFor === `def-${index}` ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                        </Button>
+                    </div>
                 </div>
-            )}
+                {index < result.definitions.length - 1 && <Separator />}
+              </div>
+            ))}
             
             {result.examples && result.examples.length > 0 && (
+                <>
+                <Separator />
                 <div>
-                    <p className="font-semibold text-muted-foreground mb-2">Examples</p>
+                    <p className="font-semibold text-muted-foreground mb-2 text-lg">Examples</p>
                     <div className="space-y-4 text-base">
                         {result.examples.map((ex, index) => (
                             <div key={index} className="p-3 rounded-md border bg-muted/50">
@@ -230,6 +272,7 @@ export function DictionarySearch() {
                         ))}
                     </div>
                 </div>
+                </>
             )}
 
           </CardContent>

@@ -67,11 +67,12 @@ export function SaveVocabularyDialog({
   onOpenChange,
   itemToEdit,
 }: SaveVocabularyDialogProps) {
-  const { addVocabularyItem, updateVocabularyItem, isLoading, setIsLoading, getFolders } =
+  const { addVocabularyItem, updateVocabularyItem, isLoading, setIsLoading, folders } =
     useVocabulary();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const folders = getFolders();
+  
+  const sortedFolders = [...folders].sort();
 
   const form = useForm<SaveVocabularyFormValues>({
     resolver: zodResolver(formSchema),
@@ -83,18 +84,20 @@ export function SaveVocabularyDialog({
   });
 
   useEffect(() => {
-    if (itemToEdit) {
-      form.reset({
-        word: itemToEdit.word,
-        language: itemToEdit.language,
-        folder: itemToEdit.folder,
-      });
-    } else {
-      form.reset({
-        word: "",
-        language: "english",
-        folder: "Basics",
-      });
+    if (open) {
+      if (itemToEdit) {
+        form.reset({
+          word: itemToEdit.word,
+          language: itemToEdit.language,
+          folder: itemToEdit.folder,
+        });
+      } else {
+        form.reset({
+          word: "",
+          language: "english",
+          folder: "Basics",
+        });
+      }
     }
   }, [itemToEdit, form, open]);
 
@@ -102,37 +105,35 @@ export function SaveVocabularyDialog({
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsLoading(true);
     try {
-      if (itemToEdit) {
-        // Update existing item
-        const details = await getVocabularyDetailsAction(
-            values.word,
-            values.language as Language
-        );
-        updateVocabularyItem(itemToEdit.id, {
+      const details = await getVocabularyDetailsAction(
+          values.word,
+          values.language as Language
+      );
+
+      const primaryDefinition = details.definitions[0];
+      if (!primaryDefinition) {
+        throw new Error("AI did not return a valid definition.");
+      }
+
+      const vocabularyData = {
           word: values.word,
           language: values.language as Language,
           folder: values.folder,
-          vietnameseTranslation: details.translation,
-          ipa: details.ipa,
-          pinyin: details.pinyin,
-        });
+          vietnameseTranslation: primaryDefinition.translation,
+          ipa: values.language === 'english' ? primaryDefinition.pronunciation : undefined,
+          pinyin: values.language === 'chinese' ? primaryDefinition.pronunciation : undefined,
+      };
+
+      if (itemToEdit) {
+        updateVocabularyItem(itemToEdit.id, vocabularyData);
         toast({
             title: "Success!",
             description: `"${values.word}" has been updated.`,
           });
       } else {
-        // Add new item
-        const details = await getVocabularyDetailsAction(
-            values.word,
-            values.language as Language
-        );
         addVocabularyItem({
             id: new Date().toISOString(),
-            word: values.word,
-            language: values.language as Language,
-            folder: values.folder,
-            vietnameseTranslation: details.translation,
-            ...details,
+            ...vocabularyData
         });
         toast({
             title: "Success!",
@@ -166,7 +167,7 @@ export function SaveVocabularyDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
             <FormField
               control={form.control}
               name="word"
@@ -228,28 +229,28 @@ export function SaveVocabularyDialog({
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
+                      <Command
+                        filter={(value, search) => {
+                            if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                            return 0;
+                        }}
+                      >
                         <CommandInput
-                          placeholder="Search or create folder..."
+                          placeholder="Search or create new..."
                           onKeyDown={(e) => {
-                            if (
-                              e.key === "Enter" &&
-                              !folders.includes(
-                                (e.target as HTMLInputElement).value
-                              )
-                            ) {
-                              form.setValue(
-                                "folder",
-                                (e.target as HTMLInputElement).value
-                              );
-                              setPopoverOpen(false);
+                            if (e.key === "Enter") {
+                               const newFolderValue = (e.target as HTMLInputElement).value;
+                               if(newFolderValue && !sortedFolders.find(f => f.toLowerCase() === newFolderValue.toLowerCase())) {
+                                  form.setValue("folder", newFolderValue);
+                                  setPopoverOpen(false);
+                               }
                             }
                           }}
                         />
                         <CommandList>
                           <CommandEmpty>No folder found. Press Enter to create.</CommandEmpty>
                           <CommandGroup>
-                            {folders.map((folder) => (
+                            {sortedFolders.map((folder) => (
                               <CommandItem
                                 value={folder}
                                 key={folder}
@@ -278,7 +279,7 @@ export function SaveVocabularyDialog({
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="pt-4">
               <Button type="submit" disabled={isLoading}>
                 {isLoading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
