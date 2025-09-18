@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Folder, MoreVertical, Trash2, Edit, Loader2 } from "lucide-react";
+import { Folder, MoreVertical, Trash2, Edit, Loader2, Volume2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -21,7 +21,7 @@ import {
   AccordionTrigger,
 } from "./ui/accordion";
 import type { VocabularyItem } from "@/lib/types";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
 import {
   DropdownMenu,
@@ -30,12 +30,18 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Skeleton } from "./ui/skeleton";
+import { getAudioForWordAction } from "@/app/actions";
+import { useToast } from "@/hooks/use-toast";
 
 export function VocabularyList() {
   const { vocabulary, removeVocabularyItem, isDataReady } = useVocabulary();
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const [playingAudioFor, setPlayingAudioFor] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
 
   const handleEdit = (item: VocabularyItem) => {
     setItemToEdit(item);
@@ -46,6 +52,32 @@ export function VocabularyList() {
     setIsSaveDialogOpen(open);
     if (!open) {
       setItemToEdit(null);
+    }
+  };
+
+  const playAudio = async (e: React.MouseEvent, text: string, lang: string, id: string) => {
+    e.stopPropagation(); // Prevent card click when clicking speaker
+    if (playingAudioFor === id) {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      setPlayingAudioFor(null);
+      return;
+    }
+
+    setPlayingAudioFor(id);
+    try {
+      const audioDataUri = await getAudioForWordAction(text, lang);
+      const audio = new Audio(audioDataUri);
+      audioRef.current = audio;
+      audio.play();
+      audio.onended = () => {
+        setPlayingAudioFor(null);
+        audioRef.current = null;
+      };
+    } catch (error) {
+      console.error("Failed to play audio", error);
+      toast({ variant: "destructive", title: "Không thể phát âm thanh." });
+      setPlayingAudioFor(null);
     }
   };
 
@@ -110,8 +142,13 @@ export function VocabularyList() {
                   <Card key={item.id}>
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-base">{item.word}</h3>
+                        <div onClick={() => handleEdit(item)} className="flex-grow cursor-pointer">
+                          <h3 className="font-bold text-base flex items-center gap-2">
+                            {item.word}
+                             <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)}>
+                                {playingAudioFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                            </Button>
+                          </h3>
                           <p className="text-primary font-medium">
                             {item.vietnameseTranslation}
                           </p>
@@ -158,7 +195,7 @@ export function VocabularyList() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[200px]">Từ</TableHead>
+                          <TableHead className="w-[250px]">Từ</TableHead>
                           <TableHead>Ngôn ngữ</TableHead>
                           <TableHead>Phát âm</TableHead>
                           <TableHead>Tiếng Việt</TableHead>
@@ -171,7 +208,12 @@ export function VocabularyList() {
                         {items.map((item) => (
                           <TableRow key={item.id} onClick={() => handleEdit(item)} className="cursor-pointer">
                             <TableCell className="font-medium">
-                              {item.word}
+                              <div className="flex items-center gap-2">
+                                <span>{item.word}</span>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)}>
+                                    {playingAudioFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                                </Button>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Badge

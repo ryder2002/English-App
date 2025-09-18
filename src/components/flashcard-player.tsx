@@ -73,8 +73,9 @@ export function FlashcardPlayer() {
     <div className="flex flex-col items-center gap-6">
       <div className="w-full max-w-2xl">
         <div
-          className="relative w-full"
+          className="relative w-full cursor-pointer"
           style={{ perspective: "1000px" }}
+          onClick={() => setIsFlipped(!isFlipped)}
         >
           <Card
             className={`w-full h-80 transition-transform duration-500 ease-in-out ${
@@ -119,7 +120,10 @@ export function FlashcardPlayer() {
 
           <Button
             className="px-8 bg-accent hover:bg-accent/90"
-            onClick={() => setIsFlipped(!isFlipped)}
+            onClick={(e) => {
+                e.stopPropagation();
+                setIsFlipped(!isFlipped)
+            }}
             aria-label="Flip card"
           >
             <FlipHorizontal className="mr-2 h-4 w-4" /> Lật thẻ
