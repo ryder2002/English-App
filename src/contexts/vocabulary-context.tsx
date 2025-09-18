@@ -92,6 +92,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     const newItem = await dbAddVocabularyItem(item, user.uid);
     setVocabulary((prev) => [newItem, ...prev]);
     if (!folders.includes(item.folder)) {
+      // The addFolder function needs the userId, which it gets from the context hook.
+      // However, let's pass it explicitly to be safe and clear.
       await addFolder(item.folder);
     }
   };
@@ -102,6 +104,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   }
   
   const updateVocabularyItem = async (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => {
+    if (!user) return;
     await dbUpdateVocabularyItem(id, updates);
     setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
      if (updates.folder && !folders.includes(updates.folder)) {
@@ -111,7 +114,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   
   const addFolder = async (folderName: string) => {
     if (!user) return;
-    if (!folders.includes(folderName)) {
+    if (!folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
         await dbAddFolder(folderName, user.uid);
         setFolders(prev => [folderName, ...prev]);
     }
