@@ -25,16 +25,18 @@ const formSchema = z.object({
 
 type ChatFormValues = z.infer<typeof formSchema>;
 
-interface Message {
+export interface Message {
     role: 'user' | 'assistant';
     content: string;
 }
 
-export function ChatbotUI() {
+interface ChatbotUIProps {
+  messages: Message[];
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+}
+
+export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Xin chào! Tớ là trợ lý AI của Công Nhất, rất vui được đồng hành cùng bạn trong việc học ngôn ngữ, hãy hãy hỏi tớ bất kì cái gì nếu cậu gặp khó trong việc học nhé!' }
-  ]);
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +76,11 @@ export function ChatbotUI() {
     }
   };
 
+  const formatMessage = (content: string) => {
+    const bolded = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return bolded.replace(/\n/g, '<br />');
+  };
+
   return (
     <div className="flex flex-col h-full flex-grow mx-auto w-full bg-card rounded-t-xl shadow-lg border">
         <ScrollArea className="flex-grow p-4 md:p-6" viewportRef={scrollViewportRef}>
@@ -88,7 +95,7 @@ export function ChatbotUI() {
                              </Avatar>
                         )}
                          <div className={cn("max-w-[80%] rounded-xl p-3 px-4 text-sm shadow-md", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
-                            <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br />') }} />
+                            <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }} />
                          </div>
                          {message.role === 'user' && (
                              <Avatar className="h-9 w-9 border-2">

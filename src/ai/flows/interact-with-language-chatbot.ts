@@ -39,7 +39,7 @@ const interactWithLanguageChatbotPrompt = ai.definePrompt({
 IMPORTANT: Always respond in the same language as the user's query. If the user asks in Vietnamese, you MUST respond in Vietnamese.
 
 Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured.
-- DO NOT use bolding with asterisks (**).
+- Use **bold** with asterisks (**) to highlight important terms or key points.
 - Use bullet points with a hyphen (-). CRUCIAL: Each bullet point MUST be on a new line.
 - Use newlines for paragraph breaks.
 
