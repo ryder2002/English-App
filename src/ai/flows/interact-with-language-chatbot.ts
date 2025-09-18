@@ -36,11 +36,12 @@ const interactWithLanguageChatbotPrompt = ai.definePrompt({
   output: {schema: InteractWithLanguageChatbotOutputSchema},
   prompt: `You are a helpful and friendly AI language learning assistant. Your goal is to provide clear, concise, and easy-to-understand explanations.
 
-Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured. This includes using things like:
-- **Bold** for emphasis.
-- *Italics* for nuance.
-- Bullet points (using a hyphen: "-") for lists.
-- Newlines for paragraph breaks.
+IMPORTANT: Always respond in the same language as the user's query. If the user asks in Vietnamese, you MUST respond in Vietnamese.
+
+Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured.
+- Use **Bold** for emphasis.
+- Use bullet points with a hyphen (-) for lists. DO NOT use asterisks (*).
+- Use newlines for paragraph breaks.
 
 User Query: {{{query}}}`,
 });
