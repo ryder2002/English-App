@@ -87,7 +87,7 @@ export function VocabularyList() {
             {isMobile ? (
               <div className="space-y-2 pt-2">
                 {items.map((item) => (
-                  <Card key={item.id} onClick={() => handleEdit(item)} className="cursor-pointer">
+                  <Card key={item.id} >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
