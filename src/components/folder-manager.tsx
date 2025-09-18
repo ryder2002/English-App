@@ -21,6 +21,7 @@ import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
+import { Skeleton } from "./ui/skeleton";
 
 const formSchema = z.object({
   folderName: z.string().min(1, { message: "Tên thư mục không được để trống." }),
@@ -29,7 +30,7 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading, isDataReady } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -46,14 +47,10 @@ export function FolderManager() {
         form.setError("folderName", { message: "Thư mục đã tồn tại." });
         return;
     }
-    try {
-        await addFolder(values.folderName);
-        toast({ title: `Thư mục "${values.folderName}" đã được tạo.` });
-        form.reset();
-        setIsAdding(false);
-    } catch (error) {
-        toast({ variant: "destructive", title: "Lỗi tạo thư mục" });
-    }
+    await addFolder(values.folderName);
+    toast({ title: `Thư mục "${values.folderName}" đã được tạo.` });
+    form.reset();
+    setIsAdding(false);
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
@@ -61,14 +58,10 @@ export function FolderManager() {
         form.setError("folderName", { message: "Tên thư mục đã được sử dụng." });
         return;
     }
-    try {
-        await updateFolder(oldName, values.folderName);
-        toast({ title: `Thư mục "${oldName}" đã được đổi tên thành "${values.folderName}".` });
-        setEditingFolder(null);
-        form.reset();
-    } catch (error) {
-         toast({ variant: "destructive", title: "Lỗi đổi tên thư mục" });
-    }
+    await updateFolder(oldName, values.folderName);
+    toast({ title: `Thư mục "${oldName}" đã được đổi tên thành "${values.folderName}".` });
+    setEditingFolder(null);
+    form.reset();
   };
 
   const startEditing = (name: string) => {
@@ -86,19 +79,25 @@ export function FolderManager() {
   }
   
   const handleRemoveFolder = async (folder: string) => {
-      try {
-          await removeFolder(folder);
-          toast({
-              variant: "default",
-              title: "Đã xóa thư mục",
-              description: `Thư mục "${folder}" và nội dung của nó đã được xóa.`,
-          });
-      } catch (error) {
-          toast({
-              variant: "destructive",
-              title: "Lỗi xóa thư mục",
-          });
-      }
+      await removeFolder(folder);
+      toast({
+          variant: "default",
+          title: "Đã xóa thư mục",
+          description: `Thư mục "${folder}" và nội dung của nó đã được xóa.`,
+      });
+  }
+
+  if (!isDataReady) {
+    return (
+        <div className="max-w-2xl mx-auto space-y-6">
+            <Skeleton className="h-14 w-full" />
+             <div className="space-y-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+            </div>
+        </div>
+    )
   }
 
   return (
@@ -136,6 +135,9 @@ export function FolderManager() {
        </Card>
       
       <div className="space-y-2">
+        {folders.length === 0 && !isLoading && (
+             <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
+        )}
         {[...folders].sort((a,b) => a.localeCompare(b)).map((folder) => (
             editingFolder === folder ? (
                 <Card key={folder}>
@@ -173,7 +175,7 @@ export function FolderManager() {
                 <div>
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" disabled={isLoading}>
                                 <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
