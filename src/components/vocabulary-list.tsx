@@ -93,7 +93,7 @@ export function VocabularyList() {
     }, {} as Record<string, VocabularyItem[]>);
   }, [vocabulary]);
 
-  if (isLoading && vocabulary.length === 0) {
+  if (isLoading) {
     return (
         <div className="space-y-4">
             <Skeleton className="h-12 w-1/3" />
@@ -106,7 +106,7 @@ export function VocabularyList() {
     )
   }
 
-  if (vocabulary.length === 0 && !isLoading) {
+  if (vocabulary.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg bg-card">
         <p className="text-muted-foreground">Danh sách từ vựng của bạn trống.</p>

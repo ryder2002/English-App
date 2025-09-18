@@ -36,16 +36,12 @@ export function FolderManager() {
 
   const form = useForm<FolderFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      folderName: "",
-    },
+    defaultValues: { folderName: "" },
   });
   
   const editForm = useForm<FolderFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      folderName: "",
-    },
+    defaultValues: { folderName: "" },
   });
 
   const onAddSubmit = async (values: FolderFormValues) => {
