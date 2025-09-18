@@ -85,8 +85,7 @@
 @layer utilities {
   .animated-gradient-border {
     @apply relative rounded-xl p-px;
-    background: linear-gradient(60deg, hsl(var(--primary) / 0.5), hsl(var(--primary)) 50%, hsl(var(--primary) / 0.5) 100%);
-    animation: gradient-spin 4s linear infinite;
+    box-shadow: 0 0 2rem hsl(var(--primary) / 0.15);
   }
 
   .animated-gradient-border::before {
