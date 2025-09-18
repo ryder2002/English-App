@@ -1,4 +1,4 @@
-export type Language = "english" | "chinese";
+export type Language = "english" | "chinese" | "vietnamese";
 
 export interface VocabularyItem {
   id: string;

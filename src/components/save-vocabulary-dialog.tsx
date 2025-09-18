@@ -48,7 +48,7 @@ import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   word: z.string().min(1, { message: "Word cannot be empty." }),
-  language: z.enum(["english", "chinese"], {
+  language: z.enum(["english", "chinese", "vietnamese"], {
     required_error: "Please select a language.",
   }),
   folder: z.string().min(1, { message: "Folder cannot be empty." }),
@@ -200,6 +200,7 @@ export function SaveVocabularyDialog({
                     <SelectContent>
                       <SelectItem value="english">English</SelectItem>
                       <SelectItem value="chinese">Chinese</SelectItem>
+                      <SelectItem value="vietnamese">Vietnamese</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
