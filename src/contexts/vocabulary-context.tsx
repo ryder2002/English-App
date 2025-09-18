@@ -60,19 +60,22 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         ]);
 
         if (vocabData.length === 0 && folderData.length === 0) {
-          const sampleFolder = "Thư mục mẫu";
-          await dbAddFolder(sampleFolder, user.uid);
-          const sampleWordData: Omit<VocabularyItem, 'id' | 'createdAt'> = {
-            word: "hello",
-            language: "english",
-            vietnameseTranslation: "xin chào",
-            folder: sampleFolder,
-            ipa: "/həˈloʊ/",
-          };
-          const newWord = await dbAddVocabularyItem(sampleWordData, user.uid);
-          
-          folderData = [sampleFolder];
-          vocabData = [newWord];
+            const sampleFolders = ["Chủ đề chung", "Động vật", "Thức ăn"];
+            const sampleWords: Omit<VocabularyItem, 'id' | 'createdAt'>[] = [
+                { word: "hello", language: "english", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", ipa: "/həˈloʊ/" },
+                { word: "你好", language: "chinese", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", pinyin: "nǐ hǎo" },
+                { word: "dog", language: "english", vietnameseTranslation: "con chó", folder: "Động vật", ipa: "/dɔːɡ/" },
+                { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo" },
+                { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
+            ];
+
+            // Add folders and words to DB
+            await Promise.all(sampleFolders.map(folder => dbAddFolder(folder, user.uid)));
+            const newWords = await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
+
+            // Update local state
+            folderData = sampleFolders;
+            vocabData = newWords;
         }
         
         setFolders(folderData.sort());
@@ -98,7 +101,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
         if (!folders.includes(item.folder)) {
-            await addFolder(item.folder); // Use the context's addFolder to also update UI
+            await addFolder(item.folder);
         }
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev]);
