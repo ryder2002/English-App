@@ -10,7 +10,7 @@ const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 
 export const metadata: Metadata = {
   title: "LinguaLeap",
-  description: "Learn English and Chinese vocabulary with ease.",
+  description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
         <VocabularyProvider>
           <AppShell>{children}</AppShell>

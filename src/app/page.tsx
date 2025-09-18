@@ -13,11 +13,11 @@ export default function VocabularyPage() {
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold font-headline tracking-tight">
-          My Vocabulary
+          Từ vựng của tôi
         </h1>
         <Button onClick={() => setIsSaveDialogOpen(true)} variant="default">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Word
+            Thêm từ
         </Button>
         <SaveVocabularyDialog
           open={isSaveDialogOpen}

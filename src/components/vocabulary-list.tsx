@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -10,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Folder, MoreVertical, Trash2, Edit, Loader2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
@@ -53,7 +52,7 @@ export function VocabularyList() {
 
   const groupedVocabulary = useMemo(() => {
     return vocabulary.reduce((acc, item) => {
-      const folder = item.folder || "Uncategorized";
+      const folder = item.folder || "Chưa phân loại";
       if (!acc[folder]) {
         acc[folder] = [];
       }
@@ -78,13 +77,19 @@ export function VocabularyList() {
   if (vocabulary.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg bg-muted/50">
-        <p className="text-muted-foreground">Your vocabulary list is empty.</p>
+        <p className="text-muted-foreground">Danh sách từ vựng của bạn trống.</p>
         <p className="text-sm text-muted-foreground">
-          Click "Add Word" to start learning!
+          Nhấn "Thêm từ" để bắt đầu học!
         </p>
       </div>
     );
   }
+
+  const languageMap = {
+    english: 'Tiếng Anh',
+    chinese: 'Tiếng Trung',
+    vietnamese: 'Tiếng Việt',
+  };
 
   const vocabularyContent = (
     <>
@@ -102,7 +107,7 @@ export function VocabularyList() {
             {isMobile ? (
               <div className="space-y-2 pt-2">
                 {items.map((item) => (
-                  <Card key={item.id} >
+                  <Card key={item.id}>
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
@@ -119,10 +124,10 @@ export function VocabularyList() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenuItem onClick={() => handleEdit(item)}>
-                                    <Edit className="mr-2 h-4 w-4"/> Edit
+                                    <Edit className="mr-2 h-4 w-4"/> Sửa
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                    <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -135,7 +140,7 @@ export function VocabularyList() {
                               : "outline"
                           }
                         >
-                          {item.language}
+                          {languageMap[item.language]}
                         </Badge>
                         {(item.ipa || item.pinyin) && (
                           <p className="text-muted-foreground">
@@ -153,18 +158,18 @@ export function VocabularyList() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[200px]">Word</TableHead>
-                          <TableHead>Language</TableHead>
-                          <TableHead>Pronunciation</TableHead>
-                          <TableHead>Vietnamese</TableHead>
+                          <TableHead className="w-[200px]">Từ</TableHead>
+                          <TableHead>Ngôn ngữ</TableHead>
+                          <TableHead>Phát âm</TableHead>
+                          <TableHead>Tiếng Việt</TableHead>
                           <TableHead className="text-right w-[100px]">
-                            Actions
+                            Hành động
                           </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {items.map((item) => (
-                          <TableRow key={item.id} >
+                          <TableRow key={item.id} onClick={() => handleEdit(item)} className="cursor-pointer">
                             <TableCell className="font-medium">
                               {item.word}
                             </TableCell>
@@ -176,7 +181,7 @@ export function VocabularyList() {
                                     : "outline"
                                 }
                               >
-                                {item.language}
+                                {languageMap[item.language]}
                               </Badge>
                             </TableCell>
                             <TableCell>{item.ipa || item.pinyin}</TableCell>
@@ -190,10 +195,10 @@ export function VocabularyList() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                         <DropdownMenuItem onClick={() => handleEdit(item)}>
-                                            <Edit className="mr-2 h-4 w-4"/> Edit
+                                            <Edit className="mr-2 h-4 w-4"/> Sửa
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                            <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>

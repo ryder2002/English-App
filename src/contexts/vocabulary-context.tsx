@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { VocabularyItem } from "@/lib/types";
@@ -53,13 +52,20 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 getFolders()
             ]);
             setVocabulary(vocabData);
-            setFolders(folderData);
+            // Add a default folder if none exist
+            if (folderData.length === 0) {
+              const defaultFolder = "Cơ bản";
+              await dbAddFolder(defaultFolder);
+              setFolders([defaultFolder]);
+            } else {
+              setFolders(folderData);
+            }
         } catch (error) {
-            console.error("Failed to fetch data from Firestore:", error);
+            console.error("Lỗi khi lấy dữ liệu từ Firestore:", error);
             toast({
                 variant: "destructive",
-                title: "Error loading data",
-                description: "Could not load vocabulary and folders from the database.",
+                title: "Lỗi tải dữ liệu",
+                description: "Không thể tải từ vựng và thư mục từ cơ sở dữ liệu.",
             });
         } finally {
             setIsLoading(false);
@@ -144,7 +150,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 export function useVocabulary() {
   const context = useContext(VocabularyContext);
   if (context === undefined) {
-    throw new Error("useVocabulary must be used within a VocabularyProvider");
+    throw new Error("useVocabulary phải được sử dụng trong một VocabularyProvider");
   }
   return context;
 }

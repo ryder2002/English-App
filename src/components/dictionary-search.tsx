@@ -32,11 +32,11 @@ import { Separator } from "./ui/separator";
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
 const formSchema = z.object({
-  word: z.string().min(1, { message: "Word cannot be empty." }),
+  word: z.string().min(1, { message: "Từ không được để trống." }),
   sourceLanguage: languageEnum,
   targetLanguage: languageEnum,
 }).refine(data => data.sourceLanguage !== data.targetLanguage, {
-    message: "Source and target languages must be different.",
+    message: "Ngôn ngữ nguồn và đích phải khác nhau.",
     path: ["targetLanguage"],
 });
 
@@ -83,9 +83,9 @@ export function DictionarySearch() {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
+        title: "Ôi! Đã có lỗi xảy ra.",
         description:
-          "There was a problem looking up your word. Please try again.",
+          "Có lỗi khi tra từ. Vui lòng thử lại.",
       });
     } finally {
       setIsLoading(false);
@@ -112,7 +112,7 @@ export function DictionarySearch() {
       };
     } catch (error) {
       console.error("Failed to play audio", error);
-      toast({ variant: "destructive", title: "Could not play audio." });
+      toast({ variant: "destructive", title: "Không thể phát âm thanh." });
       setPlayingAudioFor(null);
     }
   };
@@ -125,9 +125,9 @@ export function DictionarySearch() {
   }
   
   const languageOptions = [
-      {value: 'english', label: 'English'},
-      {value: 'chinese', label: 'Chinese'},
-      {value: 'vietnamese', label: 'Vietnamese'}
+      {value: 'english', label: 'Tiếng Anh'},
+      {value: 'chinese', label: 'Tiếng Trung'},
+      {value: 'vietnamese', label: 'Tiếng Việt'}
   ]
 
   return (
@@ -142,10 +142,10 @@ export function DictionarySearch() {
                     name="word"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Word to look up</FormLabel>
+                        <FormLabel>Từ cần tra</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="e.g., benevolent, 善良, or tốt bụng"
+                            placeholder="ví dụ: benevolent, 善良, hoặc tốt bụng"
                             {...field}
                           />
                         </FormControl>
@@ -159,14 +159,14 @@ export function DictionarySearch() {
                     name="sourceLanguage"
                     render={({ field }) => (
                         <FormItem className="flex-1">
-                        <FormLabel>From</FormLabel>
+                        <FormLabel>Từ</FormLabel>
                         <Select
                             onValueChange={field.onChange}
                             value={field.value}
                         >
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a language" />
+                                <SelectValue placeholder="Chọn một ngôn ngữ" />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -185,14 +185,14 @@ export function DictionarySearch() {
                     name="targetLanguage"
                     render={({ field }) => (
                         <FormItem className="flex-1">
-                        <FormLabel>To</FormLabel>
+                        <FormLabel>Sang</FormLabel>
                         <Select
                             onValueChange={field.onChange}
                             value={field.value}
                         >
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a language" />
+                                <SelectValue placeholder="Chọn một ngôn ngữ" />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -212,7 +212,7 @@ export function DictionarySearch() {
                 ) : (
                   <Search className="mr-2 h-4 w-4" />
                 )}
-                Search
+                Tìm kiếm
               </Button>
             </form>
           </Form>
@@ -231,7 +231,7 @@ export function DictionarySearch() {
             <CardTitle className="flex items-center justify-between">
                 <div className="flex items-baseline gap-4">
                     <span className="text-4xl font-bold font-headline">{result.originalWord}</span>
-                    <Badge variant="secondary">{result.sourceLanguage}</Badge>
+                    <Badge variant="secondary">{languageOptions.find(l => l.value === result.sourceLanguage)?.label}</Badge>
                 </div>
                 <Button size="icon" variant="ghost" onClick={() => playAudio(result.originalWord, result.sourceLanguage, 'original')}>
                     {playingAudioFor === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
@@ -262,7 +262,7 @@ export function DictionarySearch() {
                 <>
                 <Separator />
                 <div>
-                    <p className="font-semibold text-muted-foreground mb-2 text-lg">Examples</p>
+                    <p className="font-semibold text-muted-foreground mb-2 text-lg">Ví dụ</p>
                     <div className="space-y-4 text-base">
                         {result.examples.map((ex, index) => (
                             <div key={index} className="p-3 rounded-md border bg-muted/50">

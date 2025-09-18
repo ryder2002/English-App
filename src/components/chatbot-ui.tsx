@@ -33,7 +33,7 @@ interface Message {
 export function ChatbotUI() {
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hello! How can I help you with your language learning today?' }
+    { role: 'assistant', content: 'Xin chào! Tôi có thể giúp gì cho việc học ngôn ngữ của bạn hôm nay?' }
   ]);
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
@@ -65,8 +65,8 @@ export function ChatbotUI() {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem communicating with the assistant.",
+        title: "Ôi! Đã có lỗi xảy ra.",
+        description: "Có lỗi khi giao tiếp với trợ lý.",
       });
       setMessages(prev => prev.slice(0, prev.length -1));
     } finally {
@@ -123,7 +123,7 @@ export function ChatbotUI() {
                     <FormItem className="flex-grow">
                         <FormControl>
                         <Input
-                            placeholder="Ask about translations, definitions, grammar..."
+                            placeholder="Hỏi về bản dịch, định nghĩa, ngữ pháp..."
                             {...field}
                             disabled={isLoading}
                             className="h-11 text-base rounded-full px-5"

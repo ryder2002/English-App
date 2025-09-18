@@ -59,10 +59,9 @@ export function FlashcardPlayer() {
   if (vocabulary.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96">
-        <p className="text-muted-foreground">No vocabulary to practice.</p>
+        <p className="text-muted-foreground">Chưa có từ vựng để luyện tập.</p>
         <p className="text-sm text-muted-foreground">
-          Add some words to your vocabulary list to start practicing with
-          flashcards.
+          Hãy thêm từ vào danh sách từ vựng của bạn để bắt đầu luyện tập với flashcards.
         </p>
       </div>
     );
@@ -123,7 +122,7 @@ export function FlashcardPlayer() {
             onClick={() => setIsFlipped(!isFlipped)}
             aria-label="Flip card"
           >
-            <FlipHorizontal className="mr-2 h-4 w-4" /> Flip
+            <FlipHorizontal className="mr-2 h-4 w-4" /> Lật thẻ
           </Button>
 
           <Button variant="outline" size="icon" onClick={handleNext}>
@@ -132,7 +131,7 @@ export function FlashcardPlayer() {
         </div>
         <div className="flex justify-center">
             <Button variant="ghost" onClick={handleShuffle}>
-                <RefreshCw className="mr-2 h-4 w-4"/> Shuffle Deck
+                <RefreshCw className="mr-2 h-4 w-4"/> Xáo trộn
             </Button>
         </div>
       </div>

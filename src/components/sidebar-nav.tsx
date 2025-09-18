@@ -6,11 +6,11 @@ import Link from "next/link";
 import { BookText, Layers, Search, Bot, Folder } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Vocabulary", icon: BookText },
-  { href: "/folders", label: "Folders", icon: Folder },
+  { href: "/", label: "Từ vựng", icon: BookText },
+  { href: "/folders", label: "Thư mục", icon: Folder },
   { href: "/flashcards", label: "Flashcards", icon: Layers },
-  { href: "/dictionary", label: "Dictionary", icon: Search },
-  { href: "/chatbot", label: "AI Chatbot", icon: Bot },
+  { href: "/dictionary", label: "Từ điển", icon: Search },
+  { href: "/chatbot", label: "Trợ lý AI", icon: Bot },
 ];
 
 export function SidebarNav() {
@@ -20,16 +20,18 @@ export function SidebarNav() {
     <SidebarMenu>
       {navItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname === item.href}
-            tooltip={item.label}
-          >
-            <Link href={item.href}>
-              <item.icon />
-              <span>{item.label}</span>
-            </Link>
-          </SidebarMenuButton>
+          <Link href={item.href}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href}
+              tooltip={item.label}
+            >
+              <div>
+                <item.icon />
+                <span>{item.label}</span>
+              </div>
+            </SidebarMenuButton>
+          </Link>
         </SidebarMenuItem>
       ))}
     </SidebarMenu>

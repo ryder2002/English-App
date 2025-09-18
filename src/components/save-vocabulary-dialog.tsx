@@ -47,11 +47,11 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const formSchema = z.object({
-  word: z.string().min(1, { message: "Word cannot be empty." }),
+  word: z.string().min(1, { message: "Từ không được để trống." }),
   language: z.enum(["english", "chinese", "vietnamese"], {
-    required_error: "Please select a language.",
+    required_error: "Vui lòng chọn một ngôn ngữ.",
   }),
-  folder: z.string().min(1, { message: "Folder cannot be empty." }),
+  folder: z.string().min(1, { message: "Thư mục không được để trống." }),
 });
 
 type SaveVocabularyFormValues = z.infer<typeof formSchema>;
@@ -79,7 +79,7 @@ export function SaveVocabularyDialog({
     defaultValues: {
       word: "",
       language: "english",
-      folder: "Basics",
+      folder: "Cơ bản",
     },
   });
 
@@ -95,7 +95,7 @@ export function SaveVocabularyDialog({
         form.reset({
           word: "",
           language: "english",
-          folder: "Basics",
+          folder: "Cơ bản",
         });
       }
     }
@@ -112,7 +112,7 @@ export function SaveVocabularyDialog({
 
       const primaryDefinition = details.definitions[0];
       if (!primaryDefinition) {
-        throw new Error("AI did not return a valid definition.");
+        throw new Error("AI không trả về định nghĩa hợp lệ.");
       }
 
       const vocabularyData = {
@@ -127,8 +127,8 @@ export function SaveVocabularyDialog({
       if (itemToEdit) {
         updateVocabularyItem(itemToEdit.id, vocabularyData);
         toast({
-            title: "Success!",
-            description: `"${values.word}" has been updated.`,
+            title: "Thành công!",
+            description: `"${values.word}" đã được cập nhật.`,
           });
       } else {
         addVocabularyItem({
@@ -136,8 +136,8 @@ export function SaveVocabularyDialog({
             ...vocabularyData
         });
         toast({
-            title: "Success!",
-            description: `"${values.word}" has been added to your vocabulary.`,
+            title: "Thành công!",
+            description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,
         });
       }
       form.reset();
@@ -146,16 +146,16 @@ export function SaveVocabularyDialog({
       console.error(error);
       toast({
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem saving your word. Please try again.",
+        title: "Ôi! Đã có lỗi xảy ra.",
+        description: "Có lỗi khi lưu từ của bạn. Vui lòng thử lại.",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const dialogTitle = itemToEdit ? "Edit Word" : "Add New Word";
-  const buttonText = itemToEdit ? "Save Changes" : "Add Word";
+  const dialogTitle = itemToEdit ? "Chỉnh sửa từ" : "Thêm từ mới";
+  const buttonText = itemToEdit ? "Lưu thay đổi" : "Thêm từ";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -163,7 +163,7 @@ export function SaveVocabularyDialog({
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            {itemToEdit ? "Update the details of your word." : "Enter a word and our AI will handle the rest."}
+            {itemToEdit ? "Cập nhật chi tiết cho từ của bạn." : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -173,9 +173,9 @@ export function SaveVocabularyDialog({
               name="word"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Word</FormLabel>
+                  <FormLabel>Từ</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., hello or 你好" {...field} />
+                    <Input placeholder="ví dụ: hello hoặc 你好" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -186,7 +186,7 @@ export function SaveVocabularyDialog({
               name="language"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Language</FormLabel>
+                  <FormLabel>Ngôn ngữ</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
@@ -194,13 +194,13 @@ export function SaveVocabularyDialog({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a language" />
+                        <SelectValue placeholder="Chọn một ngôn ngữ" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="chinese">Chinese</SelectItem>
-                      <SelectItem value="vietnamese">Vietnamese</SelectItem>
+                      <SelectItem value="english">Tiếng Anh</SelectItem>
+                      <SelectItem value="chinese">Tiếng Trung</SelectItem>
+                      <SelectItem value="vietnamese">Tiếng Việt</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -212,7 +212,7 @@ export function SaveVocabularyDialog({
               name="folder"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Folder</FormLabel>
+                  <FormLabel>Thư mục</FormLabel>
                   <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -224,7 +224,7 @@ export function SaveVocabularyDialog({
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {field.value || "Select folder"}
+                          {field.value || "Chọn thư mục"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -237,7 +237,7 @@ export function SaveVocabularyDialog({
                         }}
                       >
                         <CommandInput
-                          placeholder="Search or create new..."
+                          placeholder="Tìm kiếm hoặc tạo mới..."
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                                const newFolderValue = (e.target as HTMLInputElement).value;
@@ -249,7 +249,7 @@ export function SaveVocabularyDialog({
                           }}
                         />
                         <CommandList>
-                          <CommandEmpty>No folder found. Press Enter to create.</CommandEmpty>
+                          <CommandEmpty>Không tìm thấy thư mục. Nhấn Enter để tạo mới.</CommandEmpty>
                           <CommandGroup>
                             {sortedFolders.map((folder) => (
                               <CommandItem
