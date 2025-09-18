@@ -7,4 +7,5 @@ export interface VocabularyItem {
   ipa?: string;
   pinyin?: string;
   vietnameseTranslation: string;
+  folder: string;
 }

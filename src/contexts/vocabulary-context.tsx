@@ -9,6 +9,7 @@ interface VocabularyContextType {
   removeVocabularyItem: (id: string) => void;
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
+  getFolders: () => string[];
 }
 
 const VocabularyContext = createContext<VocabularyContextType | undefined>(
@@ -22,6 +23,7 @@ const initialVocabulary: VocabularyItem[] = [
     language: "english",
     ipa: "/həˈloʊ/",
     vietnameseTranslation: "xin chào",
+    folder: "Basics",
   },
   {
     id: "2",
@@ -29,6 +31,7 @@ const initialVocabulary: VocabularyItem[] = [
     language: "chinese",
     pinyin: "nǐ hǎo",
     vietnameseTranslation: "xin chào",
+    folder: "Basics",
   },
   {
     id: "3",
@@ -36,6 +39,7 @@ const initialVocabulary: VocabularyItem[] = [
     language: "english",
     ipa: "/wɜːrld/",
     vietnameseTranslation: "thế giới",
+    folder: "Basics",
   },
   {
     id: "4",
@@ -43,6 +47,23 @@ const initialVocabulary: VocabularyItem[] = [
     language: "chinese",
     pinyin: "shìjiè",
     vietnameseTranslation: "thế giới",
+    folder: "Basics",
+  },
+   {
+    id: "5",
+    word: "travel",
+    language: "english",
+    ipa: "/ˈtrævəl/",
+    vietnameseTranslation: "du lịch",
+    folder: "Travel",
+  },
+  {
+    id: "6",
+    word: "旅行",
+    language: "chinese",
+    pinyin: "lǚxíng",
+    vietnameseTranslation: "du lịch",
+    folder: "Travel",
   },
 ];
 
@@ -59,9 +80,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     setVocabulary((prev) => prev.filter((item) => item.id !== id));
   }
 
+  const getFolders = () => {
+    const folders = new Set(vocabulary.map(item => item.folder));
+    return Array.from(folders);
+  }
+
   return (
     <VocabularyContext.Provider
-      value={{ vocabulary, addVocabularyItem, removeVocabularyItem, isLoading, setIsLoading }}
+      value={{ vocabulary, addVocabularyItem, removeVocabularyItem, isLoading, setIsLoading, getFolders }}
     >
       {children}
     </VocabularyContext.Provider>

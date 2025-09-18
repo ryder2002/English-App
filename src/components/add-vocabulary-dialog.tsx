@@ -33,12 +33,25 @@ import { useToast } from "@/hooks/use-toast";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import type { Language } from "@/lib/types";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useState } from "react";
 
 const formSchema = z.object({
   word: z.string().min(1, { message: "Word cannot be empty." }),
   language: z.enum(["english", "chinese"], {
     required_error: "Please select a language.",
   }),
+  folder: z.string().min(1, { message: "Folder cannot be empty." }),
 });
 
 type AddVocabularyFormValues = z.infer<typeof formSchema>;
@@ -52,14 +65,18 @@ export function AddVocabularyDialog({
   open,
   onOpenChange,
 }: AddVocabularyDialogProps) {
-  const { addVocabularyItem, isLoading, setIsLoading } = useVocabulary();
+  const { addVocabularyItem, isLoading, setIsLoading, getFolders } =
+    useVocabulary();
   const { toast } = useToast();
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const folders = getFolders();
 
   const form = useForm<AddVocabularyFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       word: "",
       language: "english",
+      folder: "Basics",
     },
   });
 
@@ -74,6 +91,7 @@ export function AddVocabularyDialog({
         id: new Date().toISOString(),
         word: values.word,
         language: values.language as Language,
+        folder: values.folder,
         ...details,
       });
       toast({
@@ -138,6 +156,79 @@ export function AddVocabularyDialog({
                       <SelectItem value="chinese">Chinese</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="folder"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Folder</FormLabel>
+                  <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value || "Select folder"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search or create folder..."
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              !folders.includes(
+                                (e.target as HTMLInputElement).value
+                              )
+                            ) {
+                              form.setValue(
+                                "folder",
+                                (e.target as HTMLInputElement).value
+                              );
+                              setPopoverOpen(false);
+                            }
+                          }}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No folder found. Press Enter to create.</CommandEmpty>
+                          <CommandGroup>
+                            {folders.map((folder) => (
+                              <CommandItem
+                                value={folder}
+                                key={folder}
+                                onSelect={() => {
+                                  form.setValue("folder", folder);
+                                  setPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    folder === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {folder}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
