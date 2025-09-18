@@ -2,7 +2,7 @@
 "use client";
 
 import type { VocabularyItem } from "@/lib/types";
-import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
 import { 
     getVocabulary,
     addVocabularyItem as dbAddVocabularyItem,
@@ -32,9 +32,7 @@ interface VocabularyContextType {
   isLoading: boolean;
 }
 
-const VocabularyContext = createContext<VocabularyContextType | undefined>(
-  undefined
-);
+const VocabularyContext = createContext<VocabularyContextType | undefined>(undefined);
 
 export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -59,8 +57,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           getFolders(user.uid),
         ]);
 
+        // If it's a new user with no data, create sample data
         if (vocabData.length === 0 && folderData.length === 0) {
             const sampleFolders = ["Chủ đề chung", "Động vật", "Thức ăn"];
+            await Promise.all(sampleFolders.map(folder => dbAddFolder(folder, user.uid)));
+            
             const sampleWords: Omit<VocabularyItem, 'id' | 'createdAt'>[] = [
                 { word: "hello", language: "english", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", ipa: "/həˈloʊ/" },
                 { word: "你好", language: "chinese", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", pinyin: "nǐ hǎo" },
@@ -68,25 +69,20 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo" },
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
-
-            // Add folders and words to DB sequentially and safely
-            await Promise.all(sampleFolders.map(folder => dbAddFolder(folder, user.uid)));
             await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
-
-            // Fetch the newly created data to ensure UI consistency
-            const [newVocabData, newFolderData] = await Promise.all([
+            
+            // Re-fetch data after creating samples
+            [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
                 getFolders(user.uid),
             ]);
-            vocabData = newVocabData;
-            folderData = newFolderData;
         }
         
-        setFolders(folderData.sort());
+        setFolders(folderData);
         setVocabulary(vocabData);
 
       } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu từ Firestore:", error);
+        console.error("Error loading data:", error);
         toast({
             variant: "destructive",
             title: "Lỗi tải dữ liệu",
@@ -104,13 +100,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
+        // If folder doesn't exist, add it first.
         if (!folders.includes(item.folder)) {
             await addFolder(item.folder);
         }
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev]);
     } catch (error) {
-         console.error("Lỗi khi thêm từ vựng:", error);
+         console.error("Error adding vocabulary item:", error);
          toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm từ vựng." });
     } finally {
         setIsLoading(false);
@@ -119,7 +116,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
   const removeVocabularyItem = async (id: string) => {
     if (!user) return;
-    const originalVocabulary = [...vocabulary];
     setVocabulary((prev) => prev.filter((item) => item.id !== id));
     try {
         await dbDeleteVocabularyItem(id);
@@ -128,9 +124,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           description: "Từ vựng đã được xóa khỏi danh sách của bạn.",
       });
     } catch (error) {
-        console.error("Lỗi khi xóa từ vựng:", error);
+        console.error("Error deleting vocabulary item:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa từ vựng." });
-        setVocabulary(originalVocabulary);
+        setVocabulary(await getVocabulary(user.uid)); // Re-fetch to be safe
     }
   }
   
@@ -144,7 +140,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         await dbUpdateVocabularyItem(id, updates);
         setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
     } catch (error) {
-        console.error("Lỗi khi cập nhật từ vựng:", error);
+        console.error("Error updating vocabulary item:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
     } finally {
         setIsLoading(false);
@@ -162,7 +158,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         await dbAddFolder(folderName, user.uid);
         setFolders(prev => [...prev, folderName].sort());
     } catch (error) {
-        console.error("Lỗi khi thêm thư mục:", error);
+        console.error("Error adding folder:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm thư mục." });
     } finally {
         setIsLoading(false);
@@ -183,7 +179,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             description: `Thư mục "${folderName}" và các từ trong đó đã được xóa.`,
         });
     } catch (error) {
-        console.error("Lỗi khi xóa thư mục:", error);
+        console.error("Error deleting folder:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa thư mục." });
     } finally {
         setIsLoading(false);
@@ -204,7 +200,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         setFolders(prev => prev.map(f => (f === oldName ? newName : f)).sort());
         setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
     } catch (error) {
-        console.error("Lỗi khi cập nhật thư mục:", error);
+        console.error("Error updating folder:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật thư mục." });
     } finally {
         setIsLoading(false);
@@ -233,7 +229,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 export function useVocabulary() {
   const context = useContext(VocabularyContext);
   if (context === undefined) {
-    throw new Error("useVocabulary phải được sử dụng trong một VocabularyProvider");
+    throw new Error("useVocabulary must be used within a VocabularyProvider");
   }
   return context;
 }

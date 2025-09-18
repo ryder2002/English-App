@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -29,10 +30,11 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, isLoading, vocabulary } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, isLoading: isContextLoading, vocabulary } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FolderFormValues>({
     resolver: zodResolver(formSchema),
@@ -45,15 +47,19 @@ export function FolderManager() {
   });
 
   const onAddSubmit = async (values: FolderFormValues) => {
+    setIsSubmitting(true);
     await addFolder(values.folderName);
     form.reset();
     setIsAdding(false);
+    setIsSubmitting(false);
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
+    setIsSubmitting(true);
     await updateFolder(oldName, values.folderName);
     setEditingFolder(null);
     editForm.reset();
+    setIsSubmitting(false);
   };
 
   const startEditing = (name: string) => {
@@ -78,6 +84,8 @@ export function FolderManager() {
           description: `Thư mục "${folder}" và nội dung của nó đã được xóa.`,
       });
   }
+
+  const isLoading = isContextLoading || isSubmitting;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -113,7 +121,7 @@ export function FolderManager() {
         </CardContent>
        </Card>
 
-        {isLoading ? (
+        {isContextLoading ? (
             <div className="space-y-2">
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
@@ -121,7 +129,7 @@ export function FolderManager() {
             </div>
         ) : (
           <div className="space-y-2">
-            {folders.length === 0 && (
+            {folders.length === 0 && !isContextLoading && (
                  <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
             )}
             {folders.map((folder) => (

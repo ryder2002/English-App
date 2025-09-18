@@ -35,6 +35,9 @@ export const addVocabularyItem = async (
   item: Omit<VocabularyItem, "id" | "createdAt">,
   userId: string
 ): Promise<VocabularyItem> => {
+  if (!userId) {
+    throw new Error("User ID is required to add an item.");
+  }
   const newDocData = {
     ...item,
     userId,
