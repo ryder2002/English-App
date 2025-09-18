@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -29,7 +30,7 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, vocabulary } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, vocabulary, isLoading } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -41,23 +42,23 @@ export function FolderManager() {
     },
   });
 
-  const onAddSubmit = (values: FolderFormValues) => {
+  const onAddSubmit = async (values: FolderFormValues) => {
     if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase())) {
         form.setError("folderName", { message: "Folder already exists." });
         return;
     }
-    addFolder(values.folderName);
+    await addFolder(values.folderName);
     toast({ title: `Folder "${values.folderName}" created.` });
     form.reset();
     setIsAdding(false);
   };
   
-  const onEditSubmit = (oldName: string, values: FolderFormValues) => {
+  const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
     if (folders.find(f => f.toLowerCase() === values.folderName.toLowerCase() && f.toLowerCase() !== oldName.toLowerCase())) {
         form.setError("folderName", { message: "Folder name already in use." });
         return;
     }
-    updateFolder(oldName, values.folderName);
+    await updateFolder(oldName, values.folderName);
     toast({ title: `Folder "${oldName}" renamed to "${values.folderName}".` });
     setEditingFolder(null);
     form.reset();
@@ -76,6 +77,22 @@ export function FolderManager() {
   const wordsInFolder = (folderName: string) => {
     return vocabulary.filter(item => item.folder === folderName).length;
   }
+  
+  const handleRemoveFolder = async (folder: string) => {
+      try {
+          await removeFolder(folder);
+          toast({
+              variant: "default",
+              title: "Folder deleted",
+              description: `Folder "${folder}" and its contents have been deleted.`,
+          });
+      } catch (error) {
+          toast({
+              variant: "destructive",
+              title: "Error deleting folder",
+          });
+      }
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -90,14 +107,16 @@ export function FolderManager() {
                         render={({ field }) => (
                             <FormItem className="flex-grow">
                                 <FormControl>
-                                    <Input placeholder="New folder name..." {...field} />
+                                    <Input placeholder="New folder name..." {...field} disabled={isLoading} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                         />
-                        <Button type="submit">Add</Button>
-                        <Button type="button" variant="ghost" onClick={() => setIsAdding(false)}>Cancel</Button>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={() => setIsAdding(false)} disabled={isLoading}>Cancel</Button>
                     </form>
                 </Form>
             ) : (
@@ -122,14 +141,16 @@ export function FolderManager() {
                                 render={({ field }) => (
                                     <FormItem className="flex-grow">
                                         <FormControl>
-                                            <Input {...field} />
+                                            <Input {...field} disabled={isLoading}/>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                                 />
-                                <Button type="submit">Save</Button>
-                                <Button type="button" variant="ghost" onClick={cancelEditing}>Cancel</Button>
+                                <Button type="submit" disabled={isLoading}>
+                                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                                </Button>
+                                <Button type="button" variant="ghost" onClick={cancelEditing} disabled={isLoading}>Cancel</Button>
                             </form>
                         </Form>
                     </CardContent>
@@ -168,7 +189,7 @@ export function FolderManager() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => removeFolder(folder)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    <AlertDialogAction onClick={() => handleRemoveFolder(folder)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                                         Delete
                                     </AlertDialogAction>
                                     </AlertDialogFooter>
@@ -185,3 +206,4 @@ export function FolderManager() {
     </div>
   );
 }
+

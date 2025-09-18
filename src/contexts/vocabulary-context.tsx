@@ -1,114 +1,120 @@
+
 "use client";
 
 import type { VocabularyItem } from "@/lib/types";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
+import { 
+    getVocabulary,
+    addVocabularyItem as dbAddVocabularyItem,
+    updateVocabularyItem as dbUpdateVocabularyItem,
+    deleteVocabularyItem as dbDeleteVocabularyItem,
+    deleteVocabularyByFolder as dbDeleteVocabularyByFolder,
+    updateVocabularyFolder as dbUpdateVocabularyFolder
+} from "@/lib/services/vocabulary-service";
+import {
+    getFolders,
+    addFolder as dbAddFolder,
+    updateFolder as dbUpdateFolder,
+    deleteFolder as dbDeleteFolder
+} from "@/lib/services/folder-service";
+import { useToast } from "@/hooks/use-toast";
 
 interface VocabularyContextType {
   vocabulary: VocabularyItem[];
   folders: string[];
-  addVocabularyItem: (item: VocabularyItem) => void;
-  removeVocabularyItem: (id: string) => void;
-  updateVocabularyItem: (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => void;
-  addFolder: (folderName: string) => void;
-  removeFolder: (folderName: string) => void;
-  updateFolder: (oldName: string, newName: string) => void;
+  addVocabularyItem: (item: VocabularyItem) => Promise<void>;
+  removeVocabularyItem: (id: string) => Promise<void>;
+  updateVocabularyItem: (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => Promise<void>;
+  addFolder: (folderName: string) => Promise<void>;
+  removeFolder: (folderName: string) => Promise<void>;
+  updateFolder: (oldName: string, newName: string) => Promise<void>;
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
+  isDataReady: boolean;
 }
 
 const VocabularyContext = createContext<VocabularyContextType | undefined>(
   undefined
 );
 
-const initialVocabulary: VocabularyItem[] = [
-  {
-    id: "1",
-    word: "hello",
-    language: "english",
-    vietnameseTranslation: "xin chào",
-    ipa: "/həˈloʊ/",
-    folder: "Basics",
-  },
-  {
-    id: "2",
-    word: "你好",
-    language: "chinese",
-    vietnameseTranslation: "xin chào",
-    pinyin: "nǐ hǎo",
-    folder: "Basics",
-  },
-  {
-    id: "3",
-    word: "world",
-    language: "english",
-    vietnameseTranslation: "thế giới",
-    ipa: "/wɜːrld/",
-    folder: "Basics",
-  },
-  {
-    id: "4",
-    word: "世界",
-    language: "chinese",
-    vietnameseTranslation: "thế giới",
-    pinyin: "shìjiè",
-    folder: "Basics",
-  },
-   {
-    id: "5",
-    word: "travel",
-    language: "english",
-    vietnameseTranslation: "du lịch",
-    ipa: "/ˈtrævəl/",
-    folder: "Travel",
-  },
-  {
-    id: "6",
-    word: "旅行",
-    language: "chinese",
-    vietnameseTranslation: "du lịch",
-    pinyin: "lǚxíng",
-    folder: "Travel",
-  },
-];
-
-const initialFolders = ["Basics", "Travel"];
-
 export function VocabularyProvider({ children }: { children: ReactNode }) {
-  const [vocabulary, setVocabulary] =
-    useState<VocabularyItem[]>(initialVocabulary);
-  const [folders, setFolders] = useState<string[]>(initialFolders);
+  const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
+  const { toast } = useToast();
 
-  const addVocabularyItem = (item: VocabularyItem) => {
-    setVocabulary((prev) => [item, ...prev]);
+  useEffect(() => {
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const [vocabData, folderData] = await Promise.all([
+                getVocabulary(),
+                getFolders()
+            ]);
+            setVocabulary(vocabData);
+            setFolders(folderData);
+        } catch (error) {
+            console.error("Failed to fetch data from Firestore:", error);
+            toast({
+                variant: "destructive",
+                title: "Error loading data",
+                description: "Could not load vocabulary and folders from the database.",
+            });
+        } finally {
+            setIsLoading(false);
+            setIsDataReady(true);
+        }
+    };
+    fetchData();
+  }, [toast]);
+  
+
+  const addVocabularyItem = async (item: VocabularyItem) => {
+    const newItem = await dbAddVocabularyItem({
+        word: item.word,
+        language: item.language,
+        folder: item.folder,
+        vietnameseTranslation: item.vietnameseTranslation,
+        ipa: item.ipa,
+        pinyin: item.pinyin,
+    });
+    setVocabulary((prev) => [newItem, ...prev]);
     if (!folders.includes(item.folder)) {
-      setFolders(prev => [...prev, item.folder]);
+      await addFolder(item.folder);
     }
   };
 
-  const removeVocabularyItem = (id: string) => {
+  const removeVocabularyItem = async (id: string) => {
+    await dbDeleteVocabularyItem(id);
     setVocabulary((prev) => prev.filter((item) => item.id !== id));
   }
   
-  const updateVocabularyItem = (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => {
+  const updateVocabularyItem = async (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => {
+    await dbUpdateVocabularyItem(id, updates);
     setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
      if (updates.folder && !folders.includes(updates.folder)) {
-      setFolders(prev => [...prev, updates.folder!]);
+      await addFolder(updates.folder);
     }
   }
   
-  const addFolder = (folderName: string) => {
+  const addFolder = async (folderName: string) => {
     if (!folders.includes(folderName)) {
+        await dbAddFolder(folderName);
         setFolders(prev => [folderName, ...prev]);
     }
   }
 
-  const removeFolder = (folderName: string) => {
+  const removeFolder = async (folderName: string) => {
+    await dbDeleteFolder(folderName);
+    await dbDeleteVocabularyByFolder(folderName);
     setFolders(prev => prev.filter(f => f !== folderName));
     setVocabulary(prev => prev.filter(item => item.folder !== folderName));
   }
 
-  const updateFolder = (oldName: string, newName: string) => {
+  const updateFolder = async (oldName: string, newName: string) => {
+    await dbUpdateFolder(oldName, newName);
+    await dbUpdateVocabularyFolder(oldName, newName);
     setFolders(prev => prev.map(f => (f === oldName ? newName : f)));
     setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
   }
@@ -124,6 +130,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         updateVocabularyItem, 
         isLoading, 
         setIsLoading,
+        isDataReady,
         addFolder,
         removeFolder,
         updateFolder,

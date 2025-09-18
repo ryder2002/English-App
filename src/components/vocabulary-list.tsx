@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "./ui/button";
-import { Folder, MoreVertical, Trash2, Edit } from "lucide-react";
+import { Folder, MoreVertical, Trash2, Edit, Loader2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -29,9 +30,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { Skeleton } from "./ui/skeleton";
 
 export function VocabularyList() {
-  const { vocabulary, removeVocabularyItem } = useVocabulary();
+  const { vocabulary, removeVocabularyItem, isDataReady } = useVocabulary();
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -59,6 +61,19 @@ export function VocabularyList() {
       return acc;
     }, {} as Record<string, VocabularyItem[]>);
   }, [vocabulary]);
+
+  if (!isDataReady) {
+    return (
+        <div className="space-y-4">
+            <Skeleton className="h-12 w-1/3" />
+            <div className="space-y-2">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+            </div>
+        </div>
+    )
+  }
 
   if (vocabulary.length === 0) {
     return (
@@ -149,7 +164,7 @@ export function VocabularyList() {
                       </TableHeader>
                       <TableBody>
                         {items.map((item) => (
-                          <TableRow key={item.id} onClick={() => handleEdit(item)} className="cursor-pointer">
+                          <TableRow key={item.id} >
                             <TableCell className="font-medium">
                               {item.word}
                             </TableCell>
