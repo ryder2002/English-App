@@ -54,31 +54,30 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
       setIsLoading(true);
       try {
-        const [vocabData, folderData] = await Promise.all([
-            getVocabulary(user.uid),
-            getFolders(user.uid)
+        let [vocabData, folderData] = await Promise.all([
+          getVocabulary(user.uid),
+          getFolders(user.uid),
         ]);
 
-        // Logic to create sample data for new users
         if (vocabData.length === 0 && folderData.length === 0) {
-            const sampleFolder = "Thư mục mẫu";
-            await dbAddFolder(sampleFolder, user.uid);
-
-            const sampleWordData: Omit<VocabularyItem, 'id' | 'createdAt'> = {
-                word: "hello",
-                language: "english",
-                vietnameseTranslation: "xin chào",
-                folder: sampleFolder,
-                ipa: "/həˈloʊ/",
-            };
-            const newWord = await dbAddVocabularyItem(sampleWordData, user.uid);
-            
-            setFolders([sampleFolder]);
-            setVocabulary([newWord]);
-        } else {
-            setVocabulary(vocabData);
-            setFolders(folderData.length > 0 ? folderData.sort() : ["Cơ bản"]);
+          const sampleFolder = "Thư mục mẫu";
+          await dbAddFolder(sampleFolder, user.uid);
+          const sampleWordData: Omit<VocabularyItem, 'id' | 'createdAt'> = {
+            word: "hello",
+            language: "english",
+            vietnameseTranslation: "xin chào",
+            folder: sampleFolder,
+            ipa: "/həˈloʊ/",
+          };
+          const newWord = await dbAddVocabularyItem(sampleWordData, user.uid);
+          
+          folderData = [sampleFolder];
+          vocabData = [newWord];
         }
+        
+        setFolders(folderData.sort());
+        setVocabulary(vocabData);
+
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu từ Firestore:", error);
         toast({
@@ -99,8 +98,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
         if (!folders.includes(item.folder)) {
-            await dbAddFolder(item.folder, user.uid);
-            setFolders(prev => [...prev, item.folder].sort());
+            await addFolder(item.folder); // Use the context's addFolder to also update UI
         }
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev]);
@@ -134,8 +132,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
         if (updates.folder && !folders.includes(updates.folder)) {
-           await dbAddFolder(updates.folder, user.uid);
-           setFolders(prev => [...prev, updates.folder!].sort());
+           await addFolder(updates.folder);
         }
         await dbUpdateVocabularyItem(id, updates);
         setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
