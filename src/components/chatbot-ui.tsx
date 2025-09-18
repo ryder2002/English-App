@@ -75,7 +75,7 @@ export function ChatbotUI() {
   };
 
   return (
-    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-4xl bg-card rounded-t-xl shadow-lg border">
+    <div className="flex flex-col h-full flex-grow mx-auto w-full bg-card rounded-t-xl shadow-lg border">
         <ScrollArea className="flex-grow p-4 md:p-6" viewportRef={scrollViewportRef}>
             <div className="space-y-6">
                 {messages.map((message, index) => (
