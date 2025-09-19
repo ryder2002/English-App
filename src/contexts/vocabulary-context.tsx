@@ -22,6 +22,7 @@ import {
 } from "@/lib/services/folder-service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./auth-context";
+import { generateAudio } from "@/ai/flows/generate-audio-flow";
 
 interface VocabularyContextType {
   vocabulary: VocabularyItem[];
@@ -89,14 +90,19 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             }
             
             const sampleWords: Omit<VocabularyItem, 'id' | 'createdAt'>[] = [
-                { word: "hello", language: "english", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", ipa: "/həˈloʊ/" },
-                { word: "你好", language: "chinese", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", pinyin: "nǐ hǎo" },
-                { word: "dog", language: "english", vietnameseTranslation: "con chó", folder: "Động vật", ipa: "/dɔːɡ/" },
-                { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo" },
-                { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
+                { word: "hello", language: "english", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", ipa: "/həˈloʊ/", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
+                { word: "你好", language: "chinese", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", pinyin: "nǐ hǎo", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
+                { word: "dog", language: "english", vietnameseTranslation: "con chó", folder: "Động vật", ipa: "/dɔːɡ/", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
+                { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
+                { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
             ];
+
+            const wordsWithAudio = await Promise.all(sampleWords.map(async (word) => {
+                const audio = await generateAudio({text: word.word, language: word.language});
+                return {...word, audioSrc: audio.audioSrc };
+            }));
             
-            await dbAddManyVocabularyItems(sampleWords, user.uid);
+            await dbAddManyVocabularyItems(wordsWithAudio, user.uid);
             
             [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
@@ -182,20 +188,23 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   
   const updateVocabularyItem = useCallback(async (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>): Promise<boolean> => {
     if (!user) return false;
+    // Optimistic UI update
+    setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
     try {
         if (updates.folder && !folders.includes(updates.folder)) {
            const folderAdded = await addFolder(updates.folder);
            if (!folderAdded) return false;
         }
         await dbUpdateVocabularyItem(id, updates);
-        setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
         return true;
     } catch (error) {
         console.error("Error updating vocabulary item:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
+        // Revert UI on error
+        setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...vocabulary.find(v => v.id === id) } as VocabularyItem : item));
         return false;
     }
-  }, [user, toast, folders, addFolder]);
+  }, [user, toast, folders, addFolder, vocabulary]);
 
   const removeFolder = useCallback(async (folderName: string) => {
     if (!user) return;

@@ -16,13 +16,14 @@ import { Progress } from "./ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem } from "@/lib/types";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
+import { getAudioAction } from "@/app/actions";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
 }
 
 export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
-  const { vocabulary } = useVocabulary();
+  const { vocabulary, updateVocabularyItem } = useVocabulary();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const { toast } = useToast();
@@ -104,26 +105,40 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     setIsFlipped(prev => !prev);
   }
   
-  const playAudio = (e: React.MouseEvent, item: VocabularyItem) => {
+  const playAudio = async (e: React.MouseEvent, item: VocabularyItem) => {
     e.stopPropagation();
-    if (!item.audioSrc) {
-        toast({ variant: "destructive", title: "Lỗi âm thanh", description: "Không tìm thấy dữ liệu âm thanh cho từ này." });
-        return;
-    }
 
     if (audioState.status === 'playing' && audioState.id === item.id) {
         audioRef.current?.pause();
         setAudioState({ id: null, status: 'idle' });
         return;
     }
-    
+
     if (audioRef.current) {
         audioRef.current.pause();
     }
-
-    setAudioState({ id: item.id, status: 'playing' }); // No loading state needed as it's pre-loaded
     
-    const audio = new Audio(item.audioSrc);
+    let audioSrc = item.audioSrc;
+
+    if (!audioSrc) {
+        setAudioState({ id: item.id, status: 'loading' });
+        try {
+            audioSrc = await getAudioAction(item.word, item.language);
+            if (audioSrc) {
+                await updateVocabularyItem(item.id, { audioSrc });
+            } else {
+                 throw new Error("Audio source could not be generated.");
+            }
+        } catch (error) {
+            console.error("Audio generation error:", error);
+            toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh. Vui lòng thử lại." });
+            setAudioState({ id: null, status: 'idle' });
+            return;
+        }
+    }
+    
+    setAudioState({ id: item.id, status: 'playing' });
+    const audio = new Audio(audioSrc);
     audioRef.current = audio;
 
     audio.onended = () => {
@@ -171,15 +186,15 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
               style={{ backfaceVisibility: "hidden" }}
             >
               <p className="text-4xl md:text-5xl font-bold">{currentCard?.word}</p>
-                 {currentCard && currentCard.audioSrc && (
+                 {currentCard && (
                     <Button 
                       size="icon" 
                       variant="ghost" 
                       onClick={(e) => playAudio(e, currentCard)}
-                      disabled={audioState.status === 'playing' && audioState.id !== currentCard.id}
+                      disabled={audioState.status === 'loading'}
                       className="absolute bottom-4 right-4 h-12 w-12 text-muted-foreground"
                     >
-                      {(audioState.id === currentCard.id && audioState.status === 'playing') 
+                      {(audioState.id === currentCard.id && audioState.status === 'loading') 
                         ? <Loader2 className="h-6 w-6 animate-spin"/> 
                         : <Volume2 className="h-6 w-6"/>
                       }

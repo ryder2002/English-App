@@ -89,7 +89,12 @@ export async function getChatbotResponseAction(
   return result.response;
 }
 
-export async function getAudioAction(text: string, language: Language): Promise<string> {
-    const result = await generateAudio({ text, language });
-    return result.audioSrc;
+export async function getAudioAction(text: string, language: Language): Promise<string | undefined> {
+    try {
+        const result = await generateAudio({ text, language });
+        return result.audioSrc;
+    } catch(e) {
+        console.error("Error generating audio in getAudioAction", e);
+        return undefined;
+    }
 }
