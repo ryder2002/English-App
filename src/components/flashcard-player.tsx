@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -46,7 +47,8 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     return shuffledDeck.length > 0 ? shuffledDeck[currentIndex] : null;
   }, [shuffledDeck, currentIndex]);
 
-  const handleNext = () => {
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (shuffledDeck.length === 0) return;
     setIsFlipped(false);
     setTimeout(() => {
@@ -54,8 +56,9 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     }, 150); // wait for flip animation
   };
 
-  const handlePrev = () => {
-     if (shuffledDeck.length === 0) return;
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (shuffledDeck.length === 0) return;
     setIsFlipped(false);
     setTimeout(() => {
       setCurrentIndex(
@@ -64,13 +67,15 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     }, 150);
   };
   
-  const handleShuffle = () => {
+  const handleShuffle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setShuffledDeck(shuffleDeck(deck));
     setCurrentIndex(0);
     setIsFlipped(false);
   };
   
-  const handleFlip = () => {
+  const handleFlip = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!currentCard) return;
     setIsFlipped(prev => !prev);
   }
