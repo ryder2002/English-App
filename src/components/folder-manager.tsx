@@ -48,22 +48,28 @@ export function FolderManager() {
 
   const onAddSubmit = async (values: FolderFormValues) => {
     setIsSubmitting(true);
-    const success = await addFolder(values.folderName);
-    if(success) {
-      form.reset();
-      setIsAdding(false);
+    try {
+        const success = await addFolder(values.folderName);
+        if(success) {
+          form.reset();
+          setIsAdding(false);
+        }
+    } finally {
+        setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
     setIsSubmitting(true);
-    const success = await updateFolder(oldName, values.folderName);
-    if (success) {
-      setEditingFolder(null);
-      editForm.reset();
+    try {
+        const success = await updateFolder(oldName, values.folderName);
+        if (success) {
+          setEditingFolder(null);
+          editForm.reset();
+        }
+    } finally {
+        setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const startEditing = (name: string) => {
@@ -82,13 +88,16 @@ export function FolderManager() {
   
   const handleRemoveFolder = async (folder: string) => {
       setIsSubmitting(true);
-      await removeFolder(folder);
-      toast({
-          variant: "default",
-          title: "Đã xóa thư mục",
-          description: `Thư mục "${folder}" và nội dung của nó đã được xóa.`,
-      });
-      setIsSubmitting(false);
+      try {
+          await removeFolder(folder);
+          toast({
+              variant: "default",
+              title: "Đã xóa thư mục",
+              description: `Thư mục "${folder}" và nội dung của nó đã được xóa.`,
+          });
+      } finally {
+        setIsSubmitting(false);
+      }
   }
 
   return (

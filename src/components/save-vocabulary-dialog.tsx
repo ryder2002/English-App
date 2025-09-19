@@ -106,7 +106,6 @@ export function SaveVocabularyDialog({
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
-    let success = false;
     try {
       const details = await getVocabularyDetailsAction(
           values.word,
@@ -127,6 +126,7 @@ export function SaveVocabularyDialog({
           pinyin: values.language === 'chinese' ? primaryDefinition.pronunciation : undefined,
       };
 
+      let success = false;
       if (itemToEdit) {
         success = await updateVocabularyItem(itemToEdit.id!, vocabularyData);
         if (success) {

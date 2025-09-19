@@ -71,12 +71,12 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
             const newWords = await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
             
-            folderData = sampleFolders;
-            vocabData = newWords;
+            setFolders(sampleFolders.sort());
+            setVocabulary(newWords);
+        } else {
+            setFolders(folderData.sort());
+            setVocabulary(vocabData);
         }
-        
-        setFolders(folderData.sort());
-        setVocabulary(vocabData);
 
       } catch (error) {
         console.error("Error loading initial data:", error);
@@ -108,7 +108,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
          toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm từ vựng." });
          return false;
     }
-  }, [user, toast, folders]);
+  }, [user, toast, folders, addFolder]);
 
   const removeVocabularyItem = useCallback(async (id: string) => {
     if (!user) return;
@@ -142,7 +142,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
         return false;
     }
-  }, [user, toast, folders]);
+  }, [user, toast, folders, addFolder]);
   
   const addFolder = useCallback(async (folderName: string): Promise<boolean> => {
     if (!user) return false;
