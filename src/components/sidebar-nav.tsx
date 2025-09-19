@@ -3,13 +3,14 @@
 import { usePathname } from "next/navigation";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import Link from "next/link";
-import { BookText, Layers, Search, Bot, Folder, ListPlus } from "lucide-react";
+import { BookText, Layers, Search, Bot, Folder, ListPlus, ClipboardCheck } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Từ vựng", icon: BookText },
   { href: "/folders", label: "Thư mục", icon: Folder },
   { href: "/batch-add", label: "Thêm hàng loạt", icon: ListPlus },
   { href: "/flashcards", label: "Flashcards", icon: Layers },
+  { href: "/test", label: "Kiểm tra", icon: ClipboardCheck },
   { href: "/dictionary", label: "Từ điển", icon: Search },
   { href: "/chatbot", label: "Trợ lý AI", icon: Bot },
 ];
