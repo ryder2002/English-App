@@ -20,7 +20,11 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     return newArray;
 };
 
-export function QuizPlayer() {
+interface QuizPlayerProps {
+    selectedFolder: string;
+}
+
+export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     const { vocabulary } = useVocabulary();
     const [shuffledDeck, setShuffledDeck] = useState<VocabularyItem[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -28,29 +32,39 @@ export function QuizPlayer() {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isFinished, setIsFinished] = useState(false);
 
-    useEffect(() => {
-        if (vocabulary.length > 0) {
-            startNewGame();
+    const deck = useMemo(() => {
+        if (selectedFolder === 'all') {
+            return vocabulary;
         }
-    }, [vocabulary]);
+        return vocabulary.filter(item => item.folder === selectedFolder);
+    }, [vocabulary, selectedFolder]);
+
 
     const startNewGame = () => {
-        setShuffledDeck(shuffleArray(vocabulary));
+        if (deck.length < 4) { // Need at least 4 items to generate 3 wrong answers
+            setShuffledDeck([]);
+            return;
+        }
+        setShuffledDeck(shuffleArray(deck));
         setCurrentIndex(0);
         setScore(0);
         setSelectedAnswer(null);
         setIsFinished(false);
     };
 
+    useEffect(() => {
+        startNewGame();
+    }, [deck]);
+
     const currentQuestion = useMemo(() => {
-        if (shuffledDeck.length === 0) return null;
+        if (shuffledDeck.length === 0 || currentIndex >= shuffledDeck.length) return null;
         
         const questionItem = shuffledDeck[currentIndex];
         const correctAnswer = questionItem.vietnameseTranslation;
 
-        // Get 3 wrong answers
+        // Get 3 wrong answers from the current deck
         const wrongAnswers = shuffleArray(
-            vocabulary.filter(item => item.id !== questionItem.id)
+            deck.filter(item => item.id !== questionItem.id)
         )
         .slice(0, 3)
         .map(item => item.vietnameseTranslation);
@@ -62,7 +76,7 @@ export function QuizPlayer() {
             correctAnswer,
             options,
         };
-    }, [shuffledDeck, currentIndex, vocabulary]);
+    }, [shuffledDeck, currentIndex, deck]);
 
     const handleAnswerSelect = (answer: string) => {
         if (selectedAnswer) return; // Already answered
@@ -82,13 +96,13 @@ export function QuizPlayer() {
         }
     };
     
-    if (vocabulary.length === 0) {
+    if (deck.length < 4) {
         return (
              <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
                 <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium text-muted-foreground">Chưa có từ vựng để kiểm tra.</p>
+                <p className="text-lg font-medium text-muted-foreground">Không đủ từ vựng để kiểm tra.</p>
                 <p className="text-sm text-muted-foreground">
-                Hãy thêm một vài từ vựng để bắt đầu.
+                Cần có ít nhất 4 từ trong thư mục này để bắt đầu một bài kiểm tra.
                 </p>
             </div>
         );

@@ -1,19 +1,51 @@
-import { QuizPlayer } from "@/components/quiz-player";
-import { Metadata } from "next";
 
-export const metadata: Metadata = {
-    title: "Bài kiểm tra - RYDER",
-};
+'use client';
+
+import { QuizPlayer } from "@/components/quiz-player";
+import { useVocabulary } from "@/contexts/vocabulary-context";
+import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+
+// export const metadata: Metadata = {
+//     title: "Bài kiểm tra - RYDER",
+// };
+
 
 export default function TestPage() {
+    const { folders } = useVocabulary();
+    const [selectedFolder, setSelectedFolder] = useState<string>("all");
+    
+    const sortedFolders = ["all", ...[...folders].sort()];
+
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <h1 className="text-3xl font-bold font-headline tracking-tight bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">
                     Bài kiểm tra trắc nghiệm
                 </h1>
+                <div className="w-full sm:w-auto sm:min-w-[250px]">
+                    <Select value={selectedFolder} onValueChange={setSelectedFolder}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Chọn một thư mục để kiểm tra" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {sortedFolders.map(folder => (
+                                <SelectItem key={folder} value={folder}>
+                                    {folder === "all" ? "Tất cả từ vựng" : folder}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
             </div>
-            <QuizPlayer />
+            <QuizPlayer selectedFolder={selectedFolder} />
         </div>
     );
 }
