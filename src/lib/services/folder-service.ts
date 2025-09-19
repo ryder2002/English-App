@@ -74,3 +74,16 @@ export const deleteFolder = async (folderName: string, userId: string): Promise<
         await batch.commit();
     }
 };
+
+export const clearFolders = async (userId: string): Promise<void> => {
+    if (!userId) return;
+    const q = query(collection(db, FOLDERS_COLLECTION), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return;
+
+    const batch = writeBatch(db);
+    querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+}

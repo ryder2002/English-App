@@ -29,7 +29,10 @@ export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> =
     vocabulary.push({ id: doc.id, ...doc.data() } as VocabularyItem);
   });
   // Manual sort on the client-side as a temporary workaround
-  return vocabulary.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return vocabulary.sort((a, b) => {
+    if (!a.createdAt || !b.createdAt) return 0;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  });
 };
 
 export const addVocabularyItem = async (
@@ -102,5 +105,18 @@ export const updateVocabularyFolder = async (oldName: string, newName: string, u
         batch.update(doc.ref, { folder: newName });
     });
 
+    await batch.commit();
+}
+
+export const clearVocabulary = async (userId: string): Promise<void> => {
+    if (!userId) return;
+    const q = query(collection(db, VOCABULARY_COLLECTION), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return;
+
+    const batch = writeBatch(db);
+    querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
     await batch.commit();
 }

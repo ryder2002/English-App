@@ -9,13 +9,15 @@ import {
     updateVocabularyItem as dbUpdateVocabularyItem,
     deleteVocabularyItem as dbDeleteVocabularyItem,
     deleteVocabularyByFolder as dbDeleteVocabularyByFolder,
-    updateVocabularyFolder as dbUpdateVocabularyFolder
+    updateVocabularyFolder as dbUpdateVocabularyFolder,
+    clearVocabulary as dbClearVocabulary
 } from "@/lib/services/vocabulary-service";
 import {
     getFolders,
     addFolder as dbAddFolder,
     updateFolder as dbUpdateFolder,
-    deleteFolder as dbDeleteFolder
+    deleteFolder as dbDeleteFolder,
+    clearFolders as dbClearFolders
 } from "@/lib/services/folder-service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./auth-context";
@@ -75,8 +77,12 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           getFolders(user.uid),
         ]);
 
-        // If both are empty, create sample data
-        if (vocabData.length === 0 && folderData.length === 0) {
+        // If either collection is empty, wipe both and create sample data
+        if (vocabData.length === 0 || folderData.length === 0) {
+            // Clear existing data to prevent duplicates or orphaned items
+            await dbClearVocabulary(user.uid);
+            await dbClearFolders(user.uid);
+
             const sampleFolders = ["Chủ đề chung", "Động vật", "Thức ăn"];
             for (const folder of sampleFolders) {
                 await dbAddFolder(folder, user.uid);
@@ -99,7 +105,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             folderData = sampleFolders;
         }
         
-        // Ensure folders are unique before setting state
         const uniqueFolders = [...new Set(folderData)];
         setFolders(uniqueFolders.sort());
         setVocabulary(vocabData);
