@@ -14,9 +14,9 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Progress } from "./ui/progress";
-import { CardStackPlusIcon } from "@radix-ui/react-icons";
 import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem } from "@/lib/types";
+import { CardStackPlusIcon } from "@radix-ui/react-icons";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
@@ -170,15 +170,14 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
               className="absolute w-full h-full flex flex-col items-center justify-center text-center p-6 bg-card rounded-lg shadow-lg"
               style={{ backfaceVisibility: "hidden" }}
             >
-              <div className="flex items-center gap-4">
-                <p className="text-4xl md:text-5xl font-bold">{currentCard?.word}</p>
+              <p className="text-4xl md:text-5xl font-bold">{currentCard?.word}</p>
                  {currentCard && (
                     <Button 
                       size="icon" 
                       variant="ghost" 
                       onClick={(e) => playAudio(e, currentCard)}
                       disabled={audioState.status === 'loading'}
-                      className="h-12 w-12 text-muted-foreground"
+                      className="absolute bottom-4 right-4 h-12 w-12 text-muted-foreground"
                     >
                       {(audioState.id === currentCard.id && (audioState.status === 'loading' || audioState.status === 'playing')) 
                         ? <Loader2 className="h-6 w-6 animate-spin"/> 
@@ -186,7 +185,6 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
                       }
                     </Button>
                  )}
-              </div>
             </CardContent>
 
             {/* Back of card */}
