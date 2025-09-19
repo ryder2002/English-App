@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -61,12 +62,14 @@ interface SaveVocabularyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itemToEdit?: Omit<VocabularyItem, 'createdAt'> | null;
+  defaultFolder?: string;
 }
 
 export function SaveVocabularyDialog({
   open,
   onOpenChange,
   itemToEdit,
+  defaultFolder,
 }: SaveVocabularyDialogProps) {
   const { addVocabularyItem, updateVocabularyItem, folders } =
     useVocabulary();
@@ -97,11 +100,11 @@ export function SaveVocabularyDialog({
         form.reset({
           word: "",
           language: "english",
-          folder: folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || "",
+          folder: defaultFolder || (folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || ""),
         });
       }
     }
-  }, [itemToEdit, form, open, folders]);
+  }, [itemToEdit, form, open, folders, defaultFolder]);
 
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
