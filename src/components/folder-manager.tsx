@@ -30,10 +30,11 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, isLoading, vocabulary } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, isLoadingInitialData, vocabulary } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FolderFormValues>({
     resolver: zodResolver(formSchema),
@@ -46,15 +47,23 @@ export function FolderManager() {
   });
 
   const onAddSubmit = async (values: FolderFormValues) => {
-    await addFolder(values.folderName);
-    form.reset();
-    setIsAdding(false);
+    setIsSubmitting(true);
+    const success = await addFolder(values.folderName);
+    if(success) {
+      form.reset();
+      setIsAdding(false);
+    }
+    setIsSubmitting(false);
   };
   
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
-    await updateFolder(oldName, values.folderName);
-    setEditingFolder(null);
-    editForm.reset();
+    setIsSubmitting(true);
+    const success = await updateFolder(oldName, values.folderName);
+    if (success) {
+      setEditingFolder(null);
+      editForm.reset();
+    }
+    setIsSubmitting(false);
   };
 
   const startEditing = (name: string) => {
@@ -72,12 +81,14 @@ export function FolderManager() {
   }
   
   const handleRemoveFolder = async (folder: string) => {
+      setIsSubmitting(true);
       await removeFolder(folder);
       toast({
           variant: "default",
           title: "Đã xóa thư mục",
           description: `Thư mục "${folder}" và nội dung của nó đã được xóa.`,
       });
+      setIsSubmitting(false);
   }
 
   return (
@@ -85,7 +96,7 @@ export function FolderManager() {
        <Card>
         <CardContent className="p-4">
             {!isAdding ? (
-                 <Button onClick={() => setIsAdding(true)} className="w-full" variant="outline" disabled={isLoading}>
+                 <Button onClick={() => setIsAdding(true)} className="w-full" variant="outline" disabled={isSubmitting}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Tạo thư mục mới
                 </Button>
@@ -98,23 +109,23 @@ export function FolderManager() {
                         render={({ field }) => (
                             <FormItem className="flex-grow">
                                 <FormControl>
-                                    <Input autoFocus placeholder="Tên thư mục mới..." {...field} disabled={isLoading} />
+                                    <Input autoFocus placeholder="Tên thư mục mới..." {...field} disabled={isSubmitting} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                         />
-                        <Button type="submit" disabled={isLoading}>
-                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Thêm"}
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Thêm"}
                         </Button>
-                        <Button type="button" variant="ghost" onClick={() => setIsAdding(false)} disabled={isLoading}>Hủy</Button>
+                        <Button type="button" variant="ghost" onClick={() => setIsAdding(false)} disabled={isSubmitting}>Hủy</Button>
                     </form>
                 </Form>
             )}
         </CardContent>
        </Card>
 
-        {isLoading && folders.length === 0 ? (
+        {isLoadingInitialData ? (
             <div className="space-y-2">
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
@@ -122,7 +133,7 @@ export function FolderManager() {
             </div>
         ) : (
           <div className="space-y-2">
-            {folders.length === 0 && !isLoading && (
+            {folders.length === 0 && !isLoadingInitialData && (
                  <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
             )}
             {folders.map((folder) => (
@@ -137,16 +148,16 @@ export function FolderManager() {
                                     render={({ field }) => (
                                         <FormItem className="flex-grow">
                                             <FormControl>
-                                                <Input autoFocus {...field} disabled={isLoading}/>
+                                                <Input autoFocus {...field} disabled={isSubmitting}/>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                     />
-                                    <Button type="submit" disabled={isLoading}>
-                                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu"}
+                                    <Button type="submit" disabled={isSubmitting}>
+                                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu"}
                                     </Button>
-                                    <Button type="button" variant="ghost" onClick={cancelEditing} disabled={isLoading}>Hủy</Button>
+                                    <Button type="button" variant="ghost" onClick={cancelEditing} disabled={isSubmitting}>Hủy</Button>
                                 </form>
                             </Form>
                         </CardContent>
@@ -162,17 +173,17 @@ export function FolderManager() {
                     <div>
                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" disabled={isLoading}>
+                                <Button variant="ghost" size="icon" disabled={isSubmitting}>
                                     <MoreVertical className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => startEditing(folder)} disabled={isLoading}>
+                                <DropdownMenuItem onClick={() => startEditing(folder)} disabled={isSubmitting}>
                                     <Edit className="mr-2 h-4 w-4"/> Đổi tên
                                 </DropdownMenuItem>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative" disabled={isLoading}>
+                                        <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative" disabled={isSubmitting}>
                                              <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                         </Button>
                                     </AlertDialogTrigger>
@@ -186,7 +197,7 @@ export function FolderManager() {
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>Hủy</AlertDialogCancel>
                                         <AlertDialogAction onClick={() => handleRemoveFolder(folder)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                            Xóa
+                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Xóa"}
                                         </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>

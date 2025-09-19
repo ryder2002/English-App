@@ -50,12 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const value = { user, isLoading, signOut };
     
+    // Don't render a global loader here. Let individual pages/layouts handle their loading state.
+    // This prevents blocking the entire app render.
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-background">
-                {/* You can replace this with a more sophisticated loading spinner */}
-            </div>
-        );
+             <div className="flex items-center justify-center h-screen bg-background">
+                {/* Minimal loading UI to avoid layout shifts */}
+             </div>
+        )
     }
 
 

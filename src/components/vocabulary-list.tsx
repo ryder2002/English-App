@@ -35,7 +35,7 @@ import { getAudioForWordAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 
 export function VocabularyList() {
-  const { vocabulary, removeVocabularyItem, isLoading } = useVocabulary();
+  const { vocabulary, removeVocabularyItem, isLoadingInitialData } = useVocabulary();
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -94,7 +94,7 @@ export function VocabularyList() {
     }, {} as Record<string, VocabularyItem[]>);
   }, [vocabulary]);
 
-  if (isLoading) {
+  if (isLoadingInitialData) {
     return (
         <div className="space-y-4">
             <Skeleton className="h-12 w-1/3" />
@@ -156,15 +156,15 @@ export function VocabularyList() {
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} disabled={isLoading}>
+                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                                     <MoreVertical className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                <DropdownMenuItem onClick={() => handleEdit(item)} disabled={isLoading}>
+                                <DropdownMenuItem onClick={() => handleEdit(item)}>
                                     <Edit className="mr-2 h-4 w-4"/> Sửa
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive" disabled={isLoading}>
+                                <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
                                     <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -232,15 +232,15 @@ export function VocabularyList() {
                             <TableCell className="text-right pr-4">
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} disabled={isLoading}>
+                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                                             <MoreVertical className="h-4 w-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenuItem onClick={() => handleEdit(item)} disabled={isLoading}>
+                                        <DropdownMenuItem onClick={() => handleEdit(item)}>
                                             <Edit className="mr-2 h-4 w-4"/> Sửa
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive" disabled={isLoading}>
+                                        <DropdownMenuItem onClick={() => removeVocabularyItem(item.id)} className="text-destructive">
                                             <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>

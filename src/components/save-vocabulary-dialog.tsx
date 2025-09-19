@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -67,10 +68,11 @@ export function SaveVocabularyDialog({
   onOpenChange,
   itemToEdit,
 }: SaveVocabularyDialogProps) {
-  const { addVocabularyItem, updateVocabularyItem, isLoading, folders } =
+  const { addVocabularyItem, updateVocabularyItem, folders } =
     useVocabulary();
   const { toast } = useToast();
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const sortedFolders = [...folders].sort();
 
@@ -103,6 +105,8 @@ export function SaveVocabularyDialog({
 
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
+    setIsSubmitting(true);
+    let success = false;
     try {
       const details = await getVocabularyDetailsAction(
           values.word,
@@ -124,21 +128,28 @@ export function SaveVocabularyDialog({
       };
 
       if (itemToEdit) {
-        // Here we are sure itemToEdit has an id.
-        await updateVocabularyItem(itemToEdit.id!, vocabularyData);
-        toast({
-            title: "Thành công!",
-            description: `"${values.word}" đã được cập nhật.`,
-          });
+        success = await updateVocabularyItem(itemToEdit.id!, vocabularyData);
+        if (success) {
+            toast({
+                title: "Thành công!",
+                description: `"${values.word}" đã được cập nhật.`,
+            });
+        }
       } else {
-        await addVocabularyItem(vocabularyData);
-        toast({
-            title: "Thành công!",
-            description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,
-        });
+        success = await addVocabularyItem(vocabularyData);
+        if (success) {
+            toast({
+                title: "Thành công!",
+                description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,
+            });
+        }
       }
-      form.reset();
-      onOpenChange(false);
+
+      if (success) {
+        form.reset();
+        onOpenChange(false);
+      }
+
     } catch (error) {
       console.error(error);
       toast({
@@ -146,6 +157,8 @@ export function SaveVocabularyDialog({
         title: "Ôi! Đã có lỗi xảy ra.",
         description: "Có lỗi khi lưu từ của bạn. Vui lòng thử lại.",
       });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -170,7 +183,7 @@ export function SaveVocabularyDialog({
                 <FormItem>
                   <FormLabel>Từ</FormLabel>
                   <FormControl>
-                    <Input placeholder="ví dụ: hello hoặc 你好" {...field} />
+                    <Input placeholder="ví dụ: hello hoặc 你好" {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -186,6 +199,7 @@ export function SaveVocabularyDialog({
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
+                    disabled={isSubmitting}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -214,6 +228,7 @@ export function SaveVocabularyDialog({
                         <Button
                           variant="outline"
                           role="combobox"
+                          disabled={isSubmitting}
                           className={cn(
                             "w-full justify-between",
                             !field.value && "text-muted-foreground"
@@ -276,8 +291,8 @@ export function SaveVocabularyDialog({
               )}
             />
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 {buttonText}
