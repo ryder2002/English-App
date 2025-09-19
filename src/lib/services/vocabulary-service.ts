@@ -20,15 +20,16 @@ export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> =
   if (!userId) return [];
   const q = query(
     collection(db, VOCABULARY_COLLECTION),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
+    where("userId", "==", userId)
+    // orderBy("createdAt", "desc") // Temporarily removed to allow app to work while index builds
   );
   const querySnapshot = await getDocs(q);
   const vocabulary: VocabularyItem[] = [];
   querySnapshot.forEach((doc) => {
     vocabulary.push({ id: doc.id, ...doc.data() } as VocabularyItem);
   });
-  return vocabulary;
+  // Manual sort on the client-side as a temporary workaround
+  return vocabulary.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
 export const addVocabularyItem = async (
