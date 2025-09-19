@@ -102,11 +102,22 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
         if (!output) {
             return null;
         }
+        
+        let vietnameseTranslation: string;
+        if (targetLanguage === 'vietnamese') {
+            vietnameseTranslation = output.translation;
+        } else if (sourceLanguage === 'vietnamese') {
+            vietnameseTranslation = word; // If source is Vietnamese, the word itself is the "Vietnamese translation"
+        } else {
+            // Need to translate to Vietnamese if neither source nor target is Vietnamese
+            const vietnameseResult = await singleWordPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
+            vietnameseTranslation = vietnameseResult.output?.translation || word;
+        }
 
         return {
             word,
             language: sourceLanguage as Language,
-            vietnameseTranslation: targetLanguage === 'vietnamese' ? output.translation : (sourceLanguage === 'vietnamese' ? word : 'N/A'),
+            vietnameseTranslation: vietnameseTranslation,
             folder,
             ipa: sourceLanguage === 'english' ? output.pronunciation : undefined,
             pinyin: sourceLanguage === 'chinese' ? output.pronunciation : undefined,
