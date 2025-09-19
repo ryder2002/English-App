@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { dictionaryLookupAction, getAudioForWordAction } from "@/app/actions";
+import { dictionaryLookupAction } from "@/app/actions";
 import { ArrowRightLeft, Languages, Loader2, Search, Volume2 } from "lucide-react";
 import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -54,7 +54,7 @@ export function DictionarySearch() {
   const [result, setResult] = useState<SearchResult | null>(null);
   const { toast } = useToast();
   const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const form = useForm<DictionaryFormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +68,8 @@ export function DictionarySearch() {
   const onSubmit = async (values: DictionaryFormValues) => {
     setIsLoading(true);
     setResult(null);
+    speechSynthesis.cancel();
+    setAudioState({ id: null, status: 'idle' });
     try {
       const details = await dictionaryLookupAction({
         word: values.word,
@@ -94,36 +96,48 @@ export function DictionarySearch() {
   };
 
   const playAudio = async (text: string, lang: string, id: string) => {
-    if (audioState.id === id && audioState.status === 'playing') {
-      audioRef.current?.pause();
-      audioRef.current = null;
-      setAudioState({ id: null, status: 'idle' });
-      return;
+    if (!('speechSynthesis' in window)) {
+        toast({ variant: "destructive", title: "Lỗi", description: "Trình duyệt của bạn không hỗ trợ phát âm thanh." });
+        return;
     }
 
-    if (audioState.status === 'loading') return;
-
-    setAudioState({ id: id, status: 'loading' });
-    try {
-      const audioDataUri = await getAudioForWordAction(text, lang);
-      const audio = new Audio(audioDataUri);
-      audioRef.current = audio;
-      audio.play();
-      setAudioState({ id: id, status: 'playing' });
-      audio.onended = () => {
+    if (audioState.status === 'playing' && audioState.id === id) {
+        speechSynthesis.cancel();
         setAudioState({ id: null, status: 'idle' });
-        audioRef.current = null;
-      };
-    } catch (error) {
-      console.error("Failed to play audio", error);
-      toast({ 
-          variant: "destructive", 
-          title: "Không thể phát âm thanh.",
-          description: "Có thể bạn đã hết giới hạn yêu cầu. Vui lòng thử lại sau một phút."
-      });
-      setAudioState({ id: null, status: 'idle' });
+        return;
     }
+    
+    // Stop any currently playing audio
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utteranceRef.current = utterance;
+
+    const langMap = {
+        english: 'en-US',
+        chinese: 'zh-CN',
+        vietnamese: 'vi-VN'
+    };
+    utterance.lang = langMap[lang as keyof typeof langMap] || 'en-US';
+
+    utterance.onstart = () => {
+        setAudioState({ id, status: 'playing' });
+    };
+
+    utterance.onend = () => {
+        setAudioState({ id: null, status: 'idle' });
+        utteranceRef.current = null;
+    };
+    
+    utterance.onerror = () => {
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh. Vui lòng thử lại." });
+    };
+    
+    setAudioState({ id, status: 'loading' });
+    speechSynthesis.speak(utterance);
   };
+
 
   const swapLanguages = () => {
     const source = form.getValues("sourceLanguage");
@@ -242,7 +256,7 @@ export function DictionarySearch() {
                     <Badge variant="secondary">{languageOptions.find(l => l.value === result.sourceLanguage)?.label}</Badge>
                 </div>
                 <Button size="icon" variant="ghost" onClick={() => playAudio(result.originalWord, result.sourceLanguage, 'original')} disabled={audioState.status === 'loading'}>
-                    {audioState.id === 'original' && audioState.status === 'loading' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                    {(audioState.id === 'original' && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
                 </Button>
             </CardTitle>
           </CardHeader>
@@ -258,7 +272,7 @@ export function DictionarySearch() {
                     <div className="pl-2 flex items-center gap-2">
                          <p className="text-lg text-primary font-semibold">{def.translation}</p>
                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => playAudio(def.translation, result.targetLanguage, `def-${index}`)} disabled={audioState.status === 'loading'}>
-                            {audioState.id === `def-${index}` && audioState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                            {(audioState.id === `def-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                         </Button>
                     </div>
                 </div>
