@@ -90,18 +90,18 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
             
+            const newItems = [];
             for (const word of sampleWords) {
-                await dbAddVocabularyItem(word, user.uid);
+                newItems.push(await dbAddVocabularyItem(word, user.uid));
             }
             
-            // Re-fetch data after seeding to ensure consistency
-            [vocabData, folderData] = await Promise.all([
-              getVocabulary(user.uid),
-              getFolders(user.uid),
-            ]);
+            vocabData = newItems;
+            folderData = sampleFolders;
         }
         
-        setFolders(folderData.sort());
+        // Ensure folders are unique before setting state
+        const uniqueFolders = [...new Set(folderData)];
+        setFolders(uniqueFolders.sort());
         setVocabulary(vocabData);
 
       } catch (error) {
@@ -244,7 +244,3 @@ export function useVocabulary() {
   }
   return context;
 }
-
-    
-
-    
