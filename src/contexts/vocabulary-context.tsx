@@ -57,8 +57,10 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           getFolders(user.uid),
         ]);
 
+        // Only create sample data if both vocab and folders are empty.
         if (vocabData.length === 0 && folderData.length === 0) {
             const sampleFolders = ["Chủ đề chung", "Động vật", "Thức ăn"];
+            // Add folders to DB first
             await Promise.all(sampleFolders.map(folder => dbAddFolder(folder, user.uid)));
             
             const sampleWords: Omit<VocabularyItem, 'id' | 'createdAt'>[] = [
@@ -68,9 +70,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo" },
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
-
+            
+            // Add words to DB and get the full items back
             const newWords = await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
             
+            // Update local state with the newly created data
             setFolders(sampleFolders.sort());
             setVocabulary(newWords);
         } else {
@@ -102,6 +106,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     try {
         await dbAddFolder(folderName, user.uid);
         setFolders(prev => [...prev, folderName].sort());
+        toast({ title: "Đã thêm thư mục", description: `Thư mục "${folderName}" đã được tạo.`});
         return true;
     } catch (error) {
         console.error("Error adding folder:", error);
@@ -113,12 +118,16 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const addVocabularyItem = useCallback(async (item: Omit<VocabularyItem, "id" | "createdAt">): Promise<boolean> => {
     if (!user) return false;
     try {
+        // Ensure folder exists or create it before adding the item.
         if (!folders.includes(item.folder)) {
             const folderAdded = await addFolder(item.folder);
-            if (!folderAdded) return false; 
+            if (!folderAdded) {
+                 toast({ variant: "destructive", title: "Lỗi tạo thư mục", description: `Không thể tạo thư mục mới "${item.folder}".` });
+                 return false; 
+            }
         }
         const newItem = await dbAddVocabularyItem(item, user.uid);
-        setVocabulary((prev) => [newItem, ...prev]);
+        setVocabulary((prev) => [newItem, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         return true;
     } catch (error) {
          console.error("Error adding vocabulary item:", error);
@@ -165,12 +174,16 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const originalFolders = folders;
     const originalVocabulary = vocabulary;
+    setFolders(prev => prev.filter(f => f !== folderName));
+    setVocabulary(prev => prev.filter(item => item.folder !== folderName));
     try {
         await dbDeleteFolder(folderName, user.uid);
         await dbDeleteVocabularyByFolder(folderName, user.uid);
-        
-        setFolders(prev => prev.filter(f => f !== folderName));
-        setVocabulary(prev => prev.filter(item => item.folder !== folderName));
+         toast({
+              variant: "default",
+              title: "Đã xóa thư mục",
+              description: `Thư mục "${folderName}" và nội dung của nó đã được xóa.`,
+          });
     } catch (error) {
         console.error("Error deleting folder:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa thư mục." });
