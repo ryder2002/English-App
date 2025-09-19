@@ -21,7 +21,7 @@ import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
-import { Skeleton } from "./ui/skeleton";
+import Link from "next/link";
 
 const formSchema = z.object({
   folderName: z.string().min(1, { message: "Tên thư mục không được để trống." }),
@@ -30,7 +30,7 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, isLoadingInitialData, vocabulary } = useVocabulary();
+  const { folders, addFolder, updateFolder, removeFolder, vocabulary } = useVocabulary();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -134,92 +134,88 @@ export function FolderManager() {
         </CardContent>
        </Card>
 
-        {isLoadingInitialData ? (
-            <div className="space-y-2">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-            </div>
-        ) : (
-          <div className="space-y-2">
-            {folders.length === 0 && !isLoadingInitialData && (
-                 <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
-            )}
-            {folders.map((folder) => (
-                editingFolder === folder ? (
-                    <Card key={folder}>
-                        <CardContent className="p-4">
-                            <Form {...editForm}>
-                                <form onSubmit={editForm.handleSubmit((values) => onEditSubmit(folder, values))} className="flex items-center gap-2">
-                                    <FormField
-                                    control={editForm.control}
-                                    name="folderName"
-                                    render={({ field }) => (
-                                        <FormItem className="flex-grow">
-                                            <FormControl>
-                                                <Input autoFocus {...field} disabled={isSubmitting}/>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                    />
-                                    <Button type="submit" disabled={isSubmitting}>
-                                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu"}
-                                    </Button>
-                                    <Button type="button" variant="ghost" onClick={cancelEditing} disabled={isSubmitting}>Hủy</Button>
-                                </form>
-                            </Form>
-                        </CardContent>
-                    </Card>
-                ) : (
+        {folders.length === 0 && (
+             <p className="text-center text-muted-foreground p-4">Bạn chưa có thư mục nào.</p>
+        )}
+        <div className="space-y-2">
+        {folders.map((folder) => (
+            editingFolder === folder ? (
                 <Card key={folder}>
-                    <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Folder className="h-5 w-5 text-primary" />
-                        <span className="font-medium">{folder}</span>
-                        <Badge variant="secondary">{wordsInFolder(folder)}</Badge>
-                    </div>
-                    <div>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" disabled={isSubmitting}>
-                                    <MoreVertical className="h-4 w-4" />
+                    <CardContent className="p-4">
+                        <Form {...editForm}>
+                            <form onSubmit={editForm.handleSubmit((values) => onEditSubmit(folder, values))} className="flex items-center gap-2">
+                                <FormField
+                                control={editForm.control}
+                                name="folderName"
+                                render={({ field }) => (
+                                    <FormItem className="flex-grow">
+                                        <FormControl>
+                                            <Input autoFocus {...field} disabled={isSubmitting}/>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                                <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu"}
                                 </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => startEditing(folder)} disabled={isSubmitting}>
-                                    <Edit className="mr-2 h-4 w-4"/> Đổi tên
-                                </DropdownMenuItem>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative" disabled={isSubmitting}>
-                                             <Trash2 className="mr-2 h-4 w-4"/> Xóa
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Bạn có chắc không?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Thao tác này sẽ xóa thư mục và tất cả {wordsInFolder(folder)} từ trong đó. Hành động này không thể hoàn tác.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleRemoveFolder(folder)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Xóa"}
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
+                                <Button type="button" variant="ghost" onClick={cancelEditing} disabled={isSubmitting}>Hủy</Button>
+                            </form>
+                        </Form>
                     </CardContent>
                 </Card>
-                )
-            ))}
-          </div>
-        )}
+            ) : (
+            <Card key={folder} className="transition-all hover:bg-muted/50">
+                <CardContent className="p-0">
+                    <div className="flex items-center justify-between p-3">
+                         <Link href={`/folders/${encodeURIComponent(folder)}`} className="flex-grow">
+                            <div className="flex items-center gap-3">
+                                <Folder className="h-5 w-5 text-primary" />
+                                <span className="font-medium">{folder}</span>
+                                <Badge variant="secondary">{wordsInFolder(folder)}</Badge>
+                            </div>
+                        </Link>
+                        <div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" disabled={isSubmitting}>
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => startEditing(folder)} disabled={isSubmitting}>
+                                        <Edit className="mr-2 h-4 w-4"/> Đổi tên
+                                    </DropdownMenuItem>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal relative" disabled={isSubmitting}>
+                                                <Trash2 className="mr-2 h-4 w-4"/> Xóa
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Bạn có chắc không?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Thao tác này sẽ xóa thư mục và tất cả {wordsInFolder(folder)} từ trong đó. Hành động này không thể hoàn tác.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleRemoveFolder(folder)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Xóa"}
+                                            </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+            )
+        ))}
+        </div>
     </div>
   );
 }
