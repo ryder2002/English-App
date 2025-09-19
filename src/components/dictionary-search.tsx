@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -52,7 +53,7 @@ export function DictionarySearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const { toast } = useToast();
-  const [playingAudioFor, setPlayingAudioFor] = useState<string | null>(null);
+  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' }>({ id: null, status: 'loading' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<DictionaryFormValues>({
@@ -93,27 +94,34 @@ export function DictionarySearch() {
   };
 
   const playAudio = async (text: string, lang: string, id: string) => {
-    if (playingAudioFor === id) {
+    if (audioState.id === id && audioState.status === 'playing') {
       audioRef.current?.pause();
       audioRef.current = null;
-      setPlayingAudioFor(null);
+      setAudioState({ id: null, status: 'loading' });
       return;
     }
 
-    setPlayingAudioFor(id);
+    if (audioState.status === 'loading') return;
+
+    setAudioState({ id: id, status: 'loading' });
     try {
       const audioDataUri = await getAudioForWordAction(text, lang);
       const audio = new Audio(audioDataUri);
       audioRef.current = audio;
+      setAudioState({ id: id, status: 'playing' });
       audio.play();
       audio.onended = () => {
-        setPlayingAudioFor(null);
+        setAudioState({ id: null, status: 'loading' });
         audioRef.current = null;
       };
     } catch (error) {
       console.error("Failed to play audio", error);
-      toast({ variant: "destructive", title: "Không thể phát âm thanh." });
-      setPlayingAudioFor(null);
+      toast({ 
+          variant: "destructive", 
+          title: "Không thể phát âm thanh.",
+          description: "Có thể bạn đã hết giới hạn yêu cầu. Vui lòng thử lại sau một phút."
+      });
+      setAudioState({ id: null, status: 'loading' });
     }
   };
 
@@ -233,8 +241,8 @@ export function DictionarySearch() {
                     <span className="text-4xl font-bold font-headline bg-gradient-to-r from-primary to-cyan-400 text-transparent bg-clip-text">{result.originalWord}</span>
                     <Badge variant="secondary">{languageOptions.find(l => l.value === result.sourceLanguage)?.label}</Badge>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => playAudio(result.originalWord, result.sourceLanguage, 'original')}>
-                    {playingAudioFor === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                <Button size="icon" variant="ghost" onClick={() => playAudio(result.originalWord, result.sourceLanguage, 'original')} disabled={audioState.status === 'loading'}>
+                    {audioState.id === 'original' && audioState.status === 'loading' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
                 </Button>
             </CardTitle>
           </CardHeader>
@@ -249,8 +257,8 @@ export function DictionarySearch() {
                     <p className="pl-2">{def.meaning}</p>
                     <div className="pl-2 flex items-center gap-2">
                          <p className="text-lg text-primary font-semibold">{def.translation}</p>
-                         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => playAudio(def.translation, result.targetLanguage, `def-${index}`)}>
-                            {playingAudioFor === `def-${index}` ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => playAudio(def.translation, result.targetLanguage, `def-${index}`)} disabled={audioState.status === 'loading'}>
+                            {audioState.id === `def-${index}` && audioState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                         </Button>
                     </div>
                 </div>

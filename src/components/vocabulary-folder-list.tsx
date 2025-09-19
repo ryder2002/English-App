@@ -37,7 +37,7 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [playingAudioFor, setPlayingAudioFor] = useState<string | null>(null);
+  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' }>({ id: null, status: 'loading' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
 
@@ -54,28 +54,35 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
   };
 
   const playAudio = async (e: React.MouseEvent, text: string, lang: string, id: string) => {
-    e.stopPropagation(); // Prevent card click when clicking speaker
-    if (playingAudioFor === id) {
+    e.stopPropagation(); 
+    if (audioState.id === id && audioState.status === 'playing') {
       audioRef.current?.pause();
       audioRef.current = null;
-      setPlayingAudioFor(null);
+      setAudioState({ id: null, status: 'loading' });
       return;
     }
 
-    setPlayingAudioFor(id);
+    if (audioState.status === 'loading') return;
+
+    setAudioState({ id: id, status: 'loading' });
     try {
       const audioDataUri = await getAudioForWordAction(text, lang);
       const audio = new Audio(audioDataUri);
       audioRef.current = audio;
+      setAudioState({ id: id, status: 'playing' });
       audio.play();
       audio.onended = () => {
-        setPlayingAudioFor(null);
+        setAudioState({ id: null, status: 'loading' });
         audioRef.current = null;
       };
     } catch (error) {
       console.error("Failed to play audio", error);
-      toast({ variant: "destructive", title: "Không thể phát âm thanh." });
-      setPlayingAudioFor(null);
+      toast({ 
+          variant: "destructive", 
+          title: "Không thể phát âm thanh.",
+          description: "Có thể bạn đã hết giới hạn yêu cầu. Vui lòng thử lại sau một phút."
+      });
+      setAudioState({ id: null, status: 'loading' });
     }
   };
 
@@ -113,8 +120,8 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                         <div onClick={() => handleEdit(item)} className="flex-grow cursor-pointer pr-2">
                           <h3 className="font-bold text-lg flex items-center gap-2">
                             {item.word}
-                             <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)}>
-                                {playingAudioFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                             <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)} disabled={audioState.status === 'loading'}>
+                                {audioState.id === item.id && audioState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                             </Button>
                           </h3>
                           <p className="text-primary font-medium">
@@ -178,8 +185,8 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                             <TableCell className="font-medium pl-6">
                               <div className="flex items-center gap-2">
                                 <span>{item.word}</span>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)}>
-                                    {playingAudioFor === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)} disabled={audioState.status === 'loading'}>
+                                    {audioState.id === item.id && audioState.status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                                 </Button>
                               </div>
                             </TableCell>
