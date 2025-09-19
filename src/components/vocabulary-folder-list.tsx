@@ -24,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { getAudioAction } from "@/app/actions";
 
 interface VocabularyFolderListProps {
     folderName: string;
@@ -36,9 +35,8 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
+  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'idle' }>({ id: null, status: 'idle' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCache = useRef<Record<string, string>>({});
 
   useEffect(() => {
     // Cleanup audio element on unmount
@@ -62,47 +60,37 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
     }
   };
 
-  const playAudio = async (e: React.MouseEvent, text: string, lang: Language, id: string) => {
+  const playAudio = (e: React.MouseEvent, item: VocabularyItem) => {
     e.stopPropagation();
-    if (audioState.status === 'playing' && audioState.id === id) {
+    if (!item.audioSrc) {
+        toast({ variant: "destructive", title: "Lỗi Âm thanh", description: "Không tìm thấy dữ liệu âm thanh cho từ này." });
+        return;
+    }
+
+    if (audioState.status === 'playing' && audioState.id === item.id) {
         audioRef.current?.pause();
         setAudioState({ id: null, status: 'idle' });
         return;
     }
     
-    // Stop any currently playing audio
     if (audioRef.current) {
         audioRef.current.pause();
     }
-    setAudioState({ id, status: 'loading' });
 
-    try {
-        let audioSrc = audioCache.current[id];
-        if (!audioSrc) {
-            audioSrc = await getAudioAction(text, lang);
-            audioCache.current[id] = audioSrc;
-        }
+    setAudioState({ id: item.id, status: 'playing' });
 
-        const audio = new Audio(audioSrc);
-        audioRef.current = audio;
-        
-        audio.onplaying = () => {
-            setAudioState({ id, status: 'playing' });
-        };
-        audio.onended = () => {
-            setAudioState({ id: null, status: 'idle' });
-            audioRef.current = null;
-        };
-        audio.onerror = () => {
-            setAudioState({ id: null, status: 'idle' });
-            toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
-        };
-        audio.play();
-    } catch (error) {
-        console.error("Audio playback error:", error);
+    const audio = new Audio(item.audioSrc);
+    audioRef.current = audio;
+    
+    audio.onended = () => {
         setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
-    }
+        audioRef.current = null;
+    };
+    audio.onerror = () => {
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát tệp âm thanh." });
+    };
+    audio.play();
   };
 
 
@@ -139,9 +127,11 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                         <div onClick={() => handleEdit(item)} className="flex-grow cursor-pointer pr-2">
                           <h3 className="font-bold text-lg flex items-center gap-2">
                             {item.word}
-                             <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)} disabled={audioState.status === 'loading'}>
-                                {(audioState.id === item.id && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
-                            </Button>
+                             {item.audioSrc && (
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item)} disabled={audioState.status === 'playing' && audioState.id !== item.id}>
+                                    {(audioState.id === item.id && audioState.status === 'playing') ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                                </Button>
+                             )}
                           </h3>
                           <p className="text-primary font-medium">
                             {item.vietnameseTranslation}
@@ -204,9 +194,11 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                             <TableCell className="font-medium pl-6">
                               <div className="flex items-center gap-2">
                                 <span>{item.word}</span>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item.word, item.language, item.id)} disabled={audioState.status === 'loading'}>
-                                    {(audioState.id === item.id && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
-                                </Button>
+                                {item.audioSrc && (
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item)} disabled={audioState.status === 'playing' && audioState.id !== item.id}>
+                                        {(audioState.id === item.id && audioState.status === 'playing') ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                                    </Button>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>

@@ -124,6 +124,7 @@ export function SaveVocabularyDialog({
           vietnameseTranslation: details.translation,
           ipa: values.language === 'english' ? details.pronunciation : undefined,
           pinyin: values.language === 'chinese' ? details.pronunciation : undefined,
+          audioSrc: details.audioSrc,
       };
 
       let success = false;
@@ -183,7 +184,7 @@ export function SaveVocabularyDialog({
                 <FormItem>
                   <FormLabel>Từ</FormLabel>
                   <FormControl>
-                    <Input placeholder="ví dụ: hello hoặc 你好" {...field} disabled={isSubmitting} />
+                    <Input placeholder="ví dụ: hello hoặc 你好" {...field} disabled={isSubmitting || !!itemToEdit} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -199,7 +200,7 @@ export function SaveVocabularyDialog({
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !!itemToEdit}
                   >
                     <FormControl>
                       <SelectTrigger>

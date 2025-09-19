@@ -40,7 +40,6 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCache = useRef<Record<string, string>>({});
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +98,6 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
         return;
     }
     
-    // Stop any currently playing audio
     if (audioRef.current) {
         audioRef.current.pause();
     }
@@ -107,18 +105,15 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
     setAudioState({ id, status: 'loading' });
 
     try {
-        let audioSrc = audioCache.current[id];
+        const audioSrc = await getAudioAction(text, lang);
         if (!audioSrc) {
-            audioSrc = await getAudioAction(text, lang);
-            audioCache.current[id] = audioSrc;
+          throw new Error('No audio source returned');
         }
 
         const audio = new Audio(audioSrc);
         audioRef.current = audio;
 
-        audio.onplaying = () => {
-            setAudioState({ id, status: 'playing' });
-        };
+        audio.onplaying = () => setAudioState({ id, status: 'playing' });
         audio.onended = () => {
             setAudioState({ id: null, status: 'idle' });
             audioRef.current = null;

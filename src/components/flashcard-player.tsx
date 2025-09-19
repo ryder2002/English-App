@@ -16,7 +16,6 @@ import { Progress } from "./ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem } from "@/lib/types";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
-import { getAudioAction } from "@/app/actions";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
@@ -29,7 +28,6 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const { toast } = useToast();
   const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCache = useRef<Record<string, string>>({});
 
   const deck = useMemo(() => {
     if (selectedFolder === 'all') {
@@ -106,8 +104,13 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     setIsFlipped(prev => !prev);
   }
   
-  const playAudio = async (e: React.MouseEvent, item: VocabularyItem) => {
+  const playAudio = (e: React.MouseEvent, item: VocabularyItem) => {
     e.stopPropagation();
+    if (!item.audioSrc) {
+        toast({ variant: "destructive", title: "Lỗi âm thanh", description: "Không tìm thấy dữ liệu âm thanh cho từ này." });
+        return;
+    }
+
     if (audioState.status === 'playing' && audioState.id === item.id) {
         audioRef.current?.pause();
         setAudioState({ id: null, status: 'idle' });
@@ -117,33 +120,21 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     if (audioRef.current) {
         audioRef.current.pause();
     }
-    setAudioState({ id: item.id, status: 'loading' });
 
-    try {
-        let audioSrc = audioCache.current[item.id];
-        if (!audioSrc) {
-            audioSrc = await getAudioAction(item.word, item.language);
-            audioCache.current[item.id] = audioSrc;
-        }
+    setAudioState({ id: item.id, status: 'playing' }); // No loading state needed as it's pre-loaded
+    
+    const audio = new Audio(item.audioSrc);
+    audioRef.current = audio;
 
-        const audio = new Audio(audioSrc);
-        audioRef.current = audio;
-
-        audio.onplaying = () => setAudioState({ id: item.id, status: 'playing' });
-        audio.onended = () => {
-            setAudioState({ id: null, status: 'idle' });
-            audioRef.current = null;
-        };
-        audio.onerror = () => {
-            setAudioState({ id: null, status: 'idle' });
-            toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
-        };
-        audio.play();
-    } catch (error) {
-        console.error("Audio playback error:", error);
+    audio.onended = () => {
         setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
-    }
+        audioRef.current = null;
+    };
+    audio.onerror = () => {
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát tệp âm thanh." });
+    };
+    audio.play();
   };
 
 
@@ -180,15 +171,15 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
               style={{ backfaceVisibility: "hidden" }}
             >
               <p className="text-4xl md:text-5xl font-bold">{currentCard?.word}</p>
-                 {currentCard && (
+                 {currentCard && currentCard.audioSrc && (
                     <Button 
                       size="icon" 
                       variant="ghost" 
                       onClick={(e) => playAudio(e, currentCard)}
-                      disabled={audioState.status === 'loading'}
+                      disabled={audioState.status === 'playing' && audioState.id !== currentCard.id}
                       className="absolute bottom-4 right-4 h-12 w-12 text-muted-foreground"
                     >
-                      {(audioState.id === currentCard.id && (audioState.status === 'loading' || audioState.status === 'playing')) 
+                      {(audioState.id === currentCard.id && audioState.status === 'playing') 
                         ? <Loader2 className="h-6 w-6 animate-spin"/> 
                         : <Volume2 className="h-6 w-6"/>
                       }

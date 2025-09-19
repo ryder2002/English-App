@@ -9,4 +9,5 @@ export interface VocabularyItem {
   ipa?: string;
   pinyin?: string;
   createdAt: string; // ISO 8601 date string
+  audioSrc?: string; // Base64 encoded WAV audio data URI
 }

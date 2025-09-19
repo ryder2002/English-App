@@ -25,6 +25,7 @@ type GenerateQuickVocabularyDetailsInput = {
 type GenerateQuickVocabularyDetailsOutput = {
     translation: string;
     pronunciation?: string;
+    audioSrc?: string;
 }
 
 type GenerateBatchVocabularyDetailsInput = {
@@ -40,6 +41,7 @@ type GenerateBatchVocabularyDetailsOutput = {
     folder: string;
     ipa?: string;
     pinyin?: string;
+    audioSrc?: string;
 }[];
 
 type InteractWithLanguageChatbotInput = {
@@ -61,6 +63,7 @@ export async function getVocabularyDetailsAction(
     return {
         translation: details.translation,
         pronunciation: details.pronunciation,
+        audioSrc: details.audioSrc,
     };
 }
 

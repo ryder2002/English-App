@@ -9,6 +9,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { Language, VocabularyItem } from '@/lib/types';
+import { generateAudio } from './generate-audio-flow';
 
 
 const GenerateBatchVocabularyDetailsInputSchema = z.object({
@@ -32,6 +33,7 @@ const WordDetailSchema = z.object({
     folder: z.string(),
     ipa: z.string().optional(),
     pinyin: z.string().optional(),
+    audioSrc: z.string().optional(),
 })
 
 const GenerateBatchVocabularyDetailsOutputSchema = z.array(WordDetailSchema);
@@ -83,33 +85,43 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
 
     // Handle self-translation case
     if (sourceLanguage === targetLanguage) {
-        return words.map(word => ({
-            word: word,
-            language: sourceLanguage as Language,
-            vietnameseTranslation: word,
-            folder: folder,
-        }));
+        // Still generate audio
+        const promises = words.map(async (word) => {
+            const audioResult = await generateAudio({ text: word, language: sourceLanguage as Language });
+            return {
+                word: word,
+                language: sourceLanguage as Language,
+                vietnameseTranslation: word,
+                folder: folder,
+                audioSrc: audioResult.audioSrc,
+            };
+        });
+        return Promise.all(promises);
     }
 
     const promises = words.map(async (word) => {
       try {
-        const { output } = await singleWordPrompt({
+        const [detailsResult, audioResult] = await Promise.all([
+          singleWordPrompt({
             word,
             sourceLanguage,
             targetLanguage,
-        });
+          }),
+          generateAudio({ text: word, language: sourceLanguage as Language }),
+        ]);
 
-        if (!output) {
+        const { output: details } = detailsResult;
+
+        if (!details) {
             return null;
         }
         
         let vietnameseTranslation: string;
         if (targetLanguage === 'vietnamese') {
-            vietnameseTranslation = output.translation;
+            vietnameseTranslation = details.translation;
         } else if (sourceLanguage === 'vietnamese') {
-            vietnameseTranslation = word; // If source is Vietnamese, the word itself is the "Vietnamese translation"
+            vietnameseTranslation = word;
         } else {
-            // Need to translate to Vietnamese if neither source nor target is Vietnamese
             const vietnameseResult = await singleWordPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
             vietnameseTranslation = vietnameseResult.output?.translation || word;
         }
@@ -119,8 +131,9 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             language: sourceLanguage as Language,
             vietnameseTranslation: vietnameseTranslation,
             folder,
-            ipa: sourceLanguage === 'english' ? output.pronunciation : undefined,
-            pinyin: sourceLanguage === 'chinese' ? output.pronunciation : undefined,
+            ipa: sourceLanguage === 'english' ? details.pronunciation : undefined,
+            pinyin: sourceLanguage === 'chinese' ? details.pronunciation : undefined,
+            audioSrc: audioResult.audioSrc,
         }
       } catch (error) {
         console.error(`Failed to process word: ${word}`, error);

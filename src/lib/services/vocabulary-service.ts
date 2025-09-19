@@ -95,7 +95,7 @@ export const addManyVocabularyItems = async (
           createdAt: now,
       });
       batch.set(docRef, newDocData);
-      newItems.push({ id: docRef.id, ...item, createdAt: now.toISOString() });
+      newItems.push({ id: docRef.id, ...item, createdAt: now.toISOString() } as VocabularyItem);
   });
 
   await batch.commit();

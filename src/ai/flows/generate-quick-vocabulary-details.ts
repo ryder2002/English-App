@@ -9,6 +9,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { generateAudio } from './generate-audio-flow';
+import type { Language } from '@/lib/types';
 
 const GenerateQuickVocabularyDetailsInputSchema = z.object({
   word: z.string().describe('The vocabulary word to generate details for.'),
@@ -25,7 +27,8 @@ type GenerateQuickVocabularyDetailsInput = z.infer<
 
 const GenerateQuickVocabularyDetailsOutputSchema = z.object({
   translation: z.string().describe("The most common translation of the word in the target language."),
-  pronunciation: z.string().optional().describe("The IPA (for English) or Pinyin (for Chinese) transcription. Omit if not applicable.")
+  pronunciation: z.string().optional().describe("The IPA (for English) or Pinyin (for Chinese) transcription. Omit if not applicable."),
+  audioSrc: z.string().optional().describe("The base64 encoded WAV audio data URI for the source word.")
 });
 type GenerateQuickVocabularyDetailsOutput = z.infer<
   typeof GenerateQuickVocabularyDetailsOutputSchema
@@ -40,7 +43,10 @@ export async function generateQuickVocabularyDetails(
 const generateQuickVocabularyDetailsPrompt = ai.definePrompt({
   name: 'generateQuickVocabularyDetailsPrompt',
   input: {schema: GenerateQuickVocabularyDetailsInputSchema},
-  output: {schema: GenerateQuickVocabularyDetailsOutputSchema},
+  output: {schema: z.object({
+    translation: z.string(),
+    pronunciation: z.string().optional(),
+  })},
   prompt: `You are a highly efficient multilingual translator. Provide only the most essential details for a given word.
 
 Word: {{{word}}}
@@ -66,10 +72,20 @@ const generateQuickVocabularyDetailsFlow = ai.defineFlow(
     if (input.sourceLanguage === input.targetLanguage) {
       return {
         translation: input.word,
-        pronunciation: ""
+        pronunciation: "",
+        audioSrc: ""
       };
     }
-    const {output} = await generateQuickVocabularyDetailsPrompt(input);
-    return output!;
+    
+    const [detailsResult, audioResult] = await Promise.all([
+        generateQuickVocabularyDetailsPrompt(input),
+        generateAudio({ text: input.word, language: input.sourceLanguage as Language })
+    ]);
+
+    return {
+        translation: detailsResult.output!.translation,
+        pronunciation: detailsResult.output!.pronunciation,
+        audioSrc: audioResult.audioSrc,
+    };
   }
 );

@@ -55,7 +55,6 @@ export function DictionarySearch() {
   const { toast } = useToast();
   const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCache = useRef<Record<string, string>>({});
   
   useEffect(() => {
     // Cleanup audio element on unmount
@@ -109,46 +108,43 @@ export function DictionarySearch() {
   };
 
   const playAudio = async (text: string, lang: Language, id: string) => {
-    if (audioState.status === 'playing' && audioState.id === id) {
-        audioRef.current?.pause();
-        setAudioState({ id: null, status: 'idle' });
-        return;
+    if (audioState.id === id && audioState.status === 'playing') {
+      audioRef.current?.pause();
+      setAudioState({ id: null, status: 'idle' });
+      return;
     }
-    
-    // Stop any currently playing audio
+
     if (audioRef.current) {
-        audioRef.current.pause();
+      audioRef.current.pause();
     }
 
     setAudioState({ id, status: 'loading' });
 
     try {
-        let audioSrc = audioCache.current[id];
-        if (!audioSrc) {
-            audioSrc = await getAudioAction(text, lang);
-            audioCache.current[id] = audioSrc;
-        }
+      const audioSrc = await getAudioAction(text, lang);
+      if (!audioSrc) {
+        throw new Error('No audio source returned');
+      }
+      
+      const audio = new Audio(audioSrc);
+      audioRef.current = audio;
 
-        const audio = new Audio(audioSrc);
-        audioRef.current = audio;
-        
-        audio.onplaying = () => {
-            setAudioState({ id, status: 'playing' });
-        };
-        audio.onended = () => {
-            setAudioState({ id: null, status: 'idle' });
-            audioRef.current = null;
-        };
-        audio.onerror = () => {
-            setAudioState({ id: null, status: 'idle' });
-            toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
-        };
-        audio.play();
-
-    } catch (error) {
-        console.error("Audio playback error:", error);
+      audio.onplaying = () => setAudioState({ id, status: 'playing' });
+      audio.onended = () => {
         setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
+        audioRef.current = null;
+      };
+      audio.onerror = (e) => {
+        console.error('Audio playback error', e);
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: 'destructive', title: 'Lỗi phát âm thanh', description: 'Không thể phát âm thanh.' });
+      };
+
+      audio.play();
+    } catch (error) {
+      console.error('Error getting audio:', error);
+      setAudioState({ id: null, status: 'idle' });
+      toast({ variant: 'destructive', title: 'Lỗi AI', description: 'Không thể tạo âm thanh.' });
     }
   };
 
@@ -304,7 +300,7 @@ export function DictionarySearch() {
                             <div key={index} className="p-3 rounded-md border bg-muted/50">
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium flex-grow">{ex.source}</p>
-                                  {(result.sourceLanguage === 'english' || result.sourceLanguage === 'chinese') && (
+                                  {(result.sourceLanguage === 'english' || result.sourceLanguage === 'chinese' || result.sourceLanguage === 'vietnamese') && (
                                     <Button 
                                       size="icon" 
                                       variant="ghost" 
@@ -321,7 +317,7 @@ export function DictionarySearch() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <p className="text-muted-foreground italic flex-grow">{ex.target}</p>
-                                    {(result.targetLanguage === 'english' || result.targetLanguage === 'chinese') && (
+                                    {(result.targetLanguage === 'english' || result.targetLanguage === 'chinese' || result.targetLanguage === 'vietnamese') && (
                                         <Button 
                                         size="icon" 
                                         variant="ghost" 
