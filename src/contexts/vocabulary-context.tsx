@@ -79,7 +79,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         if (vocabData.length === 0 && folderData.length === 0) {
             const sampleFolders = ["Chủ đề chung", "Động vật", "Thức ăn"];
             for (const folder of sampleFolders) {
-                // Use the service function to add folders
                 await dbAddFolder(folder, user.uid);
             }
             
@@ -91,17 +90,19 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
             
-            // Wait for all sample words to be added
-            const newWords = await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
+            for (const word of sampleWords) {
+                await dbAddVocabularyItem(word, user.uid);
+            }
             
-            // Update local state after all async operations are done
-            setFolders(sampleFolders.sort());
-            setVocabulary(newWords);
-        } else {
-             // Just set the data if it exists
-            setFolders(folderData.sort());
-            setVocabulary(vocabData);
+            // Re-fetch data after seeding to ensure consistency
+            [vocabData, folderData] = await Promise.all([
+              getVocabulary(user.uid),
+              getFolders(user.uid),
+            ]);
         }
+        
+        setFolders(folderData.sort());
+        setVocabulary(vocabData);
 
       } catch (error) {
         console.error("Error loading initial data:", error);
@@ -208,6 +209,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
 
         setFolders(prev => prev.map(f => (f === oldName ? newName : f)).sort());
         setVocabulary(prev => prev.map(item => item.folder === oldName ? {...item, folder: newName} : item));
+        toast({ title: "Đã cập nhật thư mục" });
         return true;
     } catch (error) {
         console.error("Error updating folder:", error);
@@ -242,5 +244,7 @@ export function useVocabulary() {
   }
   return context;
 }
+
+    
 
     
