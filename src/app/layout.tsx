@@ -23,10 +23,10 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
         <AuthProvider>
-            <VocabularyProvider>
-                <AppShell>{children}</AppShell>
-                <Toaster />
-            </VocabularyProvider>
+          <VocabularyProvider>
+            <AppShell>{children}</AppShell>
+            <Toaster />
+          </VocabularyProvider>
         </AuthProvider>
       </body>
     </html>
