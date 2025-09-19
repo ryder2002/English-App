@@ -80,7 +80,9 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           getFolders(user.uid),
         ]);
 
+        // If user has no data, create sample data
         if (vocabData.length === 0 || folderData.length === 0) {
+            // Clear any partial data
             await dbClearVocabulary(user.uid);
             await dbClearFolders(user.uid);
 
@@ -89,12 +91,12 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 await dbAddFolder(folder, user.uid);
             }
             
-            const sampleWords: Omit<VocabularyItem, 'id' | 'createdAt'>[] = [
-                { word: "hello", language: "english", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", ipa: "/həˈloʊ/", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
-                { word: "你好", language: "chinese", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", pinyin: "nǐ hǎo", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
-                { word: "dog", language: "english", vietnameseTranslation: "con chó", folder: "Động vật", ipa: "/dɔːɡ/", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
-                { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
-                { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/", audioSrc: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" },
+            const sampleWords: Omit<VocabularyItem, 'id' | 'createdAt' | 'audioSrc'>[] = [
+                { word: "hello", language: "english", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", ipa: "/həˈloʊ/" },
+                { word: "你好", language: "chinese", vietnameseTranslation: "xin chào", folder: "Chủ đề chung", pinyin: "nǐ hǎo" },
+                { word: "dog", language: "english", vietnameseTranslation: "con chó", folder: "Động vật", ipa: "/dɔːɡ/" },
+                { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo" },
+                { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
 
             const wordsWithAudio = await Promise.all(sampleWords.map(async (word) => {
@@ -104,6 +106,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             
             await dbAddManyVocabularyItems(wordsWithAudio, user.uid);
             
+            // Refetch data after seeding
             [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
                 getFolders(user.uid),
@@ -201,7 +204,10 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         console.error("Error updating vocabulary item:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
         // Revert UI on error
-        setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...vocabulary.find(v => v.id === id) } as VocabularyItem : item));
+        const originalItem = vocabulary.find(v => v.id === id);
+        if (originalItem) {
+          setVocabulary(prev => prev.map(item => item.id === id ? originalItem : item));
+        }
         return false;
     }
   }, [user, toast, folders, addFolder, vocabulary]);
@@ -276,5 +282,3 @@ export function useVocabulary() {
   }
   return context;
 }
-
-    
