@@ -1,8 +1,9 @@
+
 "use client";
 
 import { auth } from "@/lib/firebase";
 import { User, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
 
 interface AuthContextType {
@@ -13,44 +14,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const publicRoutes = ["/login", "/signup"];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
-    const pathname = usePathname();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
+            if (user) {
+                setUser(user);
+            } else {
+                router.push("/login");
+            }
             setIsLoading(false);
         });
 
         return () => unsubscribe();
-    }, []);
-
-    useEffect(() => {
-        if (isLoading) return;
-
-        const isPublicRoute = publicRoutes.includes(pathname);
-
-        if (!user && !isPublicRoute) {
-            router.push("/login");
-        } else if (user && isPublicRoute) {
-            router.push("/");
-        }
-
-    }, [user, isLoading, pathname, router]);
+    }, [router]);
     
     const signOut = async () => {
         await firebaseSignOut(auth);
+        setUser(null); // Explicitly set user to null
         router.push("/login");
     };
 
     const value = { user, isLoading, signOut };
     
-    if (isLoading && !publicRoutes.includes(pathname)) {
+    if (isLoading) {
         return (
              <div className="flex items-center justify-center h-screen bg-background">
                 {/* Minimal loading UI to avoid layout shifts */}
@@ -58,6 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
     }
 
+    // This check prevents unauthorized access to protected routes
+    if (!isLoading && !user) {
+        return <>{children}</>; // Or a dedicated unauthorized component
+    }
 
     return (
         <AuthContext.Provider value={value}>
