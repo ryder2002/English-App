@@ -75,9 +75,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           getFolders(user.uid),
         ]);
 
+        // If both are empty, create sample data
         if (vocabData.length === 0 && folderData.length === 0) {
             const sampleFolders = ["Chủ đề chung", "Động vật", "Thức ăn"];
             for (const folder of sampleFolders) {
+                // Use the service function to add folders
                 await dbAddFolder(folder, user.uid);
             }
             
@@ -89,11 +91,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
             
+            // Wait for all sample words to be added
             const newWords = await Promise.all(sampleWords.map(word => dbAddVocabularyItem(word, user.uid)));
             
+            // Update local state after all async operations are done
             setFolders(sampleFolders.sort());
             setVocabulary(newWords);
         } else {
+             // Just set the data if it exists
             setFolders(folderData.sort());
             setVocabulary(vocabData);
         }
@@ -116,6 +121,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const addVocabularyItem = useCallback(async (item: Omit<VocabularyItem, "id" | "createdAt">): Promise<boolean> => {
     if (!user) return false;
     try {
+        // If folder doesn't exist, create it and WAIT for it to finish.
         if (!folders.includes(item.folder)) {
             const folderAdded = await addFolder(item.folder);
             if (!folderAdded) {
@@ -123,6 +129,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                  return false; 
             }
         }
+        // Now that we're sure the folder exists, add the item.
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         return true;
