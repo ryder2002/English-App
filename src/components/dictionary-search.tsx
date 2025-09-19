@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -296,17 +297,33 @@ export function DictionarySearch() {
                                       size="icon" 
                                       variant="ghost" 
                                       className="h-8 w-8 text-muted-foreground shrink-0" 
-                                      onClick={() => playAudio(ex.source, result.sourceLanguage, `ex-${index}`)} 
+                                      onClick={(e) => { e.stopPropagation(); playAudio(ex.source, result.sourceLanguage, `ex-source-${index}`)}}
                                       disabled={audioState.status === 'loading'}
                                     >
-                                      {(audioState.id === `ex-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) 
+                                      {(audioState.id === `ex-source-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) 
                                         ? <Loader2 className="h-4 w-4 animate-spin"/> 
                                         : <Volume2 className="h-4 w-4"/>
                                       }
                                     </Button>
                                   )}
                                 </div>
-                                <p className="text-muted-foreground italic">{ex.target}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-muted-foreground italic flex-grow">{ex.target}</p>
+                                    {(result.targetLanguage === 'english' || result.targetLanguage === 'chinese') && (
+                                        <Button 
+                                        size="icon" 
+                                        variant="ghost" 
+                                        className="h-8 w-8 text-muted-foreground shrink-0" 
+                                        onClick={(e) => { e.stopPropagation(); playAudio(ex.target, result.targetLanguage, `ex-target-${index}`)}}
+                                        disabled={audioState.status === 'loading'}
+                                        >
+                                        {(audioState.id === `ex-target-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) 
+                                            ? <Loader2 className="h-4 w-4 animate-spin"/> 
+                                            : <Volume2 className="h-4 w-4"/>
+                                        }
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
