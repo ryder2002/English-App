@@ -37,7 +37,7 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' }>({ id: null, status: 'loading' });
+  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
 
@@ -58,7 +58,7 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
     if (audioState.id === id && audioState.status === 'playing') {
       audioRef.current?.pause();
       audioRef.current = null;
-      setAudioState({ id: null, status: 'loading' });
+      setAudioState({ id: null, status: 'idle' });
       return;
     }
 
@@ -69,10 +69,10 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
       const audioDataUri = await getAudioForWordAction(text, lang);
       const audio = new Audio(audioDataUri);
       audioRef.current = audio;
-      setAudioState({ id: id, status: 'playing' });
       audio.play();
+      setAudioState({ id: id, status: 'playing' });
       audio.onended = () => {
-        setAudioState({ id: null, status: 'loading' });
+        setAudioState({ id: null, status: 'idle' });
         audioRef.current = null;
       };
     } catch (error) {
@@ -82,7 +82,7 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
           title: "Không thể phát âm thanh.",
           description: "Có thể bạn đã hết giới hạn yêu cầu. Vui lòng thử lại sau một phút."
       });
-      setAudioState({ id: null, status: 'loading' });
+      setAudioState({ id: null, status: 'idle' });
     }
   };
 

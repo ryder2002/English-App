@@ -53,7 +53,7 @@ export function DictionarySearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const { toast } = useToast();
-  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' }>({ id: null, status: 'loading' });
+  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<DictionaryFormValues>({
@@ -97,7 +97,7 @@ export function DictionarySearch() {
     if (audioState.id === id && audioState.status === 'playing') {
       audioRef.current?.pause();
       audioRef.current = null;
-      setAudioState({ id: null, status: 'loading' });
+      setAudioState({ id: null, status: 'idle' });
       return;
     }
 
@@ -108,10 +108,10 @@ export function DictionarySearch() {
       const audioDataUri = await getAudioForWordAction(text, lang);
       const audio = new Audio(audioDataUri);
       audioRef.current = audio;
-      setAudioState({ id: id, status: 'playing' });
       audio.play();
+      setAudioState({ id: id, status: 'playing' });
       audio.onended = () => {
-        setAudioState({ id: null, status: 'loading' });
+        setAudioState({ id: null, status: 'idle' });
         audioRef.current = null;
       };
     } catch (error) {
@@ -121,7 +121,7 @@ export function DictionarySearch() {
           title: "Không thể phát âm thanh.",
           description: "Có thể bạn đã hết giới hạn yêu cầu. Vui lòng thử lại sau một phút."
       });
-      setAudioState({ id: null, status: 'loading' });
+      setAudioState({ id: null, status: 'idle' });
     }
   };
 
