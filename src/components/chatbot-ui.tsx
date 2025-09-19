@@ -12,12 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { getChatbotResponseAction } from "@/app/actions";
+import { getChatbotResponseAction, getAudioAction } from "@/app/actions";
 import { Bot, Loader2, Send, User, Volume2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import type { Language } from "@/lib/types";
 
 const formSchema = z.object({
   query: z.string().min(1),
@@ -38,9 +39,10 @@ interface ChatbotUIProps {
 export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCache = useRef<Record<string, string>>({});
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(formSchema),
@@ -56,9 +58,11 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   }, [messages]);
 
   useEffect(() => {
+      // Cleanup audio element on unmount
     return () => {
-      if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
     };
   }, []);
@@ -86,39 +90,50 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
     }
   };
   
-  const playAudio = (e: React.MouseEvent, text: string, lang: string, id: string) => {
+  const playAudio = async (e: React.MouseEvent, text: string, lang: Language, id: string) => {
     e.stopPropagation();
-    if (!('speechSynthesis' in window)) {
-        toast({ variant: "destructive", title: "Lỗi", description: "Trình duyệt của bạn không hỗ trợ phát âm thanh." });
-        return;
-    }
 
     if (audioState.status === 'playing' && audioState.id === id) {
-        speechSynthesis.cancel();
+        audioRef.current?.pause();
         setAudioState({ id: null, status: 'idle' });
         return;
     }
     
-    speechSynthesis.cancel();
+    // Stop any currently playing audio
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utteranceRef.current = utterance;
-
-    const langMap = { english: 'en-US', chinese: 'zh-CN', vietnamese: 'vi-VN' };
-    utterance.lang = langMap[lang as keyof typeof langMap] || 'en-US';
-
-    utterance.onstart = () => setAudioState({ id, status: 'playing' });
-    utterance.onend = () => {
-        setAudioState({ id: null, status: 'idle' });
-        utteranceRef.current = null;
-    };
-    utterance.onerror = () => {
-        setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
-    };
-    
     setAudioState({ id, status: 'loading' });
-    speechSynthesis.speak(utterance);
+
+    try {
+        let audioSrc = audioCache.current[id];
+        if (!audioSrc) {
+            audioSrc = await getAudioAction(text, lang);
+            audioCache.current[id] = audioSrc;
+        }
+
+        const audio = new Audio(audioSrc);
+        audioRef.current = audio;
+
+        audio.onplaying = () => {
+            setAudioState({ id, status: 'playing' });
+        };
+        audio.onended = () => {
+            setAudioState({ id: null, status: 'idle' });
+            audioRef.current = null;
+        };
+        audio.onerror = () => {
+            setAudioState({ id: null, status: 'idle' });
+            toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
+        };
+        audio.play();
+
+    } catch (error) {
+        console.error("Audio playback error:", error);
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
+    }
   };
 
 
@@ -137,7 +152,7 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
                         size="icon"
                         variant="ghost"
                         className="h-6 w-6 text-muted-foreground"
-                        onClick={(e) => playAudio(e, word, lang, audioId)}
+                        onClick={(e) => playAudio(e, word, lang as Language, audioId)}
                         disabled={audioState.status === 'loading'}
                     >
                          {(audioState.id === audioId && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}

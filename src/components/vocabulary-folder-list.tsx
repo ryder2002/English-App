@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -15,7 +14,7 @@ import { Button } from "./ui/button";
 import { Edit, Loader2, MoreVertical, Trash2, Volume2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { VocabularyItem } from "@/lib/types";
+import type { Language, VocabularyItem } from "@/lib/types";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
 import {
@@ -25,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { getAudioAction } from "@/app/actions";
 
 interface VocabularyFolderListProps {
     folderName: string;
@@ -37,14 +37,16 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { toast } = useToast();
   const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCache = useRef<Record<string, string>>({});
 
   useEffect(() => {
-    // Cleanup speechSynthesis on component unmount
+    // Cleanup audio element on unmount
     return () => {
-        if (speechSynthesis.speaking) {
-            speechSynthesis.cancel();
-        }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
   }, []);
 
@@ -60,48 +62,47 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
     }
   };
 
-  const playAudio = async (e: React.MouseEvent, text: string, lang: string, id: string) => {
+  const playAudio = async (e: React.MouseEvent, text: string, lang: Language, id: string) => {
     e.stopPropagation();
-    if (!('speechSynthesis' in window)) {
-        toast({ variant: "destructive", title: "Lỗi", description: "Trình duyệt của bạn không hỗ trợ phát âm thanh." });
-        return;
-    }
-
     if (audioState.status === 'playing' && audioState.id === id) {
-        speechSynthesis.cancel();
+        audioRef.current?.pause();
         setAudioState({ id: null, status: 'idle' });
         return;
     }
     
     // Stop any currently playing audio
-    speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utteranceRef.current = utterance;
-
-    const langMap = {
-        english: 'en-US',
-        chinese: 'zh-CN',
-        vietnamese: 'vi-VN'
-    };
-    utterance.lang = langMap[lang as keyof typeof langMap] || 'en-US';
-
-    utterance.onstart = () => {
-        setAudioState({ id, status: 'playing' });
-    };
-
-    utterance.onend = () => {
-        setAudioState({ id: null, status: 'idle' });
-        utteranceRef.current = null;
-    };
-    
-    utterance.onerror = () => {
-        setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh. Vui lòng thử lại." });
-    };
-    
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
     setAudioState({ id, status: 'loading' });
-    speechSynthesis.speak(utterance);
+
+    try {
+        let audioSrc = audioCache.current[id];
+        if (!audioSrc) {
+            audioSrc = await getAudioAction(text, lang);
+            audioCache.current[id] = audioSrc;
+        }
+
+        const audio = new Audio(audioSrc);
+        audioRef.current = audio;
+        
+        audio.onplaying = () => {
+            setAudioState({ id, status: 'playing' });
+        };
+        audio.onended = () => {
+            setAudioState({ id: null, status: 'idle' });
+            audioRef.current = null;
+        };
+        audio.onerror = () => {
+            setAudioState({ id: null, status: 'idle' });
+            toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
+        };
+        audio.play();
+    } catch (error) {
+        console.error("Audio playback error:", error);
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
+    }
   };
 
 

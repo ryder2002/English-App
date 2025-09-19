@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -17,6 +16,7 @@ import { Progress } from "./ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem } from "@/lib/types";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
+import { getAudioAction } from "@/app/actions";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
@@ -28,7 +28,8 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const { toast } = useToast();
   const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCache = useRef<Record<string, string>>({});
 
   const deck = useMemo(() => {
     if (selectedFolder === 'all') {
@@ -38,11 +39,12 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   }, [vocabulary, selectedFolder]);
 
   useEffect(() => {
-    // Cleanup speechSynthesis on component unmount
+    // Cleanup audio element on unmount
     return () => {
-        if (speechSynthesis.speaking) {
-            speechSynthesis.cancel();
-        }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
   }, []);
 
@@ -97,44 +99,51 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   
   const handleFlip = () => {
     if (!currentCard) return;
-    speechSynthesis.cancel();
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
     setAudioState({ id: null, status: 'idle' });
     setIsFlipped(prev => !prev);
   }
   
-  const playAudio = (e: React.MouseEvent, item: VocabularyItem) => {
+  const playAudio = async (e: React.MouseEvent, item: VocabularyItem) => {
     e.stopPropagation();
-    if (!('speechSynthesis' in window)) {
-        toast({ variant: "destructive", title: "Lỗi", description: "Trình duyệt của bạn không hỗ trợ phát âm thanh." });
-        return;
-    }
-
     if (audioState.status === 'playing' && audioState.id === item.id) {
-        speechSynthesis.cancel();
+        audioRef.current?.pause();
         setAudioState({ id: null, status: 'idle' });
         return;
     }
     
-    speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(item.word);
-    utteranceRef.current = utterance;
-
-    const langMap = { english: 'en-US', chinese: 'zh-CN', vietnamese: 'vi-VN' };
-    utterance.lang = langMap[item.language] || 'en-US';
-
-    utterance.onstart = () => setAudioState({ id: item.id, status: 'playing' });
-    utterance.onend = () => {
-        setAudioState({ id: null, status: 'idle' });
-        utteranceRef.current = null;
-    };
-    utterance.onerror = () => {
-        setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
-    };
-    
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
     setAudioState({ id: item.id, status: 'loading' });
-    speechSynthesis.speak(utterance);
+
+    try {
+        let audioSrc = audioCache.current[item.id];
+        if (!audioSrc) {
+            audioSrc = await getAudioAction(item.word, item.language);
+            audioCache.current[item.id] = audioSrc;
+        }
+
+        const audio = new Audio(audioSrc);
+        audioRef.current = audio;
+
+        audio.onplaying = () => setAudioState({ id: item.id, status: 'playing' });
+        audio.onended = () => {
+            setAudioState({ id: null, status: 'idle' });
+            audioRef.current = null;
+        };
+        audio.onerror = () => {
+            setAudioState({ id: null, status: 'idle' });
+            toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
+        };
+        audio.play();
+    } catch (error) {
+        console.error("Audio playback error:", error);
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
+    }
   };
 
 
@@ -235,5 +244,3 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     </div>
   );
 }
-
-    

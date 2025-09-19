@@ -13,6 +13,7 @@ import {
 import {
   interactWithLanguageChatbot,
 } from "@/ai/flows/interact-with-language-chatbot";
+import { generateAudio } from "@/ai/flows/generate-audio-flow";
 import type { Language } from "@/lib/types";
 
 // Define input/output types here as they are not exported from flows
@@ -83,4 +84,9 @@ export async function getChatbotResponseAction(
   const input: InteractWithLanguageChatbotInput = { query };
   const result = await interactWithLanguageChatbot(input);
   return result.response;
+}
+
+export async function getAudioAction(text: string, language: Language): Promise<string> {
+    const result = await generateAudio({ text, language });
+    return result.audioSrc;
 }
