@@ -12,6 +12,7 @@ import {
   query,
   where,
   orderBy,
+  Timestamp,
 } from "firebase/firestore";
 
 const VOCABULARY_COLLECTION = "vocabulary";
@@ -21,19 +22,29 @@ export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> =
   const q = query(
     collection(db, VOCABULARY_COLLECTION),
     where("userId", "==", userId)
-    // orderBy("createdAt", "desc") // Temporarily removed to allow app to work while index builds
   );
   const querySnapshot = await getDocs(q);
   const vocabulary: VocabularyItem[] = [];
   querySnapshot.forEach((doc) => {
-    vocabulary.push({ id: doc.id, ...doc.data() } as VocabularyItem);
+    const data = doc.data();
+    const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
+    vocabulary.push({ id: doc.id, ...data, createdAt } as VocabularyItem);
   });
-  // Manual sort on the client-side as a temporary workaround
+  // Manual sort on the client-side
   return vocabulary.sort((a, b) => {
-    if (!a.createdAt || !b.createdAt) return 0;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   });
 };
+
+const cleanData = (data: { [key: string]: any }) => {
+    const cleanedData = { ...data };
+    Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === undefined) {
+            delete cleanedData[key];
+        }
+    });
+    return cleanedData;
+}
 
 export const addVocabularyItem = async (
   item: Omit<VocabularyItem, "id" | "createdAt">,
@@ -42,38 +53,53 @@ export const addVocabularyItem = async (
   if (!userId) {
     throw new Error("User ID is required to add an item.");
   }
-  const newDocData: { [key: string]: any } = {
+  const newDocData = cleanData({
     ...item,
     userId,
-    createdAt: new Date().toISOString(),
-  };
-
-  // Firestore doesn't allow undefined values. We need to clean the object.
-  Object.keys(newDocData).forEach(key => {
-    if (newDocData[key] === undefined) {
-      delete newDocData[key];
-    }
+    createdAt: new Date(),
   });
 
   const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), newDocData);
   return { 
     id: docRef.id, 
-    ...newDocData,
+    ...item,
+    createdAt: (newDocData.createdAt as Date).toISOString()
   } as VocabularyItem;
 };
+
+export const addManyVocabularyItems = async (
+  items: Omit<VocabularyItem, "id" | "createdAt">[],
+  userId: string
+): Promise<VocabularyItem[]> => {
+  if (!userId) {
+    throw new Error("User ID is required to add items.");
+  }
+  const batch = writeBatch(db);
+  const newItems: VocabularyItem[] = [];
+  const now = new Date();
+
+  items.forEach(item => {
+      const docRef = doc(collection(db, VOCABULARY_COLLECTION));
+      const newDocData = cleanData({
+          ...item,
+          userId,
+          createdAt: now,
+      });
+      batch.set(docRef, newDocData);
+      newItems.push({ id: docRef.id, ...item, createdAt: now.toISOString() });
+  });
+
+  await batch.commit();
+  return newItems;
+};
+
 
 export const updateVocabularyItem = async (
   id: string,
   updates: Partial<Omit<VocabularyItem, "id">>
 ): Promise<void> => {
   const itemDoc = doc(db, VOCABULARY_COLLECTION, id);
-  // Firestore doesn't allow undefined values. We need to clean the object.
-  const cleanUpdates: { [key: string]: any } = { ...updates };
-  Object.keys(cleanUpdates).forEach(key => {
-    if (cleanUpdates[key] === undefined) {
-      delete cleanUpdates[key];
-    }
-  });
+  const cleanUpdates = cleanData(updates);
   await updateDoc(itemDoc, cleanUpdates);
 };
 

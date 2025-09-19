@@ -6,6 +6,11 @@ import {
   type GenerateVocabularyDetailsOutput,
 } from "@/ai/flows/generate-vocabulary-details";
 import {
+  generateBatchVocabularyDetails,
+  type GenerateBatchVocabularyDetailsInput,
+  type GenerateBatchVocabularyDetailsOutput,
+} from "@/ai/flows/generate-batch-vocabulary-details";
+import {
   interactWithLanguageChatbot,
   type InteractWithLanguageChatbotInput,
 } from "@/ai/flows/interact-with-language-chatbot";
@@ -36,6 +41,12 @@ export async function dictionaryLookupAction(
   return details;
 }
 
+export async function batchAddVocabularyAction(
+  input: GenerateBatchVocabularyDetailsInput
+): Promise<GenerateBatchVocabularyDetailsOutput> {
+  const details = await generateBatchVocabularyDetails(input);
+  return details;
+}
 
 export async function getChatbotResponseAction(
   query: string

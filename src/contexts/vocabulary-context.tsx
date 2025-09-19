@@ -6,6 +6,7 @@ import { createContext, useContext, useState, type ReactNode, useEffect, useCall
 import { 
     getVocabulary,
     addVocabularyItem as dbAddVocabularyItem,
+    addManyVocabularyItems as dbAddManyVocabularyItems,
     updateVocabularyItem as dbUpdateVocabularyItem,
     deleteVocabularyItem as dbDeleteVocabularyItem,
     deleteVocabularyByFolder as dbDeleteVocabularyByFolder,
@@ -26,6 +27,7 @@ interface VocabularyContextType {
   vocabulary: VocabularyItem[];
   folders: string[];
   addVocabularyItem: (item: Omit<VocabularyItem, 'id' | 'createdAt'>) => Promise<boolean>;
+  addManyVocabularyItems: (items: Omit<VocabularyItem, 'id' | 'createdAt'>[], folder: string) => Promise<void>;
   removeVocabularyItem: (id: string) => Promise<void>;
   updateVocabularyItem: (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => Promise<boolean>;
   addFolder: (folderName: string) => Promise<boolean>;
@@ -77,9 +79,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           getFolders(user.uid),
         ]);
 
-        // If either collection is empty, wipe both and create sample data
         if (vocabData.length === 0 || folderData.length === 0) {
-            // Clear existing data to prevent duplicates or orphaned items
             await dbClearVocabulary(user.uid);
             await dbClearFolders(user.uid);
 
@@ -96,9 +96,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
             
-            for (const word of sampleWords) {
-                await dbAddVocabularyItem(word, user.uid);
-            }
+            await dbAddManyVocabularyItems(sampleWords, user.uid);
             
             [vocabData, folderData] = await Promise.all([
                 getVocabulary(user.uid),
@@ -128,7 +126,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const addVocabularyItem = useCallback(async (item: Omit<VocabularyItem, "id" | "createdAt">): Promise<boolean> => {
     if (!user) return false;
     try {
-        // If folder doesn't exist, create it and WAIT for it to finish.
         if (!folders.includes(item.folder)) {
             const folderAdded = await addFolder(item.folder);
             if (!folderAdded) {
@@ -136,7 +133,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                  return false; 
             }
         }
-        // Now that we're sure the folder exists, add the item.
+
         const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         return true;
@@ -144,6 +141,25 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
          console.error("Error adding vocabulary item:", error);
          toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm từ vựng." });
          return false;
+    }
+  }, [user, toast, folders, addFolder]);
+  
+  const addManyVocabularyItems = useCallback(async (items: Omit<VocabularyItem, 'id' | 'createdAt'>[], folder: string) => {
+    if (!user) return;
+    try {
+        if (!folders.includes(folder)) {
+            const folderAdded = await addFolder(folder);
+            if (!folderAdded) {
+                toast({ variant: "destructive", title: "Lỗi tạo thư mục", description: `Không thể tạo thư mục mới "${folder}".` });
+                return; 
+            }
+        }
+        
+        const newItems = await dbAddManyVocabularyItems(items, user.uid);
+        setVocabulary((prev) => [...newItems, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    } catch (error) {
+         console.error("Error batch adding vocabulary items:", error);
+         toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm từ vựng hàng loạt." });
     }
   }, [user, toast, folders, addFolder]);
 
@@ -228,6 +244,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     vocabulary,
     folders,
     addVocabularyItem,
+    addManyVocabularyItems,
     removeVocabularyItem,
     updateVocabularyItem,
     isLoadingInitialData,
