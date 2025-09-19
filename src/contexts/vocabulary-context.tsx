@@ -93,6 +93,23 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     fetchData();
   }, [user, toast]);
 
+  const addFolder = useCallback(async (folderName: string): Promise<boolean> => {
+    if (!user) return false;
+    if (folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
+        toast({ variant: "destructive", title: "Thư mục đã tồn tại" });
+        return false;
+    }
+    try {
+        await dbAddFolder(folderName, user.uid);
+        setFolders(prev => [...prev, folderName].sort());
+        return true;
+    } catch (error) {
+        console.error("Error adding folder:", error);
+        toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm thư mục." });
+        return false;
+    }
+  }, [user, toast, folders]);
+
   const addVocabularyItem = useCallback(async (item: Omit<VocabularyItem, "id" | "createdAt">): Promise<boolean> => {
     if (!user) return false;
     try {
@@ -143,23 +160,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         return false;
     }
   }, [user, toast, folders, addFolder]);
-  
-  const addFolder = useCallback(async (folderName: string): Promise<boolean> => {
-    if (!user) return false;
-    if (folders.find(f => f.toLowerCase() === folderName.toLowerCase())) {
-        toast({ variant: "destructive", title: "Thư mục đã tồn tại" });
-        return false;
-    }
-    try {
-        await dbAddFolder(folderName, user.uid);
-        setFolders(prev => [...prev, folderName].sort());
-        return true;
-    } catch (error) {
-        console.error("Error adding folder:", error);
-        toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm thư mục." });
-        return false;
-    }
-  }, [user, toast, folders]);
 
   const removeFolder = useCallback(async (folderName: string) => {
     if (!user) return;
