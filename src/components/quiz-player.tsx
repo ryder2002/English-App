@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -7,8 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "./ui/progress";
 import type { VocabularyItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { CheckCircle, RefreshCw, XCircle } from "lucide-react";
-import { ClipboardCheckIcon } from "@radix-ui/react-icons";
+import { CheckCircle, RefreshCw, XCircle, ClipboardCheck } from "lucide-react";
 
 // Fisher-Yates shuffle algorithm
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -85,7 +85,7 @@ export function QuizPlayer() {
     if (vocabulary.length === 0) {
         return (
              <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
-                <ClipboardCheckIcon className="h-12 w-12 text-muted-foreground mb-4" />
+                <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-lg font-medium text-muted-foreground">Chưa có từ vựng để kiểm tra.</p>
                 <p className="text-sm text-muted-foreground">
                 Hãy thêm một vài từ vựng để bắt đầu.

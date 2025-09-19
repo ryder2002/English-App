@@ -289,7 +289,23 @@ export function DictionarySearch() {
                     <div className="space-y-4 text-base">
                         {result.examples.map((ex, index) => (
                             <div key={index} className="p-3 rounded-md border bg-muted/50">
-                                <p className="font-medium">{ex.source}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium flex-grow">{ex.source}</p>
+                                  {(result.sourceLanguage === 'english' || result.sourceLanguage === 'chinese') && (
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-8 w-8 text-muted-foreground shrink-0" 
+                                      onClick={() => playAudio(ex.source, result.sourceLanguage, `ex-${index}`)} 
+                                      disabled={audioState.status === 'loading'}
+                                    >
+                                      {(audioState.id === `ex-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) 
+                                        ? <Loader2 className="h-4 w-4 animate-spin"/> 
+                                        : <Volume2 className="h-4 w-4"/>
+                                      }
+                                    </Button>
+                                  )}
+                                </div>
                                 <p className="text-muted-foreground italic">{ex.target}</p>
                             </div>
                         ))}
