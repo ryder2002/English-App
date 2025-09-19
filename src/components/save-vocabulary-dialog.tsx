@@ -110,16 +110,11 @@ export function SaveVocabularyDialog({
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
-      let details;
-      if (values.language === 'vietnamese') {
-        details = await getVocabularyDetailsAction(values.word, 'vietnamese');
-      } else {
-        details = await getVocabularyDetailsAction(
+        const details = await getVocabularyDetailsAction(
             values.word,
             values.language as Language
         );
-      }
-
+      
       const primaryDefinition = details.definitions[0];
       if (!primaryDefinition) {
         throw new Error("AI không trả về định nghĩa hợp lệ.");

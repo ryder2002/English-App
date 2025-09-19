@@ -61,7 +61,7 @@ Source Language: {{{sourceLanguage}}}
 Target Language: {{{targetLanguage}}}
 
 Provide the following:
-1.  A list of definitions for the word, covering all relevant parts of speech (e.g., noun, verb, adjective).
+1.  A list of definitions for the word, covering all relevant parts of speech (e.g., noun, verb, adjective). For the source language 'vietnamese', provide the definition in Vietnamese.
 2.  For each definition:
     - The part of speech.
     - The meaning in the source language.
@@ -84,7 +84,7 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
     if (input.sourceLanguage === input.targetLanguage) {
       return {
         definitions: [{
-            partOfSpeech: "noun", // Default part of speech
+            partOfSpeech: "từ", 
             meaning: input.word,
             translation: input.word,
             pronunciation: ""
