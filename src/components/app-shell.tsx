@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -15,14 +16,13 @@ import { Languages, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
-import { usePathname } from "next/navigation";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
-  const pathname = usePathname();
 
+  // If there's no user, we are likely on the login/signup page.
+  // The AuthProvider will handle redirection for protected routes.
   if (!user) {
-    // Don't render the shell for login/signup pages
     return <>{children}</>;
   }
   

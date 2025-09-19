@@ -3,8 +3,9 @@
 
 import { auth } from "@/lib/firebase";
 import { User, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AuthContextType {
   user: User | null;
@@ -18,23 +19,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setUser(user);
-            } else {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            setIsLoading(false);
+            if (!currentUser && pathname !== '/login' && pathname !== '/signup') {
                 router.push("/login");
             }
-            setIsLoading(false);
         });
 
         return () => unsubscribe();
-    }, [router]);
+    }, [router, pathname]);
     
     const signOut = async () => {
         await firebaseSignOut(auth);
-        setUser(null); // Explicitly set user to null
+        setUser(null);
         router.push("/login");
     };
 
@@ -43,14 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoading) {
         return (
              <div className="flex items-center justify-center h-screen bg-background">
-                {/* Minimal loading UI to avoid layout shifts */}
+                <div className="space-y-4 w-1/2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                </div>
              </div>
         )
-    }
-
-    // This check prevents unauthorized access to protected routes
-    if (!isLoading && !user) {
-        return <>{children}</>; // Or a dedicated unauthorized component
     }
 
     return (
