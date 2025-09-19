@@ -27,8 +27,9 @@ import { ArrowRightLeft, Languages, Loader2, Search, Volume2 } from "lucide-reac
 import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { GenerateVocabularyDetailsOutput } from "@/ai/flows/generate-vocabulary-details";
+import type { GenerateVocabularyDetailsOutput } from "@/ai/flows/generate-vocabulary-details";
 import { Separator } from "./ui/separator";
+import type { Language } from "@/lib/types";
 
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
@@ -45,8 +46,8 @@ type DictionaryFormValues = z.infer<typeof formSchema>;
 
 type SearchResult = GenerateVocabularyDetailsOutput & {
   originalWord: string,
-  sourceLanguage: z.infer<typeof languageEnum>,
-  targetLanguage: z.infer<typeof languageEnum>,
+  sourceLanguage: Language,
+  targetLanguage: Language,
 };
 
 export function DictionarySearch() {

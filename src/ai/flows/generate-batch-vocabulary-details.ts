@@ -4,8 +4,6 @@
  * @fileOverview This file defines a Genkit flow to generate details for a batch of vocabulary words.
  *
  * - generateBatchVocabularyDetails - A function that triggers the batch vocabulary details generation flow.
- * - GenerateBatchVocabularyDetailsInput - The input type for the function.
- * - GenerateBatchVocabularyDetailsOutput - The return type for the function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -23,7 +21,7 @@ const GenerateBatchVocabularyDetailsInputSchema = z.object({
     .describe('The language to translate the words into.'),
     folder: z.string().describe("The folder to add the vocabulary to.")
 });
-export type GenerateBatchVocabularyDetailsInput = z.infer<
+type GenerateBatchVocabularyDetailsInput = z.infer<
   typeof GenerateBatchVocabularyDetailsInputSchema
 >;
 
@@ -37,8 +35,7 @@ const WordDetailSchema = z.object({
 })
 
 const GenerateBatchVocabularyDetailsOutputSchema = z.array(WordDetailSchema);
-
-export type GenerateBatchVocabularyDetailsOutput = z.infer<
+type GenerateBatchVocabularyDetailsOutput = z.infer<
   typeof GenerateBatchVocabularyDetailsOutputSchema
 >;
 

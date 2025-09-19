@@ -2,24 +2,49 @@
 
 import {
   generateVocabularyDetails,
-  type GenerateVocabularyDetailsInput,
   type GenerateVocabularyDetailsOutput,
 } from "@/ai/flows/generate-vocabulary-details";
 import {
   generateQuickVocabularyDetails,
-  type GenerateQuickVocabularyDetailsInput,
-  type GenerateQuickVocabularyDetailsOutput,
 } from "@/ai/flows/generate-quick-vocabulary-details";
 import {
   generateBatchVocabularyDetails,
-  type GenerateBatchVocabularyDetailsInput,
-  type GenerateBatchVocabularyDetailsOutput,
 } from "@/ai/flows/generate-batch-vocabulary-details";
 import {
   interactWithLanguageChatbot,
-  type InteractWithLanguageChatbotInput,
 } from "@/ai/flows/interact-with-language-chatbot";
 import type { Language } from "@/lib/types";
+
+// Define input/output types here as they are not exported from flows
+type GenerateQuickVocabularyDetailsInput = {
+    word: string;
+    sourceLanguage: Language;
+    targetLanguage: Language;
+}
+type GenerateQuickVocabularyDetailsOutput = {
+    translation: string;
+    pronunciation?: string;
+}
+
+type GenerateBatchVocabularyDetailsInput = {
+    words: string[];
+    sourceLanguage: Language;
+    targetLanguage: Language;
+    folder: string;
+}
+type GenerateBatchVocabularyDetailsOutput = {
+    word: string;
+    language: Language;
+    vietnameseTranslation: string;
+    folder: string;
+    ipa?: string;
+    pinyin?: string;
+}[];
+
+type InteractWithLanguageChatbotInput = {
+    query: string;
+};
+
 
 export async function getVocabularyDetailsAction(
   word: string,
@@ -39,7 +64,7 @@ export async function getVocabularyDetailsAction(
 }
 
 export async function dictionaryLookupAction(
-  input: GenerateVocabularyDetailsInput
+  input: { word: string; sourceLanguage: Language; targetLanguage: Language; }
 ): Promise<GenerateVocabularyDetailsOutput> {
   const details = await generateVocabularyDetails(input);
   return details;

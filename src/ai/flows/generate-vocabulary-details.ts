@@ -6,12 +6,12 @@
  * It supports translation between English, Chinese, and Vietnamese.
  *
  * - generateVocabularyDetails - A function that triggers the vocabulary details generation flow.
- * - GenerateVocabularyDetailsInput - The input type for the generateVocabularyDetails function.
- * - GenerateVocabularyDetailsOutput - The return type for the generateVocabularyDetails function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import type { Language } from '@/lib/types';
+
 
 const GenerateVocabularyDetailsInputSchema = z.object({
   word: z.string().describe('The vocabulary word to generate details for.'),
@@ -22,7 +22,7 @@ const GenerateVocabularyDetailsInputSchema = z.object({
     .enum(['english', 'chinese', 'vietnamese'])
     .describe('The language to translate the word into.'),
 });
-export type GenerateVocabularyDetailsInput = z.infer<
+type GenerateVocabularyDetailsInput = z.infer<
   typeof GenerateVocabularyDetailsInputSchema
 >;
 

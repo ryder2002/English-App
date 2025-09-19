@@ -5,14 +5,12 @@
  * It focuses on speed by fetching only the primary translation and pronunciation.
  *
  * - generateQuickVocabularyDetails - A function that triggers the quick vocabulary details generation flow.
- * - GenerateQuickVocabularyDetailsInput - The input type for the function.
- * - GenerateQuickVocabularyDetailsOutput - The return type for the function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateQuickVocabularyDetailsInputSchema = z.object({
+const GenerateQuickVocabularyDetailsInputSchema = z.object({
   word: z.string().describe('The vocabulary word to generate details for.'),
   sourceLanguage: z
     .enum(['english', 'chinese', 'vietnamese'])
@@ -21,15 +19,15 @@ export const GenerateQuickVocabularyDetailsInputSchema = z.object({
     .enum(['english', 'chinese', 'vietnamese'])
     .describe('The language to translate the word into.'),
 });
-export type GenerateQuickVocabularyDetailsInput = z.infer<
+type GenerateQuickVocabularyDetailsInput = z.infer<
   typeof GenerateQuickVocabularyDetailsInputSchema
 >;
 
-export const GenerateQuickVocabularyDetailsOutputSchema = z.object({
+const GenerateQuickVocabularyDetailsOutputSchema = z.object({
   translation: z.string().describe("The most common translation of the word in the target language."),
   pronunciation: z.string().optional().describe("The IPA (for English) or Pinyin (for Chinese) transcription. Omit if not applicable.")
 });
-export type GenerateQuickVocabularyDetailsOutput = z.infer<
+type GenerateQuickVocabularyDetailsOutput = z.infer<
   typeof GenerateQuickVocabularyDetailsOutputSchema
 >;
 

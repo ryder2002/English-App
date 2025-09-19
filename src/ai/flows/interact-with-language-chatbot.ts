@@ -3,8 +3,6 @@
  * @fileOverview An AI chatbot that answers language-related questions using Gemini.
  *
  * - interactWithLanguageChatbot - A function that handles the chatbot interaction.
- * - InteractWithLanguageChatbotInput - The input type for the interactWithLanguageChatbot function.
- * - InteractWithLanguageChatbotOutput - The return type for the interactWithLanguageChatbot function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -13,14 +11,14 @@ import {z} from 'genkit';
 const InteractWithLanguageChatbotInputSchema = z.object({
   query: z.string().describe('The user query related to language learning.'),
 });
-export type InteractWithLanguageChatbotInput = z.infer<
+type InteractWithLanguageChatbotInput = z.infer<
   typeof InteractWithLanguageChatbotInputSchema
 >;
 
 const InteractWithLanguageChatbotOutputSchema = z.object({
   response: z.string().describe('The chatbot response to the user query.'),
 });
-export type InteractWithLanguageChatbotOutput = z.infer<
+type InteractWithLanguageChatbotOutput = z.infer<
   typeof InteractWithLanguageChatbotOutputSchema
 >;
 
