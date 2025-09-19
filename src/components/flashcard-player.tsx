@@ -74,8 +74,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     setIsFlipped(false);
   };
   
-  const handleFlip = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFlip = () => {
     if (!currentCard) return;
     setIsFlipped(prev => !prev);
   }
@@ -102,7 +101,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
         >
           <Card
             className={`w-full h-80 transition-transform duration-500 ease-in-out relative ${
-              isFlipped ? "transform -rotate-y-180" : ""
+              isFlipped ? "[transform:rotateY(180deg)]" : ""
             }`}
             style={{ transformStyle: "preserve-3d" }}
           >
@@ -143,7 +142,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
 
           <Button
             className="px-8 bg-accent hover:bg-accent/90"
-            onClick={handleFlip}
+            onClick={(e) => { e.stopPropagation(); handleFlip(); }}
             aria-label="Flip card"
           >
             <FlipHorizontal className="mr-2 h-4 w-4" /> Lật thẻ
