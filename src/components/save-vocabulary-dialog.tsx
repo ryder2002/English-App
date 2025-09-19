@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -110,23 +108,22 @@ export function SaveVocabularyDialog({
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
-        const details = await getVocabularyDetailsAction(
-            values.word,
-            values.language as Language
-        );
-      
-      const primaryDefinition = details.definitions[0];
-      if (!primaryDefinition) {
-        throw new Error("AI không trả về định nghĩa hợp lệ.");
-      }
+      const details = await getVocabularyDetailsAction(
+        values.word,
+        values.language as Language
+      );
 
+      if (!details || !details.translation) {
+        throw new Error("AI không trả về dữ liệu hợp lệ.");
+      }
+      
       const vocabularyData = {
           word: values.word,
           language: values.language as Language,
           folder: values.folder,
-          vietnameseTranslation: primaryDefinition.translation,
-          ipa: values.language === 'english' ? primaryDefinition.pronunciation : undefined,
-          pinyin: values.language === 'chinese' ? primaryDefinition.pronunciation : undefined,
+          vietnameseTranslation: details.translation,
+          ipa: values.language === 'english' ? details.pronunciation : undefined,
+          pinyin: values.language === 'chinese' ? details.pronunciation : undefined,
       };
 
       let success = false;

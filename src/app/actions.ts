@@ -6,6 +6,11 @@ import {
   type GenerateVocabularyDetailsOutput,
 } from "@/ai/flows/generate-vocabulary-details";
 import {
+  generateQuickVocabularyDetails,
+  type GenerateQuickVocabularyDetailsInput,
+  type GenerateQuickVocabularyDetailsOutput,
+} from "@/ai/flows/generate-quick-vocabulary-details";
+import {
   generateBatchVocabularyDetails,
   type GenerateBatchVocabularyDetailsInput,
   type GenerateBatchVocabularyDetailsOutput,
@@ -19,17 +24,17 @@ import type { Language } from "@/lib/types";
 export async function getVocabularyDetailsAction(
   word: string,
   language: Language
-): Promise<GenerateVocabularyDetailsOutput> {
-    const input: GenerateVocabularyDetailsInput = { 
+): Promise<GenerateQuickVocabularyDetailsOutput> {
+    const input: GenerateQuickVocabularyDetailsInput = { 
         word, 
         sourceLanguage: language,
         targetLanguage: 'vietnamese',
     };
-    const details = await generateVocabularyDetails(input);
+    const details = await generateQuickVocabularyDetails(input);
 
     return {
-        definitions: details.definitions,
-        examples: details.examples,
+        translation: details.translation,
+        pronunciation: details.pronunciation,
     };
 }
 

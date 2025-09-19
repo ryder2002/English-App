@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getChatbotResponseAction } from "@/app/actions";
-import { Bot, Loader2, Send, User } from "lucide-react";
+import { Bot, Loader2, Send, User, Volume2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -37,8 +37,10 @@ interface ChatbotUIProps {
 
 export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(formSchema),
@@ -51,7 +53,15 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
     if (scrollViewportRef.current) {
         scrollViewportRef.current.scrollTo({ top: scrollViewportRef.current.scrollHeight, behavior: 'smooth'});
     }
-  }, [messages])
+  }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   const onSubmit = async (values: ChatFormValues) => {
     setIsLoading(true);
@@ -75,10 +85,73 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
       setIsLoading(false);
     }
   };
+  
+  const playAudio = (e: React.MouseEvent, text: string, lang: string, id: string) => {
+    e.stopPropagation();
+    if (!('speechSynthesis' in window)) {
+        toast({ variant: "destructive", title: "Lỗi", description: "Trình duyệt của bạn không hỗ trợ phát âm thanh." });
+        return;
+    }
 
-  const formatMessage = (content: string) => {
-    const bolded = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    return bolded.replace(/\n/g, '<br />');
+    if (audioState.status === 'playing' && audioState.id === id) {
+        speechSynthesis.cancel();
+        setAudioState({ id: null, status: 'idle' });
+        return;
+    }
+    
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utteranceRef.current = utterance;
+
+    const langMap = { english: 'en-US', chinese: 'zh-CN', vietnamese: 'vi-VN' };
+    utterance.lang = langMap[lang as keyof typeof langMap] || 'en-US';
+
+    utterance.onstart = () => setAudioState({ id, status: 'playing' });
+    utterance.onend = () => {
+        setAudioState({ id: null, status: 'idle' });
+        utteranceRef.current = null;
+    };
+    utterance.onerror = () => {
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
+    };
+    
+    setAudioState({ id, status: 'loading' });
+    speechSynthesis.speak(utterance);
+  };
+
+
+  const formatMessage = (content: string, index: number) => {
+    const parts = content.split(/(<speak word='[^']*' lang='[^']*'>[^<]*<\/speak>)/g);
+
+    return parts.map((part, i) => {
+        const match = part.match(/<speak word='([^']*)' lang='([^']*)'>([^<]*)<\/speak>/);
+        if (match) {
+            const [_, word, lang, innerText] = match;
+            const audioId = `msg-${index}-part-${i}`;
+            return (
+                <span key={i} className="inline-flex items-center gap-1">
+                    <span className="font-semibold text-primary">{innerText || word}</span>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-muted-foreground"
+                        onClick={(e) => playAudio(e, word, lang, audioId)}
+                        disabled={audioState.status === 'loading'}
+                    >
+                         {(audioState.id === audioId && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                    </Button>
+                </span>
+            );
+        }
+        
+        // Basic markdown formatting
+        const bolded = part.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        const html = bolded.replace(/\n/g, '<br />');
+
+        return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
+    });
   };
 
   return (
@@ -95,7 +168,7 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
                              </Avatar>
                         )}
                          <div className={cn("max-w-[80%] rounded-xl p-3 px-4 text-sm shadow-md", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
-                            <div className="prose prose-sm dark:prose-invert prose-strong:text-foreground" dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }} />
+                            <div className="prose prose-sm dark:prose-invert prose-strong:text-foreground">{formatMessage(message.content, index)}</div>
                          </div>
                          {message.role === 'user' && (
                              <Avatar className="h-9 w-9 border-2">

@@ -38,6 +38,17 @@ const interactWithLanguageChatbotPrompt = ai.definePrompt({
 
 IMPORTANT: Always respond in the same language as the user's query. If the user asks in Vietnamese, you MUST respond in Vietnamese.
 
+SPECIAL INSTRUCTION:
+If the user's query asks for the pronunciation of a word (e.g., "phát âm từ 'hello' như thế nào", "how to pronounce '你好'"), you MUST wrap the word in a <speak> tag with the word and its language.
+The language attribute should be one of 'english', 'chinese', or 'vietnamese'.
+
+Examples:
+- User asks for pronunciation of "hello": Your response should contain "<speak word='hello' lang='english'>hello</speak>"
+- User asks for pronunciation of "你好": Your response should contain "<speak word='你好' lang='chinese'>nǐ hǎo</speak>" (The text inside the tag can be the pinyin for better display).
+- User asks for pronunciation of "phở": Your response should contain "<speak word='phở' lang='vietnamese'>phở</speak>"
+
+Use this format ONLY when pronunciation is explicitly requested. For all other queries, respond normally.
+
 Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured.
 - Use **bold** with asterisks (**) to highlight important terms or key points.
 - Use bullet points with a hyphen (-). CRUCIAL: Each bullet point MUST be on a new line.
