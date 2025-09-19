@@ -112,16 +112,7 @@ export function SaveVocabularyDialog({
     try {
       let details;
       if (values.language === 'vietnamese') {
-        // If the word is already in Vietnamese, no need to call the AI for translation.
-        details = {
-          definitions: [{
-            partOfSpeech: "từ", // generic part of speech
-            meaning: values.word,
-            translation: values.word,
-            pronunciation: ""
-          }],
-          examples: []
-        };
+        details = await getVocabularyDetailsAction(values.word, 'vietnamese');
       } else {
         details = await getVocabularyDetailsAction(
             values.word,
