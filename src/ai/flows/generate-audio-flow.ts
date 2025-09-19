@@ -5,7 +5,7 @@
  * - generateAudio - A function that handles the text-to-speech conversion.
  */
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import wav from 'wav';
 import type { Language } from '@/lib/types';
 
@@ -55,9 +55,9 @@ async function toWav(
 }
 
 const langToVoiceMap: Record<Language, string> = {
-    english: 'en-US-Standard-C',
-    chinese: 'cmn-CN-Wavenet-A',
-    vietnamese: 'vi-VN-Wavenet-D',
+    english: 'Algenib', // Supported voice for gemini-2.5-flash-preview-tts
+    chinese: 'Deneb',   // Supported voice for gemini-2.5-flash-preview-tts
+    vietnamese: 'Fomalhaut', // Supported voice for gemini-2.5-flash-preview-tts
 };
 
 
@@ -68,7 +68,7 @@ const generateAudioFlow = ai.defineFlow(
     outputSchema: GenerateAudioOutputSchema,
   },
   async ({ text, language }) => {
-    const voiceName = langToVoiceMap[language] || 'en-US-Standard-A';
+    const voiceName = langToVoiceMap[language] || 'Algenib';
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-preview-tts',
