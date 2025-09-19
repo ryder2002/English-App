@@ -205,7 +205,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     addVocabularyItem,
     removeVocabularyItem,
     updateVocabularyItem,
-    isLoadingInitialData: isLoadingInitialData,
+    isLoadingInitialData,
     addFolder,
     removeFolder,
     updateFolder,
