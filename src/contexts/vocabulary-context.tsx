@@ -134,11 +134,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             }
         }
 
-        const cleanedItem = { ...item };
-        if (cleanedItem.ipa === undefined) delete (cleanedItem as Partial<typeof cleanedItem>).ipa;
-        if (cleanedItem.pinyin === undefined) delete (cleanedItem as Partial<typeof cleanedItem>).pinyin;
-
-        const newItem = await dbAddVocabularyItem(cleanedItem, user.uid);
+        const newItem = await dbAddVocabularyItem(item, user.uid);
         setVocabulary((prev) => [newItem, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         return true;
     } catch (error) {

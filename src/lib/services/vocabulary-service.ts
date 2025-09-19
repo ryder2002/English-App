@@ -27,7 +27,15 @@ export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> =
   const vocabulary: VocabularyItem[] = [];
   querySnapshot.forEach((doc) => {
     const data = doc.data();
-    const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
+    let createdAt: string;
+    if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+      createdAt = (data.createdAt as Timestamp).toDate().toISOString();
+    } else if (data.createdAt) {
+      // Handles cases where it might already be a string or JS Date
+      createdAt = new Date(data.createdAt).toISOString();
+    } else {
+      createdAt = new Date().toISOString();
+    }
     vocabulary.push({ id: doc.id, ...data, createdAt } as VocabularyItem);
   });
   // Manual sort on the client-side
@@ -53,17 +61,18 @@ export const addVocabularyItem = async (
   if (!userId) {
     throw new Error("User ID is required to add an item.");
   }
+  const now = new Date();
   const newDocData = cleanData({
     ...item,
     userId,
-    createdAt: new Date(),
+    createdAt: now,
   });
 
   const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), newDocData);
   return { 
     id: docRef.id, 
     ...item,
-    createdAt: (newDocData.createdAt as Date).toISOString()
+    createdAt: now.toISOString()
   } as VocabularyItem;
 };
 
