@@ -96,13 +96,14 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
             
-            const newItems = [];
             for (const word of sampleWords) {
-                newItems.push(await dbAddVocabularyItem(word, user.uid));
+                await dbAddVocabularyItem(word, user.uid);
             }
             
-            vocabData = newItems;
-            folderData = sampleFolders;
+            [vocabData, folderData] = await Promise.all([
+                getVocabulary(user.uid),
+                getFolders(user.uid),
+            ]);
         }
         
         const uniqueFolders = [...new Set(folderData)];

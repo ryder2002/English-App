@@ -42,16 +42,24 @@ export const addVocabularyItem = async (
   if (!userId) {
     throw new Error("User ID is required to add an item.");
   }
-  const newDocData = {
+  const newDocData: { [key: string]: any } = {
     ...item,
     userId,
     createdAt: new Date().toISOString(),
   };
+
+  // Firestore doesn't allow undefined values. We need to clean the object.
+  Object.keys(newDocData).forEach(key => {
+    if (newDocData[key] === undefined) {
+      delete newDocData[key];
+    }
+  });
+
   const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), newDocData);
   return { 
     id: docRef.id, 
     ...newDocData,
-  };
+  } as VocabularyItem;
 };
 
 export const updateVocabularyItem = async (
@@ -59,7 +67,14 @@ export const updateVocabularyItem = async (
   updates: Partial<Omit<VocabularyItem, "id">>
 ): Promise<void> => {
   const itemDoc = doc(db, VOCABULARY_COLLECTION, id);
-  await updateDoc(itemDoc, updates);
+  // Firestore doesn't allow undefined values. We need to clean the object.
+  const cleanUpdates: { [key: string]: any } = { ...updates };
+  Object.keys(cleanUpdates).forEach(key => {
+    if (cleanUpdates[key] === undefined) {
+      delete cleanUpdates[key];
+    }
+  });
+  await updateDoc(itemDoc, cleanUpdates);
 };
 
 export const deleteVocabularyItem = async (id: string): Promise<void> => {
