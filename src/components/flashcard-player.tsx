@@ -6,13 +6,17 @@ import {
   ChevronLeft,
   ChevronRight,
   FlipHorizontal,
+  Loader2,
   RefreshCw,
+  Volume2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
+import { useToast } from "@/hooks/use-toast";
+import type { VocabularyItem } from "@/lib/types";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
@@ -22,6 +26,9 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const { vocabulary } = useVocabulary();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const { toast } = useToast();
+  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const deck = useMemo(() => {
     if (selectedFolder === 'all') {
@@ -30,11 +37,25 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     return vocabulary.filter(item => item.folder === selectedFolder);
   }, [vocabulary, selectedFolder]);
 
+  useEffect(() => {
+    // Cleanup speechSynthesis on component unmount
+    return () => {
+        if (speechSynthesis.speaking) {
+            speechSynthesis.cancel();
+        }
+    };
+  }, []);
 
   const [shuffledDeck, setShuffledDeck] = useState<typeof vocabulary>([]);
 
   const shuffleDeck = (deckToShuffle: typeof vocabulary) => {
-    return [...deckToShuffle].sort(() => Math.random() - 0.5);
+    const newDeck = [...deckToShuffle];
+    // Fisher-Yates shuffle algorithm
+    for (let i = newDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
+    }
+    return newDeck;
   };
   
   useEffect(() => {
@@ -76,8 +97,46 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   
   const handleFlip = () => {
     if (!currentCard) return;
+    speechSynthesis.cancel();
+    setAudioState({ id: null, status: 'idle' });
     setIsFlipped(prev => !prev);
   }
+  
+  const playAudio = (e: React.MouseEvent, item: VocabularyItem) => {
+    e.stopPropagation();
+    if (!('speechSynthesis' in window)) {
+        toast({ variant: "destructive", title: "Lỗi", description: "Trình duyệt của bạn không hỗ trợ phát âm thanh." });
+        return;
+    }
+
+    if (audioState.status === 'playing' && audioState.id === item.id) {
+        speechSynthesis.cancel();
+        setAudioState({ id: null, status: 'idle' });
+        return;
+    }
+    
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(item.word);
+    utteranceRef.current = utterance;
+
+    const langMap = { english: 'en-US', chinese: 'zh-CN', vietnamese: 'vi-VN' };
+    utterance.lang = langMap[item.language] || 'en-US';
+
+    utterance.onstart = () => setAudioState({ id: item.id, status: 'playing' });
+    utterance.onend = () => {
+        setAudioState({ id: null, status: 'idle' });
+        utteranceRef.current = null;
+    };
+    utterance.onerror = () => {
+        setAudioState({ id: null, status: 'idle' });
+        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
+    };
+    
+    setAudioState({ id: item.id, status: 'loading' });
+    speechSynthesis.speak(utterance);
+  };
+
 
   if (deck.length === 0) {
     return (
@@ -100,17 +159,34 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
           onClick={handleFlip}
         >
           <Card
-            className={`w-full h-80 transition-transform duration-500 ease-in-out relative ${
-              isFlipped ? "[transform:rotateY(180deg)]" : ""
-            }`}
-            style={{ transformStyle: "preserve-3d" }}
+            className={`w-full h-80 transition-transform duration-500 ease-in-out relative`}
+            style={{ 
+                transformStyle: "preserve-3d",
+                transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            }}
           >
             {/* Front of card */}
             <CardContent
               className="absolute w-full h-full flex flex-col items-center justify-center text-center p-6 bg-card rounded-lg shadow-lg"
               style={{ backfaceVisibility: "hidden" }}
             >
-              <p className="text-4xl md:text-5xl font-bold">{currentCard?.word}</p>
+              <div className="flex items-center gap-4">
+                <p className="text-4xl md:text-5xl font-bold">{currentCard?.word}</p>
+                 {currentCard && (
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={(e) => playAudio(e, currentCard)}
+                      disabled={audioState.status === 'loading'}
+                      className="h-12 w-12 text-muted-foreground"
+                    >
+                      {(audioState.id === currentCard.id && (audioState.status === 'loading' || audioState.status === 'playing')) 
+                        ? <Loader2 className="h-6 w-6 animate-spin"/> 
+                        : <Volume2 className="h-6 w-6"/>
+                      }
+                    </Button>
+                 )}
+              </div>
             </CardContent>
 
             {/* Back of card */}
@@ -161,3 +237,5 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     </div>
   );
 }
+
+    
