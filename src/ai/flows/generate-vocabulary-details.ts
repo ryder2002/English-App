@@ -84,12 +84,12 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
     if (input.sourceLanguage === input.targetLanguage) {
       return {
         definitions: [{
-            partOfSpeech: "noun",
-            meaning: "An example meaning.",
+            partOfSpeech: "noun", // Default part of speech
+            meaning: input.word,
             translation: input.word,
-            pronunciation: "..."
+            pronunciation: ""
         }],
-        examples: [{ source: "Example source.", target: "Example target." }]
+        examples: []
       };
     }
     const {output} = await generateVocabularyDetailsPrompt(input);

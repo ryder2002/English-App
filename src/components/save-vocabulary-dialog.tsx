@@ -107,10 +107,24 @@ export function SaveVocabularyDialog({
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
-      const details = await getVocabularyDetailsAction(
-          values.word,
-          values.language as Language
-      );
+      let details;
+      if (values.language === 'vietnamese') {
+        // If the word is already in Vietnamese, no need to call the AI for translation.
+        details = {
+          definitions: [{
+            partOfSpeech: "từ", // generic part of speech
+            meaning: values.word,
+            translation: values.word,
+            pronunciation: ""
+          }],
+          examples: []
+        };
+      } else {
+        details = await getVocabularyDetailsAction(
+            values.word,
+            values.language as Language
+        );
+      }
 
       const primaryDefinition = details.definitions[0];
       if (!primaryDefinition) {
