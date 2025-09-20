@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./auth-context";
 import { generateAudio } from "@/ai/flows/generate-audio-flow";
+import type { Language } from "@/lib/types";
 
 interface VocabularyContextType {
   vocabulary: VocabularyItem[];
@@ -81,7 +82,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         ]);
 
         // If user has no data, create sample data
-        if (vocabData.length === 0 || folderData.length === 0) {
+        if (vocabData.length === 0 && folderData.length === 0) {
             // Clear any partial data
             await dbClearVocabulary(user.uid);
             await dbClearFolders(user.uid);
@@ -100,7 +101,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             ];
 
             const wordsWithAudio = await Promise.all(sampleWords.map(async (word) => {
-                const audio = await generateAudio({text: word.word, language: word.language});
+                const audio = await generateAudio({text: word.word, language: word.language as Language});
                 return {...word, audioSrc: audio.audioSrc };
             }));
             
