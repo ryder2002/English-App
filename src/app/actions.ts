@@ -14,6 +14,7 @@ import {
   interactWithLanguageChatbot,
 } from "@/ai/flows/interact-with-language-chatbot";
 import { generateAudio } from "@/ai/flows/generate-audio-flow";
+import { generatePronunciation } from "@/ai/flows/generate-pronunciation-flow";
 import type { Language } from "@/lib/types";
 
 // Define input/output types here as they are not exported from flows
@@ -95,6 +96,16 @@ export async function getAudioAction(text: string, language: Language): Promise<
         return result.audioSrc;
     } catch(e) {
         console.error("Error generating audio in getAudioAction", e);
+        return undefined;
+    }
+}
+
+export async function getPronunciationAction(word: string, language: 'english' | 'chinese'): Promise<string | undefined> {
+    try {
+        const result = await generatePronunciation({ word, language });
+        return result.pronunciation;
+    } catch (e) {
+        console.error("Error generating pronunciation in getPronunciationAction", e);
         return undefined;
     }
 }
