@@ -30,6 +30,7 @@ import { Separator } from "./ui/separator";
 import type { Language } from "@/lib/types";
 import { Skeleton } from "./ui/skeleton";
 import type { GenerateVocabularyDetailsOutput } from "@/ai/flows/generate-vocabulary-details";
+import { useSettings } from "@/contexts/settings-context";
 
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
@@ -50,6 +51,7 @@ export function DictionarySearch() {
   const [result, setResult] = useState<GenerateVocabularyDetailsOutput & {word: string; sourceLanguage: Language} | null>(null);
   const { toast } = useToast();
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const { selectedVoices } = useSettings();
   
   useEffect(() => {
     // Cleanup: stop speech synthesis on component unmount
@@ -107,23 +109,27 @@ export function DictionarySearch() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    const langCodeMap = {
+    const langCodeMap: Record<Language, string> = {
         english: 'en-US',
         chinese: 'zh-CN',
         vietnamese: 'vi-VN',
     };
     utterance.lang = langCodeMap[lang];
+
+    const voiceURI = selectedVoices[lang];
+    if (voiceURI) {
+        const voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+    }
     
     utterance.onstart = () => setSpeakingId(id);
     utterance.onend = () => setSpeakingId(null);
     utterance.onerror = (event) => {
       console.error("SpeechSynthesis Error", event);
       setSpeakingId(null);
-    //   toast({
-    //     variant: "destructive",
-    //     title: "Lỗi phát âm",
-    //     description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này.",
-    //   });
     };
 
     window.speechSynthesis.speak(utterance);

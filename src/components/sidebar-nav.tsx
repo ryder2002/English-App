@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import Link from "next/link";
-import { BookText, Layers, Search, Bot, Folder, ListPlus, ClipboardCheck, Pencil, PlusSquare } from "lucide-react";
+import { BookText, Layers, Search, Bot, Folder, ListPlus, ClipboardCheck, Pencil, PlusSquare, Settings } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Từ vựng", icon: BookText },
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/test", label: "Kiểm tra", icon: ClipboardCheck },
   { href: "/dictionary", label: "Từ điển", icon: Search },
   { href: "/chatbot", label: "Trợ lý AI", icon: Bot },
+  { href: "/settings", label: "Cài đặt", icon: Settings },
 ];
 
 export function SidebarNav() {

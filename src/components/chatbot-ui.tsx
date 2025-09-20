@@ -19,6 +19,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import type { Language } from "@/lib/types";
+import { useSettings } from "@/contexts/settings-context";
 
 const formSchema = z.object({
   query: z.string().min(1),
@@ -41,6 +42,7 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const { selectedVoices } = useSettings();
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(formSchema),
@@ -98,12 +100,21 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    const langCodeMap = {
+    const langCodeMap: Record<Language, string> = {
         english: 'en-US',
         chinese: 'zh-CN',
         vietnamese: 'vi-VN',
     };
     utterance.lang = langCodeMap[lang];
+
+    const voiceURI = selectedVoices[lang];
+    if (voiceURI) {
+        const voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+    }
 
     utterance.onstart = () => {
         setSpeakingId(id);
@@ -116,11 +127,6 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
     utterance.onerror = (event) => {
         console.error("SpeechSynthesis Error", event);
         setSpeakingId(null);
-        // toast({
-        //     variant: "destructive",
-        //     title: "Lỗi phát âm",
-        //     description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này."
-        // });
     };
 
     window.speechSynthesis.speak(utterance);

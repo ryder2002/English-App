@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import type { VocabularyItem } from "@/lib/types";
+import type { Language, VocabularyItem } from "@/lib/types";
 import { useMemo, useState, useEffect } from "react";
 import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
 import {
@@ -31,6 +31,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Skeleton } from "./ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/contexts/settings-context";
 
 export function VocabularyList() {
   const { vocabulary, removeVocabularyItem, isLoadingInitialData } = useVocabulary();
@@ -39,6 +40,7 @@ export function VocabularyList() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { toast } = useToast();
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const { selectedVoices } = useSettings();
 
   useEffect(() => {
     // Cleanup: stop speech synthesis on component unmount
@@ -71,23 +73,27 @@ export function VocabularyList() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(item.word);
-    const langCodeMap = {
+    const langCodeMap: Record<Language, string> = {
         english: 'en-US',
         chinese: 'zh-CN',
         vietnamese: 'vi-VN',
     };
     utterance.lang = langCodeMap[item.language];
     
+    const voiceURI = selectedVoices[item.language];
+    if (voiceURI) {
+        const voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+    }
+
     utterance.onstart = () => setSpeakingId(item.id);
     utterance.onend = () => setSpeakingId(null);
     utterance.onerror = (event) => {
         console.error("SpeechSynthesis Error", event);
         setSpeakingId(null);
-        // toast({
-        //     variant: "destructive",
-        //     title: "Lỗi phát âm",
-        //     description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này."
-        // });
     };
 
     window.speechSynthesis.speak(utterance);

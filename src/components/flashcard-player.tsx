@@ -16,6 +16,7 @@ import { Progress } from "./ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem, Language } from "@/lib/types";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
+import { useSettings } from "@/contexts/settings-context";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
@@ -27,6 +28,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const { toast } = useToast();
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const { selectedVoices } = useSettings();
 
   const deck = useMemo(() => {
     if (selectedFolder === 'all') {
@@ -111,12 +113,22 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
 
     const utterance = new SpeechSynthesisUtterance(item.word);
     
-    const langCodeMap = {
+    const langCodeMap: Record<Language, string> = {
         english: 'en-US',
         chinese: 'zh-CN',
         vietnamese: 'vi-VN',
     };
     utterance.lang = langCodeMap[item.language];
+    
+    const voiceURI = selectedVoices[item.language];
+    if (voiceURI) {
+        const voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+    }
+
 
     utterance.onstart = () => {
         setSpeakingId(item.id);
@@ -129,11 +141,6 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     utterance.onerror = (event) => {
         console.error("SpeechSynthesis Error", event);
         setSpeakingId(null);
-        // toast({
-        //     variant: "destructive",
-        //     title: "Lỗi phát âm",
-        //     description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này."
-        // });
     };
 
     window.speechSynthesis.speak(utterance);
