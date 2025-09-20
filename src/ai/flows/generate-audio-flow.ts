@@ -55,9 +55,9 @@ async function toWav(
 }
 
 const langToVoiceMap: Record<Language, string> = {
-    english: 'Algenib', // Supported voice for gemini-2.5-flash-preview-tts
-    chinese: 'Deneb',   // Supported voice for gemini-2.5-flash-preview-tts
-    vietnamese: 'Fomalhaut', // Supported voice for gemini-2.5-flash-preview-tts
+    english: 'Canopus',
+    chinese: 'Elnath',
+    vietnamese: 'Mirach',
 };
 
 
