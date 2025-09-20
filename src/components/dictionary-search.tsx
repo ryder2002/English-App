@@ -21,14 +21,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { dictionaryLookupAction, getAudioAction } from "@/app/actions";
-import { ArrowRightLeft, Languages, Loader2, Search, Volume2 } from "lucide-react";
+import { quickDictionaryLookupAction, getAudioAction } from "@/app/actions";
+import { ArrowRightLeft, Loader2, Search, Volume2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
-import type { GenerateVocabularyDetailsOutput } from "@/ai/flows/generate-vocabulary-details";
-import { Separator } from "./ui/separator";
 import type { Language } from "@/lib/types";
+import { Skeleton } from "./ui/skeleton";
 
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
@@ -43,10 +42,11 @@ const formSchema = z.object({
 
 type DictionaryFormValues = z.infer<typeof formSchema>;
 
-type SearchResult = GenerateVocabularyDetailsOutput & {
-  originalWord: string,
-  sourceLanguage: Language,
-  targetLanguage: Language,
+type SearchResult = {
+  word: string;
+  sourceLanguage: Language;
+  translation: string;
+  pronunciation?: string;
 };
 
 export function DictionarySearch() {
@@ -83,17 +83,24 @@ export function DictionarySearch() {
     }
     setAudioState({ id: null, status: 'idle' });
     try {
-      const details = await dictionaryLookupAction({
+      const details = await quickDictionaryLookupAction({
         word: values.word,
         sourceLanguage: values.sourceLanguage,
         targetLanguage: values.targetLanguage
       });
+
       setResult({
-        ...details,
-        originalWord: values.word,
+        word: values.word,
         sourceLanguage: values.sourceLanguage,
-        targetLanguage: values.targetLanguage,
+        translation: details.translation,
+        pronunciation: details.pronunciation
       });
+
+      // Pre-fetch and play audio for the source word
+      if (details.audioSrc) {
+        playAudio(values.word, values.sourceLanguage, 'original', details.audioSrc);
+      }
+
     } catch (error) {
       console.error(error);
       toast({
@@ -107,7 +114,7 @@ export function DictionarySearch() {
     }
   };
 
-  const playAudio = async (text: string, lang: Language, id: string) => {
+  const playAudio = async (text: string, lang: Language, id: string, src?: string) => {
     if (audioState.id === id && audioState.status === 'playing') {
       audioRef.current?.pause();
       setAudioState({ id: null, status: 'idle' });
@@ -117,35 +124,37 @@ export function DictionarySearch() {
     if (audioRef.current) {
       audioRef.current.pause();
     }
+    
+    let audioSrc = src;
 
-    setAudioState({ id, status: 'loading' });
+    if (!audioSrc) {
+        setAudioState({ id, status: 'loading' });
+        try {
+            audioSrc = await getAudioAction(text, lang);
+            if (!audioSrc) {
+                throw new Error("Audio source could not be generated.");
+            }
+        } catch (error) {
+            console.error("Audio generation error:", error);
+            toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
+            setAudioState({ id: null, status: 'idle' });
+            return;
+        }
+    }
+    
+    setAudioState({ id, status: 'playing' });
+    const audio = new Audio(audioSrc);
+    audioRef.current = audio;
 
-    try {
-      const audioSrc = await getAudioAction(text, lang);
-      if (!audioSrc) {
-        throw new Error('No audio source returned');
-      }
-      
-      const audio = new Audio(audioSrc);
-      audioRef.current = audio;
-
-      audio.onplaying = () => setAudioState({ id, status: 'playing' });
-      audio.onended = () => {
+    audio.onended = () => {
         setAudioState({ id: null, status: 'idle' });
         audioRef.current = null;
-      };
-      audio.onerror = (e) => {
-        console.error('Audio playback error', e);
+    };
+    audio.onerror = () => {
         setAudioState({ id: null, status: 'idle' });
-        toast({ variant: 'destructive', title: 'Lỗi phát âm thanh', description: 'Không thể phát âm thanh.' });
-      };
-
-      audio.play();
-    } catch (error) {
-      console.error('Error getting audio:', error);
-      setAudioState({ id: null, status: 'idle' });
-      toast({ variant: 'destructive', title: 'Lỗi AI', description: 'Không thể tạo âm thanh.' });
-    }
+        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát tệp âm thanh." });
+    };
+    audio.play();
   };
 
 
@@ -252,94 +261,33 @@ export function DictionarySearch() {
       </Card>
 
       {isLoading && (
-         <div className="mt-8 flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <div className="mt-8 p-10 flex flex-col items-center justify-center space-y-4 border rounded-lg">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-12 w-64" />
          </div>
       )}
 
-      {result && (
+      {result && !isLoading && (
         <Card className="mt-8 animate-in fade-in duration-500">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardContent className="p-10 flex flex-col items-center justify-center text-center space-y-2">
                 <div className="flex items-baseline gap-4">
-                    <span className="text-4xl font-bold font-headline bg-gradient-to-r from-primary to-cyan-400 text-transparent bg-clip-text">{result.originalWord}</span>
+                    <h2 className="text-5xl font-bold font-headline bg-gradient-to-r from-primary to-cyan-400 text-transparent bg-clip-text">{result.word}</h2>
                     <Badge variant="secondary">{languageOptions.find(l => l.value === result.sourceLanguage)?.label}</Badge>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => playAudio(result.originalWord, result.sourceLanguage, 'original')} disabled={audioState.status === 'loading'}>
-                    {(audioState.id === 'original' && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
-                </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {result.definitions.map((def, index) => (
-              <div key={index} className="space-y-4">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="capitalize text-sm">{def.partOfSpeech}</Badge>
-                        {def.pronunciation && <p className="text-muted-foreground text-sm">{def.pronunciation}</p>}
-                    </div>
-                    <p className="pl-2">{def.meaning}</p>
-                    <div className="pl-2 flex items-center gap-2">
-                         <p className="text-lg text-primary font-semibold">{def.translation}</p>
-                         <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => playAudio(def.translation, result.targetLanguage, `def-${index}`)} disabled={audioState.status === 'loading'}>
-                            {(audioState.id === `def-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
-                        </Button>
-                    </div>
-                </div>
-                {index < result.definitions.length - 1 && <Separator />}
-              </div>
-            ))}
-            
-            {result.examples && result.examples.length > 0 && (
-                <>
-                <Separator />
-                <div>
-                    <p className="font-semibold text-muted-foreground mb-2 text-lg">Ví dụ</p>
-                    <div className="space-y-4 text-base">
-                        {result.examples.map((ex, index) => (
-                            <div key={index} className="p-3 rounded-md border bg-muted/50">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium flex-grow">{ex.source}</p>
-                                  {(result.sourceLanguage === 'english' || result.sourceLanguage === 'chinese' || result.sourceLanguage === 'vietnamese') && (
-                                    <Button 
-                                      size="icon" 
-                                      variant="ghost" 
-                                      className="h-8 w-8 text-muted-foreground shrink-0" 
-                                      onClick={(e) => { e.stopPropagation(); playAudio(ex.source, result.sourceLanguage, `ex-source-${index}`)}}
-                                      disabled={audioState.status === 'loading'}
-                                    >
-                                      {(audioState.id === `ex-source-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) 
-                                        ? <Loader2 className="h-4 w-4 animate-spin"/> 
-                                        : <Volume2 className="h-4 w-4"/>
-                                      }
-                                    </Button>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <p className="text-muted-foreground italic flex-grow">{ex.target}</p>
-                                    {(result.targetLanguage === 'english' || result.targetLanguage === 'chinese' || result.targetLanguage === 'vietnamese') && (
-                                        <Button 
-                                        size="icon" 
-                                        variant="ghost" 
-                                        className="h-8 w-8 text-muted-foreground shrink-0" 
-                                        onClick={(e) => { e.stopPropagation(); playAudio(ex.target, result.targetLanguage, `ex-target-${index}`)}}
-                                        disabled={audioState.status === 'loading'}
-                                        >
-                                        {(audioState.id === `ex-target-${index}` && (audioState.status === 'loading' || audioState.status === 'playing')) 
-                                            ? <Loader2 className="h-4 w-4 animate-spin"/> 
-                                            : <Volume2 className="h-4 w-4"/>
-                                        }
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                </>
-            )}
 
-          </CardContent>
+                {result.pronunciation && (
+                    <p className="text-xl text-muted-foreground">{result.pronunciation}</p>
+                )}
+
+                <p className="text-3xl font-semibold pt-4">{result.translation}</p>
+                
+                <div className="pt-4">
+                     <Button size="icon" variant="outline" className="rounded-full h-14 w-14" onClick={() => playAudio(result.word, result.sourceLanguage, 'original')} disabled={audioState.status === 'loading'}>
+                        {(audioState.id === 'original' && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-6 w-6 animate-spin"/> : <Volume2 className="h-6 w-6"/>}
+                    </Button>
+                </div>
+            </CardContent>
         </Card>
       )}
     </div>
