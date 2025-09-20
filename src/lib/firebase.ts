@@ -6,7 +6,7 @@ import { getAuth } from "firebase/auth";
 const firebaseConfig = {
   "projectId": "studio-9320720500-9b879",
   "appId": "1:54917476718:web:397aaa5dd1ab5d0a81517f",
-  "apiKey": "AIzaSyABkRZk5pKGit3kQeXu3w7i4qWhoD9kx8s",
+  "apiKey": "AIzaSyCb1Pte0GwL9zsQRoZaSfpbidMDqzS2ogU",
   "authDomain": "studio-9320720500-9b879.firebaseapp.com",
   "messagingSenderId": "54917476718"
 };
@@ -17,6 +17,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 export { db, auth };
+
 
 
 
