@@ -22,8 +22,6 @@ import {
 } from "@/lib/services/folder-service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./auth-context";
-import { generateAudio } from "@/ai/flows/generate-audio-flow";
-import type { Language } from "@/lib/types";
 
 interface VocabularyContextType {
   vocabulary: VocabularyItem[];
@@ -99,13 +97,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
                 { word: "猫", language: "chinese", vietnameseTranslation: "con mèo", folder: "Động vật", pinyin: "māo" },
                 { word: "apple", language: "english", vietnameseTranslation: "quả táo", folder: "Thức ăn", ipa: "/ˈæp.əl/" },
             ];
-
-            const wordsWithAudio = await Promise.all(sampleWords.map(async (word) => {
-                const audioResult = await generateAudio({text: word.word, language: word.language as Language});
-                return {...word, audioSrc: audioResult.audioSrc };
-            }));
             
-            await dbAddManyVocabularyItems(wordsWithAudio, user.uid);
+            await dbAddManyVocabularyItems(sampleWords, user.uid);
             
             // Refetch data after seeding
             [vocabData, folderData] = await Promise.all([

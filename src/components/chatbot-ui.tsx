@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { getChatbotResponseAction, getAudioAction } from "@/app/actions";
+import { getChatbotResponseAction } from "@/app/actions";
 import { Bot, Loader2, Send, User, Volume2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
@@ -38,10 +38,9 @@ interface ChatbotUIProps {
 
 export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
 
   const form = useForm<ChatFormValues>({
     resolver: zodResolver(formSchema),
@@ -57,12 +56,9 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
   }, [messages]);
 
   useEffect(() => {
-      // Cleanup audio element on unmount
+    // Stop speech synthesis on component unmount
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      window.speechSynthesis.cancel();
     };
   }, []);
 
@@ -89,46 +85,45 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
     }
   };
   
-  const playAudio = async (e: React.MouseEvent, text: string, lang: Language, id: string) => {
+  const playAudio = (e: React.MouseEvent, text: string, lang: Language, id: string) => {
     e.stopPropagation();
 
-    if (audioState.status === 'playing' && audioState.id === id) {
-        audioRef.current?.pause();
-        setAudioState({ id: null, status: 'idle' });
+    if (speakingId === id) {
+        window.speechSynthesis.cancel();
+        setSpeakingId(null);
         return;
     }
+
+    window.speechSynthesis.cancel(); // Stop any currently playing audio
+
+    const utterance = new SpeechSynthesisUtterance(text);
     
-    if (audioRef.current) {
-        audioRef.current.pause();
-    }
+    const langCodeMap = {
+        english: 'en-US',
+        chinese: 'zh-CN',
+        vietnamese: 'vi-VN',
+    };
+    utterance.lang = langCodeMap[lang];
 
-    setAudioState({ id, status: 'loading' });
+    utterance.onstart = () => {
+        setSpeakingId(id);
+    };
 
-    try {
-        const audioSrc = await getAudioAction(text, lang);
-        if (!audioSrc) {
-          throw new Error('No audio source returned');
-        }
+    utterance.onend = () => {
+        setSpeakingId(null);
+    };
 
-        const audio = new Audio(audioSrc);
-        audioRef.current = audio;
+    utterance.onerror = (event) => {
+        console.error("SpeechSynthesis Error", event);
+        setSpeakingId(null);
+        toast({
+            variant: "destructive",
+            title: "Lỗi phát âm",
+            description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này."
+        });
+    };
 
-        audio.onplaying = () => setAudioState({ id, status: 'playing' });
-        audio.onended = () => {
-            setAudioState({ id: null, status: 'idle' });
-            audioRef.current = null;
-        };
-        audio.onerror = () => {
-            setAudioState({ id: null, status: 'idle' });
-            toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát âm thanh." });
-        };
-        audio.play();
-
-    } catch (error) {
-        console.error("Audio playback error:", error);
-        setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh." });
-    }
+    window.speechSynthesis.speak(utterance);
   };
 
 
@@ -148,9 +143,8 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
                         variant="ghost"
                         className="h-6 w-6 text-muted-foreground"
                         onClick={(e) => playAudio(e, word, lang as Language, audioId)}
-                        disabled={audioState.status === 'loading'}
                     >
-                         {(audioState.id === audioId && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                         {speakingId === audioId ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                     </Button>
                 </span>
             );

@@ -13,9 +13,11 @@ import {
 import {
   interactWithLanguageChatbot,
 } from "@/ai/flows/interact-with-language-chatbot";
-import { generateAudio } from "@/ai/flows/generate-audio-flow";
 import { generatePronunciation } from "@/ai/flows/generate-pronunciation-flow";
 import type { Language } from "@/lib/types";
+
+// NOTE: The generateAudio and getAudioAction functions have been removed
+// as Text-to-Speech is now handled on the client-side using the Web Speech API.
 
 // Define input/output types here as they are not exported from flows
 type GenerateQuickVocabularyDetailsInput = {
@@ -88,16 +90,6 @@ export async function getChatbotResponseAction(
   const input: InteractWithLanguageChatbotInput = { query };
   const result = await interactWithLanguageChatbot(input);
   return result.response;
-}
-
-export async function getAudioAction(text: string, language: Language): Promise<string | undefined> {
-    try {
-        const result = await generateAudio({ text, language });
-        return result.audioSrc;
-    } catch(e) {
-        console.error("Error generating audio in getAudioAction", e);
-        return undefined;
-    }
 }
 
 export async function getPronunciationAction(word: string, language: 'english' | 'chinese'): Promise<string | undefined> {

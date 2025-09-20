@@ -15,7 +15,7 @@ import { Edit, Loader2, MoreVertical, Trash2, Volume2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { Language, VocabularyItem } from "@/lib/types";
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
 import {
   DropdownMenu,
@@ -24,28 +24,23 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { getAudioAction } from "@/app/actions";
 
 interface VocabularyFolderListProps {
     folderName: string;
 }
 
 export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) {
-  const { vocabulary, removeVocabularyItem, updateVocabularyItem } = useVocabulary();
+  const { vocabulary, removeVocabularyItem } = useVocabulary();
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [audioState, setAudioState] = useState<{ id: string | null; status: 'playing' | 'loading' | 'idle' }>({ id: null, status: 'idle' });
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Cleanup audio element on unmount
+    // Cleanup: stop speech synthesis on component unmount
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      window.speechSynthesis.cancel();
     };
   }, []);
 
@@ -61,56 +56,36 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
     }
   };
 
-  const playAudio = async (e: React.MouseEvent, item: VocabularyItem) => {
+  const playAudio = (e: React.MouseEvent, item: VocabularyItem) => {
     e.stopPropagation();
-    if (audioState.status === 'playing' && audioState.id === item.id) {
-        audioRef.current?.pause();
-        setAudioState({ id: null, status: 'idle' });
+    if (speakingId === item.id) {
+        window.speechSynthesis.cancel();
+        setSpeakingId(null);
         return;
     }
-    
-    if (audioRef.current) {
-        audioRef.current.pause();
-    }
-    
-    let audioSrc = item.audioSrc;
-    if (!audioSrc) {
-        setAudioState({ id: item.id, status: 'loading' });
-        try {
-            audioSrc = await getAudioAction(item.word, item.language);
-            if (audioSrc) {
-                // Save the newly fetched audio source to prevent re-fetching
-                await updateVocabularyItem(item.id, { audioSrc });
-            } else {
-                 throw new Error("Audio source could not be generated.");
-            }
-        } catch (error) {
-            console.error("Audio generation error:", error);
-            toast({ variant: "destructive", title: "Lỗi AI", description: "Không thể tạo âm thanh. Vui lòng thử lại." });
-            setAudioState({ id: null, status: 'idle' });
-            return;
-        }
-    }
-    
-    if (!audioSrc) {
-        toast({ variant: "destructive", title: "Lỗi âm thanh", description: "Không tìm thấy nguồn âm thanh." });
-        setAudioState({ id: null, status: 'idle' });
-        return;
-    }
+    window.speechSynthesis.cancel();
 
-    setAudioState({ id: item.id, status: 'playing' });
-    const audio = new Audio(audioSrc);
-    audioRef.current = audio;
+    const utterance = new SpeechSynthesisUtterance(item.word);
+    const langCodeMap = {
+        english: 'en-US',
+        chinese: 'zh-CN',
+        vietnamese: 'vi-VN',
+    };
+    utterance.lang = langCodeMap[item.language];
     
-    audio.onended = () => {
-        setAudioState({ id: null, status: 'idle' });
-        audioRef.current = null;
+    utterance.onstart = () => setSpeakingId(item.id);
+    utterance.onend = () => setSpeakingId(null);
+    utterance.onerror = (event) => {
+      console.error("SpeechSynthesis Error", event);
+      setSpeakingId(null);
+      toast({
+        variant: "destructive",
+        title: "Lỗi phát âm",
+        description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này.",
+      });
     };
-    audio.onerror = () => {
-        setAudioState({ id: null, status: 'idle' });
-        toast({ variant: "destructive", title: "Lỗi phát âm", description: "Không thể phát tệp âm thanh." });
-    };
-    audio.play();
+
+    window.speechSynthesis.speak(utterance);
   };
 
 
@@ -148,8 +123,8 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                           <h3 className="font-bold text-lg flex items-center gap-2">
                             {item.word}
                              
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item)} disabled={audioState.status === 'loading'}>
-                                    {(audioState.id === item.id && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item)}>
+                                    {speakingId === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                                 </Button>
                              
                           </h3>
@@ -215,8 +190,8 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                               <div className="flex items-center gap-2">
                                 <span>{item.word}</span>
                                 
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item)} disabled={audioState.status === 'loading'}>
-                                        {(audioState.id === item.id && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={(e) => playAudio(e, item)}>
+                                        {speakingId === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                                     </Button>
                                 
                               </div>
