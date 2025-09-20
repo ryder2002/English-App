@@ -75,13 +75,6 @@ export async function dictionaryLookupAction(
   return details;
 }
 
-export async function quickDictionaryLookupAction(
-  input: { word: string; sourceLanguage: Language; targetLanguage: Language; }
-): Promise<GenerateQuickVocabularyDetailsOutput> {
-    const details = await generateQuickVocabularyDetails(input);
-    return details;
-}
-
 export async function batchAddVocabularyAction(
   input: GenerateBatchVocabularyDetailsInput
 ): Promise<GenerateBatchVocabularyDetailsOutput> {
