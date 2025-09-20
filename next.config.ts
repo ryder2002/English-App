@@ -2,6 +2,11 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    allowedDevOrigins: [
+      'https://6000-firebase-studio-1758209928865.cluster-bqwaigqtxbeautecnatk4o6ynk.cloudworkstations.dev',
+    ],
+  },
   serverExternalPackages: [
     '@genkit-ai/googleai',
     'genkit',
