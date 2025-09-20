@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -300,12 +301,20 @@ export function DictionarySearch() {
                     <Separator className="my-6"/>
                     <h3 className="text-lg font-semibold mb-2 font-headline tracking-tight">Ví dụ</h3>
                     <div className="space-y-3">
-                      {result.examples.map((ex, index) => (
-                        <div key={index} className="pl-4 border-l-2 border-primary">
-                          <p className="font-medium">{ex.source}</p>
-                          <p className="text-muted-foreground italic">"{ex.target}"</p>
-                        </div>
-                      ))}
+                      {result.examples.map((ex, index) => {
+                        const audioId = `example-${index}`;
+                        return (
+                          <div key={index} className="pl-4 border-l-2 border-primary">
+                            <div className="flex items-center gap-2">
+                                <p className="font-medium flex-grow">{ex.source}</p>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => playAudio(ex.source, result.sourceLanguage, audioId)} disabled={audioState.status === 'loading'}>
+                                    {(audioState.id === audioId && (audioState.status === 'loading' || audioState.status === 'playing')) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                                </Button>
+                            </div>
+                            <p className="text-muted-foreground italic">"{ex.target}"</p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
