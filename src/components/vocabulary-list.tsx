@@ -83,11 +83,11 @@ export function VocabularyList() {
     utterance.onerror = (event) => {
         console.error("SpeechSynthesis Error", event);
         setSpeakingId(null);
-        toast({
-            variant: "destructive",
-            title: "Lỗi phát âm",
-            description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này."
-        });
+        // toast({
+        //     variant: "destructive",
+        //     title: "Lỗi phát âm",
+        //     description: "Trình duyệt của bạn có thể không hỗ trợ giọng đọc này."
+        // });
     };
 
     window.speechSynthesis.speak(utterance);
