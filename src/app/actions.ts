@@ -16,8 +16,8 @@ import {
 import { generatePronunciation } from "@/ai/flows/generate-pronunciation-flow";
 import type { Language } from "@/lib/types";
 
-// NOTE: The generateAudio and getAudioAction functions have been removed
-// as Text-to-Speech is now handled on the client-side using the Web Speech API.
+// NOTE: Audio generation actions have been removed.
+// Text-to-Speech is now handled on the client-side using the Web Speech API.
 
 // Define input/output types here as they are not exported from flows
 type GenerateQuickVocabularyDetailsInput = {
@@ -28,7 +28,6 @@ type GenerateQuickVocabularyDetailsInput = {
 type GenerateQuickVocabularyDetailsOutput = {
     translation: string;
     pronunciation?: string;
-    audioSrc?: string;
 }
 
 type GenerateBatchVocabularyDetailsInput = {
@@ -44,7 +43,6 @@ type GenerateBatchVocabularyDetailsOutput = {
     folder: string;
     ipa?: string;
     pinyin?: string;
-    audioSrc?: string;
 }[];
 
 type InteractWithLanguageChatbotInput = {
@@ -66,7 +64,6 @@ export async function getVocabularyDetailsAction(
     return {
         translation: details.translation,
         pronunciation: details.pronunciation,
-        audioSrc: details.audioSrc,
     };
 }
 

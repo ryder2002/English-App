@@ -124,7 +124,6 @@ export function SaveVocabularyDialog({
           vietnameseTranslation: details.translation,
           ipa: values.language === 'english' ? details.pronunciation : undefined,
           pinyin: values.language === 'chinese' ? details.pronunciation : undefined,
-          audioSrc: details.audioSrc,
       };
 
       let success = false;

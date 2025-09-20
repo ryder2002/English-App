@@ -9,7 +9,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { generateAudio } from './generate-audio-flow';
 import type { Language } from '@/lib/types';
 
 const GenerateQuickVocabularyDetailsInputSchema = z.object({
@@ -28,7 +27,6 @@ type GenerateQuickVocabularyDetailsInput = z.infer<
 const GenerateQuickVocabularyDetailsOutputSchema = z.object({
   translation: z.string().describe("The most common translation of the word in the target language."),
   pronunciation: z.string().optional().describe("The IPA (for English) or Pinyin (for Chinese) transcription. Omit if not applicable."),
-  audioSrc: z.string().optional().describe("The base64 encoded WAV audio data URI for the source word.")
 });
 type GenerateQuickVocabularyDetailsOutput = z.infer<
   typeof GenerateQuickVocabularyDetailsOutputSchema
@@ -73,19 +71,14 @@ const generateQuickVocabularyDetailsFlow = ai.defineFlow(
       return {
         translation: input.word,
         pronunciation: "",
-        audioSrc: ""
       };
     }
     
-    const [detailsResult, audioResult] = await Promise.all([
-        generateQuickVocabularyDetailsPrompt(input),
-        generateAudio({ text: input.word, language: input.sourceLanguage as Language })
-    ]);
+    const { output } = await generateQuickVocabularyDetailsPrompt(input);
 
     return {
-        translation: detailsResult.output!.translation,
-        pronunciation: detailsResult.output!.pronunciation,
-        audioSrc: audioResult.audioSrc,
+        translation: output!.translation,
+        pronunciation: output!.pronunciation,
     };
   }
 );

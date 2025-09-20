@@ -9,5 +9,5 @@ export interface VocabularyItem {
   ipa?: string;
   pinyin?: string;
   createdAt: string; // ISO 8601 date string
-  audioSrc?: string; // Base64 encoded WAV audio data URI
+  audioSrc?: string; // This field is no longer populated by the server. TTS is client-side.
 }

@@ -9,7 +9,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { Language, VocabularyItem } from '@/lib/types';
-import { generateAudio } from './generate-audio-flow';
 
 
 const GenerateBatchVocabularyDetailsInputSchema = z.object({
@@ -33,7 +32,6 @@ const WordDetailSchema = z.object({
     folder: z.string(),
     ipa: z.string().optional(),
     pinyin: z.string().optional(),
-    audioSrc: z.string().optional(),
 })
 
 const GenerateBatchVocabularyDetailsOutputSchema = z.array(WordDetailSchema);
@@ -85,32 +83,21 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
 
     // Handle self-translation case
     if (sourceLanguage === targetLanguage) {
-        // Still generate audio
-        const promises = words.map(async (word) => {
-            const audioResult = await generateAudio({ text: word, language: sourceLanguage as Language });
-            return {
-                word: word,
-                language: sourceLanguage as Language,
-                vietnameseTranslation: word,
-                folder: folder,
-                audioSrc: audioResult.audioSrc,
-            };
-        });
-        return Promise.all(promises);
+        return words.map(word => ({
+            word: word,
+            language: sourceLanguage as Language,
+            vietnameseTranslation: word,
+            folder: folder,
+        }));
     }
 
     const promises = words.map(async (word) => {
       try {
-        const [detailsResult, audioResult] = await Promise.all([
-          singleWordPrompt({
+        const { output: details } = await singleWordPrompt({
             word,
             sourceLanguage,
             targetLanguage,
-          }),
-          generateAudio({ text: word, language: sourceLanguage as Language }),
-        ]);
-
-        const { output: details } = detailsResult;
+        });
 
         if (!details) {
             return null;
@@ -133,7 +120,6 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             folder,
             ipa: sourceLanguage === 'english' ? details.pronunciation : undefined,
             pinyin: sourceLanguage === 'chinese' ? details.pronunciation : undefined,
-            audioSrc: audioResult.audioSrc,
         }
       } catch (error) {
         console.error(`Failed to process word: ${word}`, error);
@@ -144,6 +130,6 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
     const results = await Promise.all(promises);
     
     // Filter out any null results from failed API calls
-    return results.filter((result): result is Omit<VocabularyItem, 'id' | 'createdAt'> => result !== null);
+    return results.filter((result): result is Omit<VocabularyItem, 'id' | 'createdAt' | 'audioSrc'> => result !== null);
   }
 );
