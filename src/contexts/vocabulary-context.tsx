@@ -101,8 +101,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
             ];
 
             const wordsWithAudio = await Promise.all(sampleWords.map(async (word) => {
-                const audio = await generateAudio({text: word.word, language: word.language as Language});
-                return {...word, audioSrc: audio.audioSrc };
+                const audioResult = await generateAudio({text: word.word, language: word.language as Language});
+                return {...word, audioSrc: audioResult.audioSrc };
             }));
             
             await dbAddManyVocabularyItems(wordsWithAudio, user.uid);
@@ -192,12 +192,21 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   
   const updateVocabularyItem = useCallback(async (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>): Promise<boolean> => {
     if (!user) return false;
+    
+    // Find the original item state before optimistic update
+    const originalItem = vocabulary.find(v => v.id === id);
+
     // Optimistic UI update
     setVocabulary(prev => prev.map(item => item.id === id ? { ...item, ...updates } as VocabularyItem : item));
+    
     try {
         if (updates.folder && !folders.includes(updates.folder)) {
            const folderAdded = await addFolder(updates.folder);
-           if (!folderAdded) return false;
+           if (!folderAdded) {
+               // Revert UI on folder creation failure
+               if(originalItem) setVocabulary(prev => prev.map(item => item.id === id ? originalItem : item));
+               return false;
+           }
         }
         await dbUpdateVocabularyItem(id, updates);
         return true;
@@ -205,7 +214,6 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         console.error("Error updating vocabulary item:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật từ vựng." });
         // Revert UI on error
-        const originalItem = vocabulary.find(v => v.id === id);
         if (originalItem) {
           setVocabulary(prev => prev.map(item => item.id === id ? originalItem : item));
         }

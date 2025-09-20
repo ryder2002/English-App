@@ -125,6 +125,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
         try {
             audioSrc = await getAudioAction(item.word, item.language);
             if (audioSrc) {
+                // Save the newly fetched audio source to prevent re-fetching
                 await updateVocabularyItem(item.id, { audioSrc });
             } else {
                  throw new Error("Audio source could not be generated.");
@@ -137,6 +138,12 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
         }
     }
     
+    if (!audioSrc) {
+        toast({ variant: "destructive", title: "Lỗi âm thanh", description: "Không tìm thấy nguồn âm thanh." });
+        setAudioState({ id: null, status: 'idle' });
+        return;
+    }
+
     setAudioState({ id: item.id, status: 'playing' });
     const audio = new Audio(audioSrc);
     audioRef.current = audio;
@@ -194,7 +201,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
                       disabled={audioState.status === 'loading'}
                       className="absolute bottom-4 right-4 h-12 w-12 text-muted-foreground"
                     >
-                      {(audioState.id === currentCard.id && audioState.status === 'loading') 
+                      {(audioState.id === currentCard.id && (audioState.status === 'loading' || audioState.status === 'playing')) 
                         ? <Loader2 className="h-6 w-6 animate-spin"/> 
                         : <Volume2 className="h-6 w-6"/>
                       }

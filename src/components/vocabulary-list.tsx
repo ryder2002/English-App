@@ -83,6 +83,7 @@ export function VocabularyList() {
         try {
             audioSrc = await getAudioAction(item.word, item.language);
             if (audioSrc) {
+                // Save the newly fetched audio source to prevent re-fetching
                 await updateVocabularyItem(item.id, { audioSrc });
             } else {
                  throw new Error("Audio source could not be generated.");
@@ -93,6 +94,12 @@ export function VocabularyList() {
             setAudioState({ id: null, status: 'idle' });
             return;
         }
+    }
+
+    if (!audioSrc) {
+        toast({ variant: "destructive", title: "Lỗi âm thanh", description: "Không tìm thấy nguồn âm thanh." });
+        setAudioState({ id: null, status: 'idle' });
+        return;
     }
 
     setAudioState({ id: item.id, status: 'playing' });
