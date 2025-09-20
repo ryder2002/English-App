@@ -41,6 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const value = { user, isLoading, signOut };
     
+    // While loading, show a skeleton screen. This prevents rendering children
+    // that might depend on the user object before it's available.
     if (isLoading) {
         return (
              <div className="flex items-center justify-center h-screen bg-background">
@@ -50,9 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     <Skeleton className="h-32 w-full" />
                 </div>
              </div>
-        )
+        );
     }
-
+    
+    // If not loading and no user, but we are on a protected route,
+    // the useEffect above will handle redirection. If we are on login/signup,
+    // children (the login/signup page) should be rendered.
+    // The main protection is the redirection inside useEffect. We can just render children.
     return (
         <AuthContext.Provider value={value}>
             {children}
