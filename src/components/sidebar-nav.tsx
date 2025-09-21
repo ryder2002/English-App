@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import Link from "next/link";
 import { BookText, Layers, Search, Bot, Folder, ListPlus, ClipboardCheck, Pencil, PlusSquare, Settings } from "lucide-react";
+import { useSidebar } from "./ui/sidebar";
 
 const navItems = [
   { href: "/", label: "Từ vựng", icon: BookText },
@@ -18,12 +19,17 @@ const navItems = [
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    setOpenMobile(false);
+  }
 
   return (
     <SidebarMenu>
       {navItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <Link href={item.href}>
+          <Link href={item.href} onClick={handleLinkClick}>
             <SidebarMenuButton
               asChild
               isActive={pathname === item.href}
