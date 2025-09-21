@@ -1,5 +1,5 @@
 import { BatchAddForm } from "@/components/batch-add-form";
-import { ManualAddSheet } from "@/components/manual-add-sheet";
+import { ManualAddTable } from "@/components/manual-add-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Metadata } from "next";
 
@@ -18,20 +18,20 @@ export default function AddVocabularyPage() {
 
             <Tabs defaultValue="batch" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
-                    <TabsTrigger value="batch">Thêm hàng loạt</TabsTrigger>
+                    <TabsTrigger value="batch">Thêm hàng loạt (AI)</TabsTrigger>
                     <TabsTrigger value="manual">Thêm thủ công</TabsTrigger>
                 </TabsList>
                 <TabsContent value="batch" className="mt-6">
                      <div className="text-center max-w-2xl mx-auto mb-6">
-                        <p className="text-sm text-muted-foreground">Người dùng nhập danh sách từ vựng vào ô bên dưới, AI sẽ tự động tạo các phần còn lại (dịch nghĩa, phát âm, âm thanh).</p>
+                        <p className="text-sm text-muted-foreground">Nhập danh sách từ, AI sẽ tự động tạo các phần còn lại (dịch nghĩa, phát âm, âm thanh).</p>
                     </div>
                     <BatchAddForm />
                 </TabsContent>
                 <TabsContent value="manual" className="mt-6">
                     <div className="text-center max-w-3xl mx-auto mb-6">
-                        <p className="text-sm text-muted-foreground">Người dùng tự điền các cột, AI sẽ chỉ hỗ trợ tạo tự động phần phát âm (IPA/Pinyin).</p>
+                        <p className="text-sm text-muted-foreground">Tự điền các cột như một bảng tính. AI sẽ hỗ trợ tạo tự động phần phát âm và nghĩa khi bạn nhập xong từ.</p>
                     </div>
-                    <ManualAddSheet />
+                    <ManualAddTable />
                 </TabsContent>
             </Tabs>
         </div>
