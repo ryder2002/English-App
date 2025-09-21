@@ -100,6 +100,23 @@
     animation: gradient-spin 4s linear infinite;
     z-index: -1;
   }
+
+  .active-nav-item-gradient {
+    @apply relative rounded-md p-px;
+  }
+
+  .active-nav-item-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: conic-gradient(from var(--angle, 0deg), hsl(var(--primary) / 0.7), hsl(var(--accent) / 0.8), hsl(var(--primary) / 0.7));
+    border-radius: inherit;
+    animation: gradient-spin 4s linear infinite;
+    z-index: 0;
+  }
 }
 
 @keyframes gradient-spin {

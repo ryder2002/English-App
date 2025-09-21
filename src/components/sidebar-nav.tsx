@@ -3,8 +3,9 @@
 import { usePathname } from "next/navigation";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import Link from "next/link";
-import { BookText, Layers, Search, Bot, Folder, ListPlus, ClipboardCheck, Pencil, PlusSquare, Settings } from "lucide-react";
+import { BookText, Layers, Search, Bot, Folder, PlusSquare, ClipboardCheck, Settings } from "lucide-react";
 import { useSidebar } from "./ui/sidebar";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Từ vựng", icon: BookText },
@@ -27,22 +28,33 @@ export function SidebarNav() {
 
   return (
     <SidebarMenu>
-      {navItems.map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <Link href={item.href} onClick={handleLinkClick}>
+      {navItems.map((item) => {
+        const isActive = pathname === item.href;
+        const button = (
             <SidebarMenuButton
               asChild
-              isActive={pathname === item.href}
+              isActive={isActive}
               tooltip={item.label}
+              className="relative z-10"
             >
               <div>
                 <item.icon />
                 <span>{item.label}</span>
               </div>
             </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      ))}
+        );
+        return (
+          <SidebarMenuItem key={item.href}>
+            <Link href={item.href} onClick={handleLinkClick}>
+              {isActive ? (
+                <div className="active-nav-item-gradient">{button}</div>
+              ) : (
+                button
+              )}
+            </Link>
+          </SidebarMenuItem>
+        )
+      })}
     </SidebarMenu>
   );
 }
