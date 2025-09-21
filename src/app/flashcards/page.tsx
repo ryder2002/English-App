@@ -15,9 +15,9 @@ import { CardStackPlusIcon } from "@radix-ui/react-icons";
 
 export default function FlashcardsPage() {
     const { folders } = useVocabulary();
-    const [selectedFolder, setSelectedFolder] = useState<string>("all");
+    const [selectedFolderId, setSelectedFolderId] = useState<string>("all");
     
-    const sortedFolders = ["all", ...[...folders].sort()];
+    const sortedFolders = [...folders].sort((a, b) => a.name.localeCompare(b.name));
 
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -26,21 +26,22 @@ export default function FlashcardsPage() {
                     Flashcards
                 </h1>
                  <div className="w-full sm:w-auto sm:min-w-[250px]">
-                    <Select value={selectedFolder} onValueChange={setSelectedFolder}>
+                    <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Chọn một thư mục để học" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="all">Tất cả từ vựng</SelectItem>
                             {sortedFolders.map(folder => (
-                                <SelectItem key={folder} value={folder}>
-                                    {folder === "all" ? "Tất cả từ vựng" : folder}
+                                <SelectItem key={folder.id} value={folder.id}>
+                                    {folder.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                  </div>
             </div>
-            <FlashcardPlayer selectedFolder={selectedFolder} />
+            <FlashcardPlayer selectedFolderId={selectedFolderId} />
         </div>
     );
 }
