@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import Link from "next/link";
+import { useAuth } from "@/contexts/auth-context";
 
 const formSchema = z.object({
   folderName: z.string().min(1, { message: "Tên thư mục không được để trống." }),
@@ -31,6 +32,7 @@ type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
   const { folders, addFolder, updateFolder, removeFolder, vocabulary } = useVocabulary();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -87,14 +89,13 @@ export function FolderManager() {
   }
   
   const handleRemoveFolder = async (folder: string) => {
+      if (!user) {
+          toast({ variant: "destructive", title: "Lỗi", description: "Bạn phải đăng nhập để xóa thư mục." });
+          return;
+      }
       setIsSubmitting(true);
       try {
           await removeFolder(folder);
-          toast({
-              variant: "default",
-              title: "Đã xóa thư mục",
-              description: `Thư mục "${folder}" và nội dung của nó đã được xóa.`,
-          });
       } finally {
         setIsSubmitting(false);
       }
