@@ -20,10 +20,11 @@ const VOCABULARY_COLLECTION = "vocabulary";
 
 export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> => {
   if (!userId) return [];
+  // The composite query with `orderBy` requires a manual index in Firestore.
+  // To avoid this manual step for the user, we will sort the data on the client.
   const q = query(
     collection(db, VOCABULARY_COLLECTION),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
+    where("userId", "==", userId)
   );
   const querySnapshot = await getDocs(q);
   const vocabulary: VocabularyItem[] = [];
@@ -33,7 +34,8 @@ export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> =
     const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
     vocabulary.push({ id: doc.id, ...data, createdAt } as VocabularyItem);
   });
-  return vocabulary;
+  // Sort by creation date descending on the client side
+  return vocabulary.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
 // Helper function to remove undefined fields from an object
