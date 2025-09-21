@@ -2,12 +2,33 @@
 
 import { ChatbotUI, type Message } from "@/components/chatbot-ui";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
+import { getChatbotResponseAction } from "@/app/actions";
 
 const CHAT_SESSION_STORAGE_KEY = 'ryder-chat-session';
+
+const formSchema = z.object({
+  query: z.string().min(1),
+});
+
+type ChatFormValues = z.infer<typeof formSchema>;
+
 
 export default function ChatbotPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+
+    const form = useForm<ChatFormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            query: "",
+        },
+    });
 
     // Load messages from sessionStorage on initial render
     useEffect(() => {
@@ -32,7 +53,7 @@ export default function ChatbotPage() {
 
     // Save messages to sessionStorage whenever they change
     useEffect(() => {
-        if (messages.length > 0 && isLoaded) {
+        if (isLoaded) { // Only save after initial load is complete
              try {
                 sessionStorage.setItem(CHAT_SESSION_STORAGE_KEY, JSON.stringify(messages));
             } catch (error) {
@@ -40,6 +61,31 @@ export default function ChatbotPage() {
             }
         }
     }, [messages, isLoaded]);
+
+    const onSubmit = async (values: ChatFormValues) => {
+        setIsLoading(true);
+        const userMessage: Message = { role: 'user', content: values.query };
+        setMessages(prev => [...prev, userMessage]);
+        form.reset();
+
+        try {
+            const response = await getChatbotResponseAction(values.query);
+            const assistantMessage: Message = { role: 'assistant', content: response };
+            setMessages(prev => [...prev, assistantMessage]);
+        } catch (error) {
+            console.error(error);
+            toast({
+                variant: "destructive",
+                title: "Ôi! Đã có lỗi xảy ra.",
+                description: "Có lỗi khi giao tiếp với trợ lý.",
+            });
+            // Rollback the user message if API call fails
+            setMessages(prev => prev.filter(m => m !== userMessage));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
     return (
         <div className="h-[calc(100vh-5rem)] md:h-screen flex flex-col">
@@ -49,7 +95,14 @@ export default function ChatbotPage() {
                 </h1>
            </div>
             <div className="flex-grow container mx-auto px-4 md:px-6 lg:pb-8 flex min-h-0">
-                {isLoaded && <ChatbotUI messages={messages} setMessages={setMessages} />}
+                {isLoaded && (
+                    <ChatbotUI 
+                        messages={messages}
+                        isLoading={isLoading}
+                        form={form}
+                        onSubmit={onSubmit}
+                    />
+                )}
             </div>
         </div>
     );

@@ -1,8 +1,7 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import type { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
@@ -11,13 +10,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { getChatbotResponseAction } from "@/app/actions";
 import { Bot, Loader2, Send, User, Volume2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 import type { Language } from "@/lib/types";
 import { useSettings } from "@/contexts/settings-context";
 
@@ -34,22 +31,15 @@ export interface Message {
 
 interface ChatbotUIProps {
   messages: Message[];
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  isLoading: boolean;
+  form: UseFormReturn<ChatFormValues>;
+  onSubmit: (values: ChatFormValues) => Promise<void>;
 }
 
-export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProps) {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { selectedVoices } = useSettings();
-
-  const form = useForm<ChatFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      query: "",
-    },
-  });
 
   useEffect(() => {
     if (scrollViewportRef.current) {
@@ -63,29 +53,6 @@ export function ChatbotUI({ messages, setMessages }: ChatbotUIProps) {
       window.speechSynthesis.cancel();
     };
   }, []);
-
-  const onSubmit = async (values: ChatFormValues) => {
-    setIsLoading(true);
-    const userMessage: Message = { role: 'user', content: values.query };
-    setMessages(prev => [...prev, userMessage]);
-    form.reset();
-
-    try {
-      const response = await getChatbotResponseAction(values.query);
-      const assistantMessage: Message = { role: 'assistant', content: response };
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Ôi! Đã có lỗi xảy ra.",
-        description: "Có lỗi khi giao tiếp với trợ lý.",
-      });
-      setMessages(prev => prev.slice(0, prev.length -1));
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   const playAudio = (e: React.MouseEvent, text: string, lang: Language, id: string) => {
     e.stopPropagation();
