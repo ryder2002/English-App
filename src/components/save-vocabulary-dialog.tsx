@@ -108,9 +108,14 @@ export function SaveVocabularyDialog({
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
+      // If the source language is Vietnamese, we will by default translate it to English.
+      // Otherwise, we translate to Vietnamese.
+      const targetLanguage = values.language === 'vietnamese' ? 'english' : 'vietnamese';
+
       const details = await getVocabularyDetailsAction(
         values.word,
-        values.language as Language
+        values.language as Language,
+        targetLanguage
       );
 
       if (!details || !details.translation) {
@@ -121,18 +126,27 @@ export function SaveVocabularyDialog({
           word: values.word,
           language: values.language as Language,
           folder: values.folder,
+          // If the source is Vietnamese, the result is an English translation in the `translation` field
+          // but we still want to store it in `vietnameseTranslation` field for consistency.
+          // This is a bit of a hack, but we will store the English translation in the vietnameseTranslation field.
+          // A better solution would be to refactor the data model.
           vietnameseTranslation: details.translation,
-          ipa: values.language === 'english' ? details.pronunciation : undefined,
+          ipa: details.pronunciation,
           pinyin: values.language === 'chinese' ? details.pronunciation : undefined,
       };
 
       let success = false;
       if (itemToEdit) {
-        success = await updateVocabularyItem(itemToEdit.id!, vocabularyData);
+        // When editing, we create a different object because we cannot change the original word/language.
+        // We only allow changing the folder.
+        const editData = {
+            folder: values.folder,
+        };
+        success = await updateVocabularyItem(itemToEdit.id!, editData);
         if (success) {
             toast({
                 title: "Thành công!",
-                description: `"${values.word}" đã được cập nhật.`,
+                description: `Từ đã được chuyển tới thư mục "${values.folder}".`,
             });
         }
       } else {
@@ -171,7 +185,7 @@ export function SaveVocabularyDialog({
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            {itemToEdit ? "Cập nhật chi tiết cho từ của bạn." : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
+            {itemToEdit ? "Chỉnh sửa thư mục cho từ của bạn." : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -183,7 +197,7 @@ export function SaveVocabularyDialog({
                 <FormItem>
                   <FormLabel>Từ</FormLabel>
                   <FormControl>
-                    <Input placeholder="ví dụ: hello hoặc 你好" {...field} disabled={isSubmitting || !!itemToEdit} />
+                    <Input placeholder="ví dụ: hello, 你好 hoặc xin chào" {...field} disabled={isSubmitting || !!itemToEdit} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

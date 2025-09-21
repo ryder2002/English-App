@@ -52,12 +52,13 @@ type InteractWithLanguageChatbotInput = {
 
 export async function getVocabularyDetailsAction(
   word: string,
-  language: Language
+  sourceLanguage: Language,
+  targetLanguage: Language,
 ): Promise<GenerateQuickVocabularyDetailsOutput> {
     const input: GenerateQuickVocabularyDetailsInput = { 
         word, 
-        sourceLanguage: language,
-        targetLanguage: 'vietnamese',
+        sourceLanguage,
+        targetLanguage,
     };
     const details = await generateQuickVocabularyDetails(input);
 

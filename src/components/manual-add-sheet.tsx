@@ -27,7 +27,7 @@ import type { Language } from "@/lib/types";
 type SheetRow = {
   id: number;
   word: string;
-  language: "english" | "chinese";
+  language: "english" | "chinese" | "vietnamese";
   pronunciation: string;
   pronunciationLoading: boolean;
   vietnameseTranslation: string;
@@ -72,6 +72,12 @@ export function ManualAddSheet() {
   ) => {
     const newRows = [...rows];
     (newRows[index] as any)[field] = value;
+
+    if (field === 'language' && value === 'vietnamese') {
+        newRows[index].pronunciation = '';
+        newRows[index].pronunciationLoading = false;
+    }
+
     setRows(newRows);
   };
 
@@ -183,7 +189,8 @@ export function ManualAddSheet() {
   
     const languageOptions = [
         {value: 'english', label: 'Tiếng Anh'},
-        {value: 'chinese', label: 'Tiếng Trung'}
+        {value: 'chinese', label: 'Tiếng Trung'},
+        {value: 'vietnamese', label: 'Tiếng Việt'},
     ]
 
   return (
@@ -218,7 +225,7 @@ export function ManualAddSheet() {
                     onValueChange={(value) => {
                       handleInputChange(index, "language", value)
                       // Refetch pronunciation if word exists
-                      if (rows[index].word) {
+                      if (rows[index].word && (value === 'english' || value === 'chinese')) {
                           handleWordBlur(index);
                       }
                     }}
@@ -241,6 +248,7 @@ export function ManualAddSheet() {
                         value={row.pronunciation}
                         readOnly
                         className="bg-muted/50 border-none"
+                        placeholder={row.language === 'vietnamese' ? 'N/A' : 'AI-generated'}
                       />
                     )}
                   </div>
