@@ -1,17 +1,45 @@
 'use client';
 
 import { ChatbotUI, type Message } from "@/components/chatbot-ui";
-import { Metadata } from "next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-// export const metadata: Metadata = {
-//     title: "Trợ lý AI - RYDER",
-// };
+const CHAT_SESSION_STORAGE_KEY = 'ryder-chat-session';
 
 export default function ChatbotPage() {
-    const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: 'Xin chào! Tớ là trợ lý AI của Công Nhất, rất vui được đồng hành cùng bạn trong việc học ngôn ngữ, hãy hãy hỏi tớ bất kì cái gì nếu cậu gặp khó trong việc học nhé!' }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Load messages from sessionStorage on initial render
+    useEffect(() => {
+        try {
+            const savedMessages = sessionStorage.getItem(CHAT_SESSION_STORAGE_KEY);
+            if (savedMessages) {
+                setMessages(JSON.parse(savedMessages));
+            } else {
+                 setMessages([
+                    { role: 'assistant', content: 'Xin chào! Tớ là trợ lý AI của Công Nhất, rất vui được đồng hành cùng bạn trong việc học ngôn ngữ, hãy hãy hỏi tớ bất kì cái gì nếu cậu gặp khó trong việc học nhé!' }
+                ]);
+            }
+        } catch (error) {
+            console.error("Failed to load chat from session storage", error);
+            // Start with a default message if loading fails
+            setMessages([
+                { role: 'assistant', content: 'Xin chào! Tớ là trợ lý AI của Công Nhất, rất vui được đồng hành cùng bạn trong việc học ngôn ngữ, hãy hãy hỏi tớ bất kì cái gì nếu cậu gặp khó trong việc học nhé!' }
+            ]);
+        }
+        setIsLoaded(true);
+    }, []);
+
+    // Save messages to sessionStorage whenever they change
+    useEffect(() => {
+        if (messages.length > 0 && isLoaded) {
+             try {
+                sessionStorage.setItem(CHAT_SESSION_STORAGE_KEY, JSON.stringify(messages));
+            } catch (error) {
+                console.error("Failed to save chat to session storage", error);
+            }
+        }
+    }, [messages, isLoaded]);
 
     return (
         <div className="h-[calc(100vh-5rem)] md:h-screen flex flex-col">
@@ -21,7 +49,7 @@ export default function ChatbotPage() {
                 </h1>
            </div>
             <div className="flex-grow container mx-auto px-4 md:px-6 lg:pb-8 flex min-h-0">
-                <ChatbotUI messages={messages} setMessages={setMessages} />
+                {isLoaded && <ChatbotUI messages={messages} setMessages={setMessages} />}
             </div>
         </div>
     );
