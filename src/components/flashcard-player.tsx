@@ -19,10 +19,10 @@ import { CardStackPlusIcon } from "@radix-ui/react-icons";
 import { useSettings } from "@/contexts/settings-context";
 
 interface FlashcardPlayerProps {
-    selectedFolder: string;
+    selectedFolderId: string;
 }
 
-export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
+export function FlashcardPlayer({ selectedFolderId }: FlashcardPlayerProps) {
   const { vocabulary } = useVocabulary();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -31,11 +31,11 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const { selectedVoices } = useSettings();
 
   const deck = useMemo(() => {
-    if (selectedFolder === 'all') {
+    if (selectedFolderId === 'all') {
         return vocabulary;
     }
-    return vocabulary.filter(item => item.folder === selectedFolder);
-  }, [vocabulary, selectedFolder]);
+    return vocabulary.filter(item => item.folderId === selectedFolderId);
+  }, [vocabulary, selectedFolderId]);
 
   useEffect(() => {
     // Cleanup: stop speech synthesis on component unmount

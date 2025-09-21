@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -21,10 +20,10 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 interface QuizPlayerProps {
-    selectedFolder: string;
+    selectedFolderId: string;
 }
 
-export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
+export function QuizPlayer({ selectedFolderId }: QuizPlayerProps) {
     const { vocabulary } = useVocabulary();
     const [shuffledDeck, setShuffledDeck] = useState<VocabularyItem[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,11 +32,11 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     const [isFinished, setIsFinished] = useState(false);
 
     const deck = useMemo(() => {
-        if (selectedFolder === 'all') {
+        if (selectedFolderId === 'all') {
             return vocabulary;
         }
-        return vocabulary.filter(item => item.folder === selectedFolder);
-    }, [vocabulary, selectedFolder]);
+        return vocabulary.filter(item => item.folderId === selectedFolderId);
+    }, [vocabulary, selectedFolderId]);
 
 
     const startNewGame = () => {

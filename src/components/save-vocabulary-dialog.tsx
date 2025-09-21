@@ -32,18 +32,7 @@ import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useToast } from "@/hooks/use-toast";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
-import type { Language, VocabularyItem } from "@/lib/types";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "./ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
+import type { Language, VocabularyItem, Folder } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 const formSchema = z.object({
@@ -51,7 +40,7 @@ const formSchema = z.object({
   language: z.enum(["english", "chinese"], {
     required_error: "Vui lòng chọn một ngôn ngữ.",
   }),
-  folder: z.string().min(1, { message: "Thư mục không được để trống." }),
+  folderId: z.string().min(1, { message: "Thư mục không được để trống." }),
 });
 
 type SaveVocabularyFormValues = z.infer<typeof formSchema>;
@@ -59,32 +48,30 @@ type SaveVocabularyFormValues = z.infer<typeof formSchema>;
 interface SaveVocabularyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  itemToEdit?: Omit<VocabularyItem, 'createdAt'> | null;
-  defaultFolder?: string;
+  itemToEdit?: VocabularyItem | null;
+  defaultFolderId?: string;
 }
 
 export function SaveVocabularyDialog({
   open,
   onOpenChange,
   itemToEdit,
-  defaultFolder,
+  defaultFolderId,
 }: SaveVocabularyDialogProps) {
-  const { addVocabularyItem, updateVocabularyItem, folders } =
-    useVocabulary();
+  const { addVocabularyItem, updateVocabularyItem, folders } = useVocabulary();
   const { toast } = useToast();
-  const [popoverOpen, setPopoverOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const sortedFolders = [...folders].sort();
 
   const form = useForm<SaveVocabularyFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       word: "",
       language: "english",
-      folder: "Cơ bản",
+      folderId: "",
     },
   });
+  
+  const sortedFolders = [...folders].sort((a,b) => a.name.localeCompare(b.name));
 
   useEffect(() => {
     if (open) {
@@ -92,62 +79,61 @@ export function SaveVocabularyDialog({
         form.reset({
           word: itemToEdit.word,
           language: itemToEdit.language as "english" | "chinese",
-          folder: itemToEdit.folder,
+          folderId: itemToEdit.folderId,
         });
       } else {
+        const initialFolderId = defaultFolderId || (sortedFolders.find(f => f.name === 'Cơ bản')?.id) || (sortedFolders[0]?.id) || "";
         form.reset({
           word: "",
           language: "english",
-          folder: defaultFolder || (folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || ""),
+          folderId: initialFolderId,
         });
       }
     }
-  }, [itemToEdit, form, open, folders, defaultFolder]);
-
+  }, [itemToEdit, form, open, folders, defaultFolderId, sortedFolders]);
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
-      const details = await getVocabularyDetailsAction(
-        values.word,
-        values.language as Language,
-        "vietnamese"
-      );
-
-      if (!details || !details.translation) {
-        throw new Error("AI không trả về dữ liệu hợp lệ.");
-      }
-      
-      const vocabularyData = {
-          word: values.word,
-          language: values.language as Language,
-          folder: values.folder,
-          vietnameseTranslation: details.translation,
-          ipa: details.pronunciation,
-          pinyin: values.language === 'chinese' ? details.pronunciation : undefined,
-      };
-
       let success = false;
       if (itemToEdit) {
-        // When editing, we create a different object because we cannot change the original word/language.
-        // We only allow changing the folder.
+        // Only folder can be changed when editing
         const editData = {
-            folder: values.folder,
+          folderId: values.folderId,
         };
-        success = await updateVocabularyItem(itemToEdit.id!, editData);
+        success = await updateVocabularyItem(itemToEdit.id, editData);
         if (success) {
-            toast({
-                title: "Thành công!",
-                description: `Từ đã được chuyển tới thư mục "${values.folder}".`,
-            });
+          toast({
+            title: "Thành công!",
+            description: `Từ đã được chuyển tới thư mục được chọn.`,
+          });
         }
       } else {
+        const details = await getVocabularyDetailsAction(
+          values.word,
+          values.language as Language,
+          "vietnamese"
+        );
+
+        if (!details || !details.translation) {
+          throw new Error("AI không trả về dữ liệu hợp lệ.");
+        }
+      
+        const vocabularyData = {
+          word: values.word,
+          language: values.language as Language,
+          folderId: values.folderId,
+          vietnameseTranslation: details.translation,
+          ipa: details.pronunciation,
+          pinyin: values.language === "chinese" ? details.pronunciation : undefined,
+        };
+        
         success = await addVocabularyItem(vocabularyData);
         if (success) {
-            toast({
-                title: "Thành công!",
-                description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,
-            });
+          toast({
+            title: "Thành công!",
+            description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,
+          });
         }
       }
 
@@ -155,7 +141,6 @@ export function SaveVocabularyDialog({
         form.reset();
         onOpenChange(false);
       }
-
     } catch (error) {
       console.error(error);
       toast({
@@ -164,7 +149,7 @@ export function SaveVocabularyDialog({
         description: "Có lỗi khi lưu từ của bạn. Vui lòng thử lại.",
       });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -177,7 +162,9 @@ export function SaveVocabularyDialog({
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            {itemToEdit ? "Chỉnh sửa thư mục cho từ của bạn." : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
+            {itemToEdit
+              ? "Chỉnh sửa thư mục cho từ của bạn."
+              : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -203,7 +190,6 @@ export function SaveVocabularyDialog({
                   <FormLabel>Ngôn ngữ</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
                     value={field.value}
                     disabled={isSubmitting || !!itemToEdit}
                   >
@@ -223,83 +209,35 @@ export function SaveVocabularyDialog({
             />
             <FormField
               control={form.control}
-              name="folder"
+              name="folderId"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Thư mục</FormLabel>
-                  <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          disabled={isSubmitting}
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value || "Chọn thư mục"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command
-                        filter={(value, search) => {
-                            if (value.toLowerCase().includes(search.toLowerCase())) return 1;
-                            return 0;
-                        }}
-                      >
-                        <CommandInput
-                          placeholder="Tìm kiếm hoặc tạo mới..."
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                               const newFolderValue = (e.target as HTMLInputElement).value;
-                               if(newFolderValue && !sortedFolders.find(f => f.toLowerCase() === newFolderValue.toLowerCase())) {
-                                  form.setValue("folder", newFolderValue);
-                                  setPopoverOpen(false);
-                               }
-                            }
-                          }}
-                        />
-                        <CommandList>
-                          <CommandEmpty>Không tìm thấy thư mục. Nhấn Enter để tạo mới.</CommandEmpty>
-                          <CommandGroup>
-                            {sortedFolders.map((folder) => (
-                              <CommandItem
-                                value={folder}
-                                key={folder}
-                                onSelect={() => {
-                                  form.setValue("folder", folder);
-                                  setPopoverOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    folder === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {folder}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn một thư mục" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {sortedFolders.map((folder) => (
+                        <SelectItem key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter className="pt-4">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {buttonText}
               </Button>
             </DialogFooter>

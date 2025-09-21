@@ -15,6 +15,7 @@ import {
 } from "@/ai/flows/interact-with-language-chatbot";
 import { generatePronunciation } from "@/ai/flows/generate-pronunciation-flow";
 import type { Language } from "@/lib/types";
+import { sendInvitation, getInvitations, respondToInvitation, getUserByEmail } from "@/lib/services/invitation-service";
 
 // NOTE: Audio generation actions have been removed.
 // Text-to-Speech is now handled on the client-side using the Web Speech API.
@@ -34,13 +35,13 @@ type GenerateBatchVocabularyDetailsInput = {
     words: string[];
     sourceLanguage: Language;
     targetLanguage: Language;
-    folder: string;
+    folderId: string;
 }
 type GenerateBatchVocabularyDetailsOutput = {
     word: string;
     language: Language;
     vietnameseTranslation: string;
-    folder: string;
+    folderId: string;
     ipa?: string;
     pinyin?: string;
 }[];
@@ -98,4 +99,21 @@ export async function getPronunciationAction(word: string, language: 'english' |
         console.error("Error generating pronunciation in getPronunciationAction", e);
         return undefined;
     }
+}
+
+export async function sendInvitationAction(folderId: string, folderName: string, fromUserEmail: string, toUserEmail: string) {
+    // Verify user to be invited exists
+    const toUser = await getUserByEmail(toUserEmail);
+    if (!toUser) {
+        throw new Error("User with that email does not exist.");
+    }
+    return await sendInvitation(folderId, folderName, fromUserEmail, toUser.uid, toUserEmail);
+}
+
+export async function getInvitationsAction(userId: string) {
+    return await getInvitations(userId);
+}
+
+export async function respondToInvitationAction(invitationId: string, status: 'accepted' | 'declined') {
+    return await respondToInvitation(invitationId, status);
 }

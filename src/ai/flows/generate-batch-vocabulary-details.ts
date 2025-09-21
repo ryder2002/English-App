@@ -19,7 +19,7 @@ const GenerateBatchVocabularyDetailsInputSchema = z.object({
   targetLanguage: z
     .enum(['english', 'chinese', 'vietnamese'])
     .describe('The language to translate the words into.'),
-    folder: z.string().describe("The folder to add the vocabulary to.")
+    folderId: z.string().describe("The folder ID to add the vocabulary to.")
 });
 type GenerateBatchVocabularyDetailsInput = z.infer<
   typeof GenerateBatchVocabularyDetailsInputSchema
@@ -29,7 +29,7 @@ const WordDetailSchema = z.object({
     word: z.string(),
     language: z.enum(['english', 'chinese', 'vietnamese']),
     vietnameseTranslation: z.string(),
-    folder: z.string(),
+    folderId: z.string(),
     ipa: z.string().optional(),
     pinyin: z.string().optional(),
 })
@@ -79,7 +79,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
     outputSchema: GenerateBatchVocabularyDetailsOutputSchema,
   },
   async (input) => {
-    const { words, sourceLanguage, targetLanguage, folder } = input;
+    const { words, sourceLanguage, targetLanguage, folderId } = input;
 
     // Handle self-translation case
     if (sourceLanguage === targetLanguage) {
@@ -87,7 +87,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             word: word,
             language: sourceLanguage as Language,
             vietnameseTranslation: word,
-            folder: folder,
+            folderId: folderId,
         }));
     }
 
@@ -117,7 +117,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             word,
             language: sourceLanguage as Language,
             vietnameseTranslation: vietnameseTranslation,
-            folder,
+            folderId,
             ipa: sourceLanguage === 'english' ? details.pronunciation : undefined,
             pinyin: sourceLanguage === 'chinese' ? details.pronunciation : undefined,
         }

@@ -31,7 +31,7 @@ type SheetRow = {
   pronunciation: string;
   pronunciationLoading: boolean;
   vietnameseTranslation: string;
-  folder: string;
+  folderId: string;
 };
 
 let nextId = 1;
@@ -39,30 +39,22 @@ let nextId = 1;
 export function ManualAddSheet() {
   const { addManyVocabularyItems, folders } = useVocabulary();
   const { toast } = useToast();
-  const [rows, setRows] = useState<SheetRow[]>([
-    {
+  const [rows, setRows] = useState<SheetRow[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const sortedFolders = [...folders].sort((a,b) => a.name.localeCompare(b.name));
+  
+  useEffect(() => {
+    const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
+    setRows([{
       id: 0,
       word: "",
       language: "english",
       pronunciation: "",
       pronunciationLoading: false,
       vietnameseTranslation: "",
-      folder: folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || "",
-    },
-  ]);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const sortedFolders = [...folders].sort();
-
-  useEffect(() => {
-    // When folders load, if the default folder on the first row is empty, set it.
-    if (folders.length > 0 && rows.length > 0 && !rows[0].folder) {
-      const defaultFolder = folders.includes("Cơ bản") ? "Cơ bản" : folders[0];
-      setRows(prevRows =>
-        prevRows.map((row, index) => (index === 0 ? { ...row, folder: defaultFolder } : row))
-      );
-    }
-  }, [folders, rows]);
+      folderId: defaultFolderId,
+    }]);
+  }, [folders]);
 
 
   const handleInputChange = (
@@ -96,6 +88,7 @@ export function ManualAddSheet() {
 
   const addRow = () => {
     const lastRow = rows[rows.length - 1];
+    const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
     setRows([
       ...rows,
       {
@@ -105,7 +98,7 @@ export function ManualAddSheet() {
         pronunciation: "",
         pronunciationLoading: false,
         vietnameseTranslation: "",
-        folder: lastRow?.folder || (folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || ""),
+        folderId: lastRow?.folderId || defaultFolderId,
       },
     ]);
   };
@@ -117,7 +110,7 @@ export function ManualAddSheet() {
 
   const handleSave = async () => {
     const validRows = rows.filter(
-      (row) => row.word && row.vietnameseTranslation && row.folder
+      (row) => row.word && row.vietnameseTranslation && row.folderId
     );
 
     if (validRows.length === 0) {
@@ -135,34 +128,19 @@ export function ManualAddSheet() {
             word: row.word,
             language: row.language as Language,
             vietnameseTranslation: row.vietnameseTranslation,
-            folder: row.folder,
+            folderId: row.folderId,
             ipa: row.language === 'english' ? row.pronunciation : undefined,
             pinyin: row.language === 'chinese' ? row.pronunciation : undefined,
         }));
         
-        // We can save all to the same folder for simplicity, or group by folder
-        // For now, let's just do a simple batch add. The context will handle folder creation.
-        // This assumes addMany can handle items for different folders, which it can't right now.
-        // Let's group them first.
-        
-        const groupedByFolder: Record<string, typeof itemsToSave> = {};
-        for(const item of itemsToSave) {
-            if(!groupedByFolder[item.folder]) {
-                groupedByFolder[item.folder] = [];
-            }
-            groupedByFolder[item.folder].push(item);
-        }
-
-        for (const folder in groupedByFolder) {
-            await addManyVocabularyItems(groupedByFolder[folder], folder);
-        }
+        await addManyVocabularyItems(itemsToSave);
 
         toast({
             title: "Lưu thành công!",
             description: `${validRows.length} từ đã được thêm vào từ vựng của bạn.`,
         });
 
-        // Reset to a single blank row
+        const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
         setRows([
             {
             id: nextId++,
@@ -171,7 +149,7 @@ export function ManualAddSheet() {
             pronunciation: "",
             pronunciationLoading: false,
             vietnameseTranslation: "",
-            folder: folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || "",
+            folderId: defaultFolderId,
             },
         ]);
 
@@ -265,9 +243,9 @@ export function ManualAddSheet() {
                 </TableCell>
                 <TableCell>
                   <Select
-                    value={row.folder}
+                    value={row.folderId}
                     onValueChange={(value) =>
-                      handleInputChange(index, "folder", value)
+                      handleInputChange(index, "folderId", value)
                     }
                     disabled={isSaving || folders.length === 0}
                   >
@@ -276,8 +254,8 @@ export function ManualAddSheet() {
                     </SelectTrigger>
                     <SelectContent>
                       {sortedFolders.map((folder) => (
-                        <SelectItem key={folder} value={folder}>
-                          {folder}
+                        <SelectItem key={folder.id} value={folder.id}>
+                          {folder.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

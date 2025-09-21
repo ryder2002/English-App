@@ -27,10 +27,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/settings-context";
 
 interface VocabularyFolderListProps {
-    folderName: string;
+    folderId: string;
 }
 
-export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) {
+export function VocabularyFolderList({ folderId }: VocabularyFolderListProps) {
   const { vocabulary, removeVocabularyItem } = useVocabulary();
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
@@ -96,8 +96,8 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
 
 
   const items = useMemo(() => {
-    return vocabulary.filter(item => item.folder === folderName);
-  }, [vocabulary, folderName]);
+    return vocabulary.filter(item => item.folderId === folderId);
+  }, [vocabulary, folderId]);
 
   if (items.length === 0) {
     return (

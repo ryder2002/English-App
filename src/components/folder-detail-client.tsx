@@ -8,9 +8,10 @@ import { SaveVocabularyDialog } from "@/components/save-vocabulary-dialog";
 
 interface FolderDetailClientProps {
     folderName: string;
+    folderId: string;
 }
 
-export function FolderDetailClient({ folderName }: FolderDetailClientProps) {
+export function FolderDetailClient({ folderName, folderId }: FolderDetailClientProps) {
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
     return (
@@ -34,7 +35,7 @@ export function FolderDetailClient({ folderName }: FolderDetailClientProps) {
             <SaveVocabularyDialog
                 open={isSaveDialogOpen}
                 onOpenChange={setIsSaveDialogOpen}
-                defaultFolder={folderName}
+                defaultFolderId={folderId}
             />
         </>
     );

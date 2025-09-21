@@ -23,17 +23,6 @@ import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useToast } from "@/hooks/use-toast";
 import { batchAddVocabularyAction } from "@/app/actions";
 import { ArrowRight, ListPlus, Loader2 } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "./ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
@@ -44,7 +33,7 @@ const formSchema = z.object({
   words: z.string().min(1, { message: "Phải có ít nhất một từ." }),
   sourceLanguage: languageEnum,
   targetLanguage: languageEnum,
-  folder: z.string().min(1, { message: "Thư mục không được để trống." }),
+  folderId: z.string().min(1, { message: "Thư mục không được để trống." }),
 }).refine(data => data.sourceLanguage !== data.targetLanguage, {
     message: "Ngôn ngữ nguồn và đích phải khác nhau.",
     path: ["targetLanguage"],
@@ -53,12 +42,11 @@ const formSchema = z.object({
 type BatchAddFormValues = z.infer<typeof formSchema>;
 
 export function BatchAddForm() {
-    const { addManyVocabularyItems, folders } = useVocabulary();
+    const { addManyVocabularyItems, folders, addFolder } = useVocabulary();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [popoverOpen, setPopoverOpen] = useState(false);
 
-    const sortedFolders = [...folders].sort();
+    const sortedFolders = [...folders].sort((a,b) => a.name.localeCompare(b.name));
 
     const form = useForm<BatchAddFormValues>({
         resolver: zodResolver(formSchema),
@@ -66,15 +54,16 @@ export function BatchAddForm() {
             words: "",
             sourceLanguage: "english",
             targetLanguage: "vietnamese",
-            folder: folders.includes("Cơ bản") ? "Cơ bản" : folders[0] || "",
+            folderId: "",
         },
     });
 
      useEffect(() => {
-        if (folders.length > 0 && !form.getValues("folder")) {
-            form.setValue("folder", folders.includes("Cơ bản") ? "Cơ bản" : folders[0]);
+        if (folders.length > 0 && !form.getValues("folderId")) {
+            const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
+            form.setValue("folderId", defaultFolderId);
         }
-    }, [folders, form]);
+    }, [folders, form, sortedFolders]);
 
 
     const onSubmit = async (values: BatchAddFormValues) => {
@@ -89,19 +78,35 @@ export function BatchAddForm() {
                 });
                 return;
             }
+            
+            let targetFolderId = values.folderId;
+            // Handle case where a new folder name is typed
+            if(values.folderId === "new_folder_value_magic_string") {
+                // This is a placeholder logic. Real implementation needs a combobox.
+                // For now, let's assume we can't create folders here.
+                 toast({
+                    variant: "destructive",
+                    title: "Chức năng tạo thư mục mới đang được phát triển",
+                });
+                setIsSubmitting(false);
+                return;
+            }
+
 
             const newItems = await batchAddVocabularyAction({
                 words: wordsArray,
                 sourceLanguage: values.sourceLanguage,
                 targetLanguage: values.targetLanguage,
-                folder: values.folder,
+                folderId: targetFolderId,
             });
 
-            await addManyVocabularyItems(newItems, values.folder);
+            await addManyVocabularyItems(newItems);
+            
+            const folderName = folders.find(f => f.id === targetFolderId)?.name || "thư mục";
 
             toast({
                 title: "Thêm thành công!",
-                description: `${newItems.length} từ đã được thêm vào thư mục "${values.folder}".`,
+                description: `${newItems.length} từ đã được thêm vào thư mục "${folderName}".`,
             });
             form.reset({
                 ...values,
@@ -216,75 +221,29 @@ world
 
                 <FormField
                     control={form.control}
-                    name="folder"
+                    name="folderId"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                        <FormLabel>Lưu vào thư mục</FormLabel>
-                        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                disabled={isSubmitting || folders.length === 0}
-                                className={cn(
-                                    "w-full justify-between",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value || "Chọn thư mục"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command
-                                filter={(value, search) => {
-                                    if (value.toLowerCase().includes(search.toLowerCase())) return 1;
-                                    return 0;
-                                }}
+                        <FormItem>
+                            <FormLabel>Lưu vào thư mục</FormLabel>
+                             <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                disabled={isSubmitting}
                             >
-                                <CommandInput
-                                placeholder="Tìm kiếm hoặc tạo mới..."
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                    const newFolderValue = (e.target as HTMLInputElement).value;
-                                    if(newFolderValue && !sortedFolders.find(f => f.toLowerCase() === newFolderValue.toLowerCase())) {
-                                        form.setValue("folder", newFolderValue);
-                                        setPopoverOpen(false);
-                                    }
-                                    }
-                                }}
-                                />
-                                <CommandList>
-                                <CommandEmpty>Không tìm thấy. Nhấn Enter để tạo mới.</CommandEmpty>
-                                <CommandGroup>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn một thư mục" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
                                     {sortedFolders.map((folder) => (
-                                    <CommandItem
-                                        value={folder}
-                                        key={folder}
-                                        onSelect={() => {
-                                        form.setValue("folder", folder);
-                                        setPopoverOpen(false);
-                                        }}
-                                    >
-                                        <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            folder === field.value
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                        />
-                                        {folder}
-                                    </CommandItem>
+                                        <SelectItem key={folder.id} value={folder.id}>
+                                            {folder.name}
+                                        </SelectItem>
                                     ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
                         </FormItem>
                     )}
                 />

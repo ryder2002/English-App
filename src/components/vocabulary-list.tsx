@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Folder, MoreVertical, Trash2, Edit, Loader2, Volume2 } from "lucide-react";
+import { Folder, MoreVertical, Trash2, Edit, Loader2, Volume2, Users } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import type { Language, VocabularyItem } from "@/lib/types";
+import type { Language, VocabularyItem, Folder as FolderType } from "@/lib/types";
 import { useMemo, useState, useEffect } from "react";
 import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
 import {
@@ -34,7 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/settings-context";
 
 export function VocabularyList() {
-  const { vocabulary, removeVocabularyItem, isLoadingInitialData } = useVocabulary();
+  const { vocabulary, removeVocabularyItem, isLoadingInitialData, folders } = useVocabulary();
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -102,14 +102,15 @@ export function VocabularyList() {
 
   const groupedVocabulary = useMemo(() => {
     return vocabulary.reduce((acc, item) => {
-      const folder = item.folder || "Chưa phân loại";
-      if (!acc[folder]) {
-        acc[folder] = [];
+      const folder = folders.find(f => f.id === item.folderId);
+      const folderName = folder?.name || "Chưa phân loại";
+      if (!acc[folderName]) {
+        acc[folderName] = { folder: folder, items: [] };
       }
-      acc[folder].push(item);
+      acc[folderName].items.push(item);
       return acc;
-    }, {} as Record<string, VocabularyItem[]>);
-  }, [vocabulary]);
+    }, {} as Record<string, {folder: FolderType | undefined, items: VocabularyItem[]}>);
+  }, [vocabulary, folders]);
 
   if (isLoadingInitialData) {
     return (
@@ -141,15 +142,17 @@ export function VocabularyList() {
     vietnamese: 'Tiếng Việt',
   };
 
+  const sortedFolders = Object.entries(groupedVocabulary).sort(([folderA], [folderB]) => folderA.localeCompare(folderB));
+
   return (
     <>
-    <Accordion type="multiple" defaultValue={Object.keys(groupedVocabulary)} className="w-full">
-      {Object.entries(groupedVocabulary).sort(([folderA], [folderB]) => folderA.localeCompare(folderB)).map(([folder, items]) => (
-        <AccordionItem value={folder} key={folder} className="border-b-0">
+    <Accordion type="multiple" defaultValue={sortedFolders.map(([name]) => name)} className="w-full">
+      {sortedFolders.map(([folderName, {folder, items}]) => (
+        <AccordionItem value={folderName} key={folderName} className="border-b-0">
           <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline py-4">
             <div className="flex items-center gap-3">
-              <Folder className="h-6 w-6 text-primary" />
-              <span>{folder}</span>
+              {folder && folder.members.length > 1 ? <Users className="h-6 w-6 text-primary" /> : <Folder className="h-6 w-6 text-primary" />}
+              <span>{folderName}</span>
               <Badge variant="secondary">{items.length}</Badge>
             </div>
           </AccordionTrigger>
