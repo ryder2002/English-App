@@ -77,6 +77,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
   },
   async (input) => {
     const { words, sourceLanguage, targetLanguage, folder } = input;
+    const results: GenerateBatchVocabularyDetailsOutput = [];
 
     // Handle self-translation case
     if (sourceLanguage === targetLanguage) {
@@ -88,57 +89,56 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
         }));
     }
 
-    const promises = words.map(async (word) => {
-      try {
-        const { output: translationDetails } = await translationPrompt({
-            word,
-            sourceLanguage,
-            targetLanguage,
-        });
+    for (const word of words) {
+        try {
+            const { output: translationDetails } = await translationPrompt({
+                word,
+                sourceLanguage,
+                targetLanguage,
+            });
 
-        if (!translationDetails) {
-            return null;
+            if (!translationDetails) {
+                console.error(`Failed to get translation for word: ${word}`);
+                continue; // Skip this word and proceed to the next one
+            }
+
+            let ipa: string | undefined = undefined;
+            let pinyin: string | undefined = undefined;
+
+            if (sourceLanguage === 'english') {
+                const ipaResult = await generateIpa({ word });
+                ipa = ipaResult.ipa;
+            } else if (sourceLanguage === 'chinese') {
+                const pinyinResult = await generatePinyin({ word });
+                pinyin = pinyinResult.pinyin;
+            }
+            
+            let vietnameseTranslation: string;
+            if (targetLanguage === 'vietnamese') {
+                vietnameseTranslation = translationDetails.translation;
+            } else if (sourceLanguage === 'vietnamese') {
+                vietnameseTranslation = word;
+            } else {
+                // This case handles EN -> CN or CN -> EN. We still need a Vietnamese translation.
+                const vietnameseResult = await translationPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
+                vietnameseTranslation = vietnameseResult.output?.translation || word;
+            }
+
+            results.push({
+                word,
+                language: sourceLanguage as Language,
+                vietnameseTranslation: vietnameseTranslation,
+                folder,
+                ipa,
+                pinyin,
+            });
+
+        } catch (error) {
+            console.error(`Failed to process word: ${word}`, error);
+            // Continue to the next word even if one fails
         }
-
-        let ipa: string | undefined = undefined;
-        let pinyin: string | undefined = undefined;
-
-        if (sourceLanguage === 'english') {
-            const ipaResult = await generateIpa({ word });
-            ipa = ipaResult.ipa;
-        } else if (sourceLanguage === 'chinese') {
-            const pinyinResult = await generatePinyin({ word });
-            pinyin = pinyinResult.pinyin;
-        }
-        
-        let vietnameseTranslation: string;
-        if (targetLanguage === 'vietnamese') {
-            vietnameseTranslation = translationDetails.translation;
-        } else if (sourceLanguage === 'vietnamese') {
-            vietnameseTranslation = word;
-        } else {
-            // This case handles EN -> CN or CN -> EN. We still need a Vietnamese translation.
-            const vietnameseResult = await translationPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
-            vietnameseTranslation = vietnameseResult.output?.translation || word;
-        }
-
-        return {
-            word,
-            language: sourceLanguage as Language,
-            vietnameseTranslation: vietnameseTranslation,
-            folder,
-            ipa,
-            pinyin,
-        }
-      } catch (error) {
-        console.error(`Failed to process word: ${word}`, error);
-        return null; // Return null for failed words
-      }
-    });
-
-    const results = await Promise.all(promises);
+    }
     
-    // Filter out any null results from failed API calls
-    return results.filter((result): result is Omit<VocabularyItem, 'id' | 'createdAt' | 'audioSrc' | 'userId'> => result !== null);
+    return results;
   }
 );
