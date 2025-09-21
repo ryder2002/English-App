@@ -50,9 +50,9 @@ export function ManualAddSheet() {
       pronunciation: "",
       pronunciationLoading: false,
       vietnameseTranslation: "",
-      folder: "Cơ bản",
+      folder: folders.length > 0 ? folders[0] : "",
     }]);
-  }, []);
+  }, [folders]);
 
 
   const handleInputChange = (
@@ -95,7 +95,7 @@ export function ManualAddSheet() {
         pronunciation: "",
         pronunciationLoading: false,
         vietnameseTranslation: "",
-        folder: lastRow?.folder || "Cơ bản",
+        folder: lastRow?.folder || (folders.length > 0 ? folders[0] : ""),
       },
     ]);
   };
@@ -146,7 +146,7 @@ export function ManualAddSheet() {
             pronunciation: "",
             pronunciationLoading: false,
             vietnameseTranslation: "",
-            folder: "Cơ bản",
+            folder: folders.length > 0 ? folders[0] : "",
             },
         ]);
 

@@ -57,13 +57,7 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           getFolders(user.uid),
         ]);
         setVocabulary(vocabData);
-        // Ensure "Cơ bản" folder exists
-        if (!folderData.includes("Cơ bản")) {
-          await dbAddFolder("Cơ bản", user.uid);
-          setFolders(["Cơ bản", ...folderData].sort());
-        } else {
-          setFolders(folderData);
-        }
+        setFolders(folderData);
       } catch (error) {
         console.error("Error loading initial data:", error);
         toast({

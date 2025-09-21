@@ -68,7 +68,7 @@ export function SaveVocabularyDialog({
     defaultValues: {
       word: "",
       language: "english",
-      folder: "Cơ bản",
+      folder: "",
     },
   });
 
@@ -84,12 +84,12 @@ export function SaveVocabularyDialog({
         form.reset({
           word: "",
           language: "english",
-          folder: defaultFolder || "Cơ bản",
+          folder: defaultFolder || (folders.length > 0 ? folders[0] : ""),
         });
       }
       setNewFolderName("");
     }
-  }, [itemToEdit, form, open, defaultFolder]);
+  }, [itemToEdit, form, open, defaultFolder, folders]);
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);

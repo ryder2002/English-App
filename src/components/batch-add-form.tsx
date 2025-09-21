@@ -54,9 +54,16 @@ export function BatchAddForm() {
             words: "",
             sourceLanguage: "english",
             targetLanguage: "vietnamese",
-            folder: "Cơ bản",
+            folder: "",
         },
     });
+    
+    useEffect(() => {
+        if (folders.length > 0 && !form.getValues('folder')) {
+            form.setValue('folder', folders[0]);
+        }
+    }, [folders, form]);
+
 
     const selectedFolder = form.watch("folder");
 
