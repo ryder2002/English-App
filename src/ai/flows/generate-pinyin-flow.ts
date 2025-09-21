@@ -28,7 +28,7 @@ const generatePinyinPrompt = ai.definePrompt({
   input: {schema: GeneratePinyinInputSchema},
   output: {schema: GeneratePinyinOutputSchema},
   prompt: `You are a linguistic expert specializing in Chinese phonetics.
-Provide ONLY the Pinyin transcription for the given Chinese word.
+Provide ONLY the Pinyin transcription for the given Chinese word or phrase as a whole. Do not break it down into individual characters.
 
 Word: {{{word}}}
 
