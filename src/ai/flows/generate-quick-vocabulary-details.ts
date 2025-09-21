@@ -14,7 +14,7 @@ import type { Language } from '@/lib/types';
 const GenerateQuickVocabularyDetailsInputSchema = z.object({
   word: z.string().describe('The vocabulary word to generate details for.'),
   sourceLanguage: z
-    .enum(['english', 'chinese', 'vietnamese'])
+    .enum(['english', 'chinese'])
     .describe('The source language of the word.'),
   targetLanguage: z
     .enum(['english', 'chinese', 'vietnamese'])

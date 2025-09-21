@@ -48,7 +48,7 @@ import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   word: z.string().min(1, { message: "Từ không được để trống." }),
-  language: z.enum(["english", "chinese", "vietnamese"], {
+  language: z.enum(["english", "chinese"], {
     required_error: "Vui lòng chọn một ngôn ngữ.",
   }),
   folder: z.string().min(1, { message: "Thư mục không được để trống." }),
@@ -91,7 +91,7 @@ export function SaveVocabularyDialog({
       if (itemToEdit) {
         form.reset({
           word: itemToEdit.word,
-          language: itemToEdit.language,
+          language: itemToEdit.language as "english" | "chinese",
           folder: itemToEdit.folder,
         });
       } else {
@@ -108,14 +108,10 @@ export function SaveVocabularyDialog({
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
-      // If the source language is Vietnamese, we will by default translate it to English.
-      // Otherwise, we translate to Vietnamese.
-      const targetLanguage = values.language === 'vietnamese' ? 'english' : 'vietnamese';
-
       const details = await getVocabularyDetailsAction(
         values.word,
         values.language as Language,
-        targetLanguage
+        "vietnamese"
       );
 
       if (!details || !details.translation) {
@@ -126,10 +122,6 @@ export function SaveVocabularyDialog({
           word: values.word,
           language: values.language as Language,
           folder: values.folder,
-          // If the source is Vietnamese, the result is an English translation in the `translation` field
-          // but we still want to store it in `vietnameseTranslation` field for consistency.
-          // This is a bit of a hack, but we will store the English translation in the vietnameseTranslation field.
-          // A better solution would be to refactor the data model.
           vietnameseTranslation: details.translation,
           ipa: details.pronunciation,
           pinyin: values.language === 'chinese' ? details.pronunciation : undefined,
@@ -197,7 +189,7 @@ export function SaveVocabularyDialog({
                 <FormItem>
                   <FormLabel>Từ</FormLabel>
                   <FormControl>
-                    <Input placeholder="ví dụ: hello, 你好 hoặc xin chào" {...field} disabled={isSubmitting || !!itemToEdit} />
+                    <Input placeholder="ví dụ: hello, 你好" {...field} disabled={isSubmitting || !!itemToEdit} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -223,7 +215,6 @@ export function SaveVocabularyDialog({
                     <SelectContent>
                       <SelectItem value="english">Tiếng Anh</SelectItem>
                       <SelectItem value="chinese">Tiếng Trung</SelectItem>
-                      <SelectItem value="vietnamese">Tiếng Việt</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
