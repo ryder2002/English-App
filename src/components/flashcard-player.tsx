@@ -9,7 +9,7 @@ import {
   RefreshCw,
   Volume2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Progress } from "./ui/progress";
@@ -29,6 +29,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const { toast } = useToast();
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { selectedVoices } = useSettings();
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const deck = useMemo(() => {
     if (selectedFolder === 'all') {
@@ -40,6 +41,10 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   useEffect(() => {
     // Cleanup: stop speech synthesis on component unmount
     return () => {
+      if (utteranceRef.current) {
+        utteranceRef.current.onend = null;
+        utteranceRef.current.onerror = null;
+      }
       window.speechSynthesis.cancel();
     };
   }, []);
@@ -109,9 +114,10 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
         return;
     }
 
-    window.speechSynthesis.cancel(); // Stop any currently playing audio
+    window.speechSynthesis.cancel(); 
 
     const utterance = new SpeechSynthesisUtterance(item.word);
+    utteranceRef.current = utterance;
     
     const langCodeMap: Record<Language, string> = {
         english: 'en-US',
@@ -136,14 +142,23 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
 
     utterance.onend = () => {
         setSpeakingId(null);
+        utteranceRef.current = null;
     };
 
     utterance.onerror = (event) => {
         console.error("SpeechSynthesis Error", event);
         setSpeakingId(null);
+        utteranceRef.current = null;
     };
-
-    window.speechSynthesis.speak(utterance);
+    
+    const speak = () => {
+      if (window.speechSynthesis.speaking) {
+        setTimeout(speak, 100);
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+    speak();
   };
 
 

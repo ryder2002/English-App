@@ -15,7 +15,7 @@ import { Edit, Loader2, MoreVertical, Trash2, Volume2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { Language, VocabularyItem } from "@/lib/types";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
 import {
   DropdownMenu,
@@ -38,10 +38,15 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
   const { toast } = useToast();
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { selectedVoices } = useSettings();
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     // Cleanup: stop speech synthesis on component unmount
     return () => {
+      if (utteranceRef.current) {
+        utteranceRef.current.onend = null;
+        utteranceRef.current.onerror = null;
+      }
       window.speechSynthesis.cancel();
     };
   }, []);
@@ -68,6 +73,8 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(item.word);
+    utteranceRef.current = utterance;
+    
     const langCodeMap: Record<Language, string> = {
         english: 'en-US',
         chinese: 'zh-CN',
@@ -85,13 +92,24 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
     }
     
     utterance.onstart = () => setSpeakingId(item.id);
-    utterance.onend = () => setSpeakingId(null);
+    utterance.onend = () => {
+        setSpeakingId(null);
+        utteranceRef.current = null;
+    };
     utterance.onerror = (event) => {
       console.error("SpeechSynthesis Error", event);
       setSpeakingId(null);
+      utteranceRef.current = null;
     };
-
-    window.speechSynthesis.speak(utterance);
+    
+    const speak = () => {
+      if (window.speechSynthesis.speaking) {
+        setTimeout(speak, 100);
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+    speak();
   };
 
 

@@ -24,7 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { dictionaryLookupAction } from "@/app/actions";
 import { ArrowRightLeft, Loader2, Search, Volume2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 import type { Language } from "@/lib/types";
@@ -52,10 +52,15 @@ export function DictionarySearch() {
   const { toast } = useToast();
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { selectedVoices } = useSettings();
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   
   useEffect(() => {
     // Cleanup: stop speech synthesis on component unmount
     return () => {
+      if (utteranceRef.current) {
+        utteranceRef.current.onend = null;
+        utteranceRef.current.onerror = null;
+      }
       window.speechSynthesis.cancel();
     };
   }, []);
@@ -109,6 +114,8 @@ export function DictionarySearch() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
+    utteranceRef.current = utterance;
+    
     const langCodeMap: Record<Language, string> = {
         english: 'en-US',
         chinese: 'zh-CN',
@@ -126,13 +133,24 @@ export function DictionarySearch() {
     }
     
     utterance.onstart = () => setSpeakingId(id);
-    utterance.onend = () => setSpeakingId(null);
+    utterance.onend = () => {
+        setSpeakingId(null);
+        utteranceRef.current = null;
+    };
     utterance.onerror = (event) => {
       console.error("SpeechSynthesis Error", event);
       setSpeakingId(null);
+      utteranceRef.current = null;
     };
-
-    window.speechSynthesis.speak(utterance);
+    
+    const speak = () => {
+      if (window.speechSynthesis.speaking) {
+        setTimeout(speak, 100);
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+    speak();
   };
 
   const swapLanguages = () => {

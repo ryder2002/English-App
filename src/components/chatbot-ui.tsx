@@ -40,6 +40,7 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { selectedVoices } = useSettings();
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     if (scrollViewportRef.current) {
@@ -50,22 +51,27 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
   useEffect(() => {
     // Stop speech synthesis on component unmount
     return () => {
+      if (utteranceRef.current) {
+        utteranceRef.current.onend = null;
+        utteranceRef.current.onerror = null;
+      }
       window.speechSynthesis.cancel();
     };
   }, []);
   
   const playAudio = (e: React.MouseEvent, text: string, lang: Language, id: string) => {
     e.stopPropagation();
-
+    
     if (speakingId === id) {
         window.speechSynthesis.cancel();
         setSpeakingId(null);
         return;
     }
 
-    window.speechSynthesis.cancel(); // Stop any currently playing audio
+    window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
+    utteranceRef.current = utterance;
     
     const langCodeMap: Record<Language, string> = {
         english: 'en-US',
@@ -89,14 +95,23 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
 
     utterance.onend = () => {
         setSpeakingId(null);
+        utteranceRef.current = null;
     };
 
     utterance.onerror = (event) => {
         console.error("SpeechSynthesis Error", event);
         setSpeakingId(null);
+        utteranceRef.current = null;
     };
-
-    window.speechSynthesis.speak(utterance);
+    
+    const speak = () => {
+      if (window.speechSynthesis.speaking) {
+        setTimeout(speak, 100);
+      } else {
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+    speak();
   };
 
 
