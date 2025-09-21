@@ -32,7 +32,7 @@ import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useToast } from "@/hooks/use-toast";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
-import type { Language, VocabularyItem, Folder } from "@/lib/types";
+import type { Language, VocabularyItem } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 const formSchema = z.object({
@@ -40,7 +40,7 @@ const formSchema = z.object({
   language: z.enum(["english", "chinese"], {
     required_error: "Vui lòng chọn một ngôn ngữ.",
   }),
-  folderId: z.string().min(1, { message: "Thư mục không được để trống." }),
+  folder: z.string().min(1, { message: "Thư mục không được để trống." }),
 });
 
 type SaveVocabularyFormValues = z.infer<typeof formSchema>;
@@ -49,29 +49,28 @@ interface SaveVocabularyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itemToEdit?: VocabularyItem | null;
-  defaultFolderId?: string;
+  defaultFolder?: string;
 }
 
 export function SaveVocabularyDialog({
   open,
   onOpenChange,
   itemToEdit,
-  defaultFolderId,
+  defaultFolder,
 }: SaveVocabularyDialogProps) {
-  const { addVocabularyItem, updateVocabularyItem, folders } = useVocabulary();
+  const { addVocabularyItem, updateVocabularyItem, folders, addFolder } = useVocabulary();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
   const form = useForm<SaveVocabularyFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       word: "",
       language: "english",
-      folderId: "",
+      folder: "Cơ bản",
     },
   });
-  
-  const sortedFolders = [...folders].sort((a,b) => a.name.localeCompare(b.name));
 
   useEffect(() => {
     if (open) {
@@ -79,33 +78,42 @@ export function SaveVocabularyDialog({
         form.reset({
           word: itemToEdit.word,
           language: itemToEdit.language as "english" | "chinese",
-          folderId: itemToEdit.folderId,
+          folder: itemToEdit.folder,
         });
       } else {
-        const initialFolderId = defaultFolderId || (sortedFolders.find(f => f.name === 'Cơ bản')?.id) || (sortedFolders[0]?.id) || "";
         form.reset({
           word: "",
           language: "english",
-          folderId: initialFolderId,
+          folder: defaultFolder || "Cơ bản",
         });
       }
+      setNewFolderName("");
     }
-  }, [itemToEdit, form, open, folders, defaultFolderId, sortedFolders]);
+  }, [itemToEdit, form, open, defaultFolder]);
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
+      let targetFolder = values.folder;
+      if (targetFolder === 'new_folder' && newFolderName) {
+          const folderExists = folders.some(f => f.toLowerCase() === newFolderName.toLowerCase());
+          if (!folderExists) {
+              await addFolder(newFolderName);
+          }
+          targetFolder = newFolderName;
+      }
+      
       let success = false;
       if (itemToEdit) {
         // Only folder can be changed when editing
         const editData = {
-          folderId: values.folderId,
+          folder: targetFolder,
         };
         success = await updateVocabularyItem(itemToEdit.id, editData);
         if (success) {
           toast({
             title: "Thành công!",
-            description: `Từ đã được chuyển tới thư mục được chọn.`,
+            description: `Từ đã được chuyển tới thư mục "${targetFolder}".`,
           });
         }
       } else {
@@ -122,7 +130,7 @@ export function SaveVocabularyDialog({
         const vocabularyData = {
           word: values.word,
           language: values.language as Language,
-          folderId: values.folderId,
+          folder: targetFolder,
           vietnameseTranslation: details.translation,
           ipa: details.pronunciation,
           pinyin: values.language === "chinese" ? details.pronunciation : undefined,
@@ -155,6 +163,7 @@ export function SaveVocabularyDialog({
 
   const dialogTitle = itemToEdit ? "Chỉnh sửa từ" : "Thêm từ mới";
   const buttonText = itemToEdit ? "Lưu thay đổi" : "Thêm từ";
+  const selectedFolder = form.watch("folder");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,7 +218,7 @@ export function SaveVocabularyDialog({
             />
             <FormField
               control={form.control}
-              name="folderId"
+              name="folder"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Thư mục</FormLabel>
@@ -224,17 +233,33 @@ export function SaveVocabularyDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {sortedFolders.map((folder) => (
-                        <SelectItem key={folder.id} value={folder.id}>
-                          {folder.name}
+                      {folders.map((folder) => (
+                        <SelectItem key={folder} value={folder}>
+                          {folder}
                         </SelectItem>
                       ))}
+                       <SelectItem value="new_folder">
+                          + Tạo thư mục mới...
+                        </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+             {selectedFolder === "new_folder" && (
+              <FormItem>
+                <FormLabel>Tên thư mục mới</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="ví dụ: Chủ đề Gia đình"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
             <DialogFooter className="pt-4">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

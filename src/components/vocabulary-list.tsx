@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Folder, MoreVertical, Trash2, Edit, Loader2, Volume2, Users } from "lucide-react";
+import { Folder, MoreVertical, Trash2, Edit, Loader2, Volume2 } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "./ui/accordion";
-import type { Language, VocabularyItem, Folder as FolderType } from "@/lib/types";
+import type { Language, VocabularyItem } from "@/lib/types";
 import { useMemo, useState, useEffect } from "react";
 import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
 import {
@@ -102,15 +102,14 @@ export function VocabularyList() {
 
   const groupedVocabulary = useMemo(() => {
     return vocabulary.reduce((acc, item) => {
-      const folder = folders.find(f => f.id === item.folderId);
-      const folderName = folder?.name || "Chưa phân loại";
+      const folderName = item.folder || "Chưa phân loại";
       if (!acc[folderName]) {
-        acc[folderName] = { folder: folder, items: [] };
+        acc[folderName] = [];
       }
-      acc[folderName].items.push(item);
+      acc[folderName].push(item);
       return acc;
-    }, {} as Record<string, {folder: FolderType | undefined, items: VocabularyItem[]}>);
-  }, [vocabulary, folders]);
+    }, {} as Record<string, VocabularyItem[]>);
+  }, [vocabulary]);
 
   if (isLoadingInitialData) {
     return (
@@ -146,12 +145,12 @@ export function VocabularyList() {
 
   return (
     <>
-    <Accordion type="multiple" defaultValue={sortedFolders.map(([name]) => name)} className="w-full">
-      {sortedFolders.map(([folderName, {folder, items}]) => (
+    <Accordion type="multiple" defaultValue={folders} className="w-full">
+      {sortedFolders.map(([folderName, items]) => (
         <AccordionItem value={folderName} key={folderName} className="border-b-0">
           <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline py-4">
             <div className="flex items-center gap-3">
-              {folder && folder.members.length > 1 ? <Users className="h-6 w-6 text-primary" /> : <Folder className="h-6 w-6 text-primary" />}
+              <Folder className="h-6 w-6 text-primary" />
               <span>{folderName}</span>
               <Badge variant="secondary">{items.length}</Badge>
             </div>

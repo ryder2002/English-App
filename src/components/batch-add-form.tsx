@@ -26,6 +26,7 @@ import { ArrowRight, ListPlus, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
+import { Input } from "./ui/input";
 
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
@@ -33,7 +34,7 @@ const formSchema = z.object({
   words: z.string().min(1, { message: "Phải có ít nhất một từ." }),
   sourceLanguage: languageEnum,
   targetLanguage: languageEnum,
-  folderId: z.string().min(1, { message: "Thư mục không được để trống." }),
+  folder: z.string().min(1, { message: "Thư mục không được để trống." }),
 }).refine(data => data.sourceLanguage !== data.targetLanguage, {
     message: "Ngôn ngữ nguồn và đích phải khác nhau.",
     path: ["targetLanguage"],
@@ -45,8 +46,7 @@ export function BatchAddForm() {
     const { addManyVocabularyItems, folders, addFolder } = useVocabulary();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const sortedFolders = [...folders].sort((a,b) => a.name.localeCompare(b.name));
+    const [newFolderName, setNewFolderName] = useState("");
 
     const form = useForm<BatchAddFormValues>({
         resolver: zodResolver(formSchema),
@@ -54,17 +54,11 @@ export function BatchAddForm() {
             words: "",
             sourceLanguage: "english",
             targetLanguage: "vietnamese",
-            folderId: "",
+            folder: "Cơ bản",
         },
     });
 
-     useEffect(() => {
-        if (folders.length > 0 && !form.getValues("folderId")) {
-            const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
-            form.setValue("folderId", defaultFolderId);
-        }
-    }, [folders, form, sortedFolders]);
-
+    const selectedFolder = form.watch("folder");
 
     const onSubmit = async (values: BatchAddFormValues) => {
         setIsSubmitting(true);
@@ -79,17 +73,22 @@ export function BatchAddForm() {
                 return;
             }
             
-            let targetFolderId = values.folderId;
-            // Handle case where a new folder name is typed
-            if(values.folderId === "new_folder_value_magic_string") {
-                // This is a placeholder logic. Real implementation needs a combobox.
-                // For now, let's assume we can't create folders here.
-                 toast({
-                    variant: "destructive",
-                    title: "Chức năng tạo thư mục mới đang được phát triển",
-                });
-                setIsSubmitting(false);
-                return;
+            let targetFolder = values.folder;
+            if (targetFolder === "new_folder") {
+                if (!newFolderName) {
+                    toast({
+                        variant: "destructive",
+                        title: "Tên thư mục trống",
+                        description: "Vui lòng nhập tên cho thư mục mới.",
+                    });
+                    setIsSubmitting(false);
+                    return;
+                }
+                const folderExists = folders.some(f => f.toLowerCase() === newFolderName.toLowerCase());
+                if (!folderExists) {
+                    await addFolder(newFolderName);
+                }
+                targetFolder = newFolderName;
             }
 
 
@@ -97,21 +96,17 @@ export function BatchAddForm() {
                 words: wordsArray,
                 sourceLanguage: values.sourceLanguage,
                 targetLanguage: values.targetLanguage,
-                folderId: targetFolderId,
+                folder: targetFolder,
             });
 
             await addManyVocabularyItems(newItems);
-            
-            const folderName = folders.find(f => f.id === targetFolderId)?.name || "thư mục";
 
             toast({
                 title: "Thêm thành công!",
-                description: `${newItems.length} từ đã được thêm vào thư mục "${folderName}".`,
+                description: `${newItems.length} từ đã được thêm vào thư mục "${targetFolder}".`,
             });
-            form.reset({
-                ...values,
-                words: ""
-            });
+            form.reset();
+            setNewFolderName("");
 
         } catch (error) {
             console.error("Batch add error:", error);
@@ -221,7 +216,7 @@ world
 
                 <FormField
                     control={form.control}
-                    name="folderId"
+                    name="folder"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Lưu vào thư mục</FormLabel>
@@ -236,17 +231,35 @@ world
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {sortedFolders.map((folder) => (
-                                        <SelectItem key={folder.id} value={folder.id}>
-                                            {folder.name}
+                                    {folders.map((folder) => (
+                                        <SelectItem key={folder} value={folder}>
+                                            {folder}
                                         </SelectItem>
                                     ))}
+                                    <SelectItem value="new_folder">
+                                        + Tạo thư mục mới...
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
+                
+                {selectedFolder === "new_folder" && (
+                    <FormItem>
+                        <FormLabel>Tên thư mục mới</FormLabel>
+                        <FormControl>
+                        <Input
+                            placeholder="ví dụ: Chủ đề Gia đình"
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                        </FormControl>
+                    </FormItem>
+                )}
+
 
                 <Button type="submit" disabled={isSubmitting} className="w-full">
                     {isSubmitting ? (

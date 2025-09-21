@@ -19,9 +19,7 @@ import {
 
 export default function TestPage() {
     const { folders } = useVocabulary();
-    const [selectedFolderId, setSelectedFolderId] = useState<string>("all");
-    
-    const sortedFolders = [...folders].sort((a,b) => a.name.localeCompare(b.name));
+    const [selectedFolder, setSelectedFolder] = useState<string>("all");
 
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -30,22 +28,22 @@ export default function TestPage() {
                     Bài kiểm tra trắc nghiệm
                 </h1>
                 <div className="w-full sm:w-auto sm:min-w-[250px]">
-                    <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
+                    <Select value={selectedFolder} onValueChange={setSelectedFolder}>
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Chọn một thư mục để kiểm tra" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Tất cả từ vựng</SelectItem>
-                            {sortedFolders.map(folder => (
-                                <SelectItem key={folder.id} value={folder.id}>
-                                    {folder.name}
+                            {folders.map(folder => (
+                                <SelectItem key={folder} value={folder}>
+                                    {folder}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                  </div>
             </div>
-            <QuizPlayer selectedFolderId={selectedFolderId} />
+            <QuizPlayer selectedFolder={selectedFolder} />
         </div>
     );
 }

@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import type { VocabularyItem, Folder } from "@/lib/types";
+import type { VocabularyItem } from "@/lib/types";
 import {
   collection,
   getDocs,
@@ -18,34 +18,25 @@ import {
 
 const VOCABULARY_COLLECTION = "vocabulary";
 
-export const getVocabulary = async (userId: string, folders: Folder[]): Promise<VocabularyItem[]> => {
-  if (!userId || folders.length === 0) return [];
-
-  const folderIds = folders.map(f => f.id);
-  
-  // Firestore 'in' queries are limited to 30 elements. We need to batch them.
+export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> => {
+  if (!userId) return [];
+  const q = query(
+    collection(db, VOCABULARY_COLLECTION),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+  const querySnapshot = await getDocs(q);
   const vocabulary: VocabularyItem[] = [];
-  const batchSize = 30;
-
-  for (let i = 0; i < folderIds.length; i += batchSize) {
-      const folderIdBatch = folderIds.slice(i, i + batchSize);
-      if(folderIdBatch.length > 0) {
-        const q = query(
-            collection(db, VOCABULARY_COLLECTION),
-            where("folderId", "in", folderIdBatch)
-        );
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
-            vocabulary.push({ id: doc.id, ...data, createdAt } as VocabularyItem);
-        });
-      }
-  }
-
-  return vocabulary.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    // Convert Firestore Timestamp to ISO string
+    const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
+    vocabulary.push({ id: doc.id, ...data, createdAt } as VocabularyItem);
+  });
+  return vocabulary;
 };
 
+// Helper function to remove undefined fields from an object
 const cleanData = (data: { [key: string]: any }) => {
   const cleanedData = { ...data };
   Object.keys(cleanedData).forEach((key) => {
@@ -56,25 +47,31 @@ const cleanData = (data: { [key: string]: any }) => {
   return cleanedData;
 };
 
+
 export const addVocabularyItem = async (
   item: Omit<VocabularyItem, "id" | "createdAt">,
+  userId: string
 ): Promise<VocabularyItem> => {
   const now = new Date();
   const newDocData = cleanData({
     ...item,
+    userId,
     createdAt: serverTimestamp(),
   });
-
+  
   const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), newDocData);
   return {
     id: docRef.id,
     ...item,
+    userId,
     createdAt: now.toISOString(),
   } as VocabularyItem;
 };
 
+
 export const addManyVocabularyItems = async (
-  items: Omit<VocabularyItem, "id" | "createdAt">[],
+  items: Omit<VocabularyItem, "id" | "createdAt" | "userId">[],
+  userId: string
 ): Promise<VocabularyItem[]> => {
   const batch = writeBatch(db);
   const newItems: VocabularyItem[] = [];
@@ -84,12 +81,14 @@ export const addManyVocabularyItems = async (
     const docRef = doc(collection(db, VOCABULARY_COLLECTION));
     const newDocData = cleanData({
       ...item,
+      userId,
       createdAt: serverTimestamp(),
     });
     batch.set(docRef, newDocData);
     newItems.push({
       id: docRef.id,
       ...item,
+      userId,
       createdAt: now.toISOString(),
     } as VocabularyItem);
   });
@@ -111,10 +110,15 @@ export const deleteVocabularyItem = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, VOCABULARY_COLLECTION, id));
 };
 
-export const deleteVocabularyByFolder = async (folderId: string): Promise<void> => {
+export const deleteVocabularyByFolder = async (
+  folderName: string,
+  userId: string
+): Promise<void> => {
+  if (!userId) return;
   const q = query(
     collection(db, VOCABULARY_COLLECTION),
-    where("folderId", "==", folderId)
+    where("userId", "==", userId),
+    where("folder", "==", folderName)
   );
   const querySnapshot = await getDocs(q);
 
@@ -130,10 +134,43 @@ export const deleteVocabularyByFolder = async (folderId: string): Promise<void> 
   await batch.commit();
 };
 
+export const updateVocabularyFolder = async (
+  oldFolderName: string,
+  newFolderName: string,
+  userId: string
+): Promise<void> => {
+  if (!userId) return;
+  const q = query(
+    collection(db, VOCABULARY_COLLECTION),
+    where("userId", "==", userId),
+    where("folder", "==", oldFolderName)
+  );
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    return;
+  }
+
+  const batch = writeBatch(db);
+  querySnapshot.forEach((doc) => {
+    batch.update(doc.ref, { folder: newFolderName });
+  });
+
+  await batch.commit();
+};
 
 export const clearVocabulary = async (userId: string): Promise<void> => {
-    // This is more complex now. We need to find all folders for the user,
-    // then delete all vocab in those folders. This is a heavy operation.
-    // For now, this function will be disabled for safety in a shared context.
-    console.warn("clearVocabulary is disabled in shared context.");
+    if (!userId) return;
+    const q = query(
+        collection(db, VOCABULARY_COLLECTION),
+        where("userId", "==", userId)
+    );
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return;
+
+    const batch = writeBatch(db);
+    querySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
 }

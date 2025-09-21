@@ -19,7 +19,7 @@ const GenerateBatchVocabularyDetailsInputSchema = z.object({
   targetLanguage: z
     .enum(['english', 'chinese', 'vietnamese'])
     .describe('The language to translate the words into.'),
-    folderId: z.string().describe("The folder ID to add the vocabulary to.")
+    folder: z.string().describe("The folder to add the vocabulary to.")
 });
 type GenerateBatchVocabularyDetailsInput = z.infer<
   typeof GenerateBatchVocabularyDetailsInputSchema
@@ -29,7 +29,7 @@ const WordDetailSchema = z.object({
     word: z.string(),
     language: z.enum(['english', 'chinese', 'vietnamese']),
     vietnameseTranslation: z.string(),
-    folderId: z.string(),
+    folder: z.string(),
     ipa: z.string().optional(),
     pinyin: z.string().optional(),
 })
@@ -79,7 +79,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
     outputSchema: GenerateBatchVocabularyDetailsOutputSchema,
   },
   async (input) => {
-    const { words, sourceLanguage, targetLanguage, folderId } = input;
+    const { words, sourceLanguage, targetLanguage, folder } = input;
 
     // Handle self-translation case
     if (sourceLanguage === targetLanguage) {
@@ -87,7 +87,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             word: word,
             language: sourceLanguage as Language,
             vietnameseTranslation: word,
-            folderId: folderId,
+            folder: folder,
         }));
     }
 
@@ -109,6 +109,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
         } else if (sourceLanguage === 'vietnamese') {
             vietnameseTranslation = word;
         } else {
+            // This case handles EN -> CN or CN -> EN. We still need a Vietnamese translation.
             const vietnameseResult = await singleWordPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
             vietnameseTranslation = vietnameseResult.output?.translation || word;
         }
@@ -117,7 +118,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             word,
             language: sourceLanguage as Language,
             vietnameseTranslation: vietnameseTranslation,
-            folderId,
+            folder,
             ipa: sourceLanguage === 'english' ? details.pronunciation : undefined,
             pinyin: sourceLanguage === 'chinese' ? details.pronunciation : undefined,
         }
@@ -130,6 +131,6 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
     const results = await Promise.all(promises);
     
     // Filter out any null results from failed API calls
-    return results.filter((result): result is Omit<VocabularyItem, 'id' | 'createdAt' | 'audioSrc'> => result !== null);
+    return results.filter((result): result is Omit<VocabularyItem, 'id' | 'createdAt' | 'audioSrc' | 'userId'> => result !== null);
   }
 );

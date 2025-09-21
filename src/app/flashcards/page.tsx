@@ -16,8 +16,6 @@ import { CardStackPlusIcon } from "@radix-ui/react-icons";
 export default function FlashcardsPage() {
     const { folders } = useVocabulary();
     const [selectedFolder, setSelectedFolder] = useState<string>("all");
-    
-    const sortedFolders = [...folders].sort();
 
     return (
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
@@ -32,7 +30,7 @@ export default function FlashcardsPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Tất cả từ vựng</SelectItem>
-                            {sortedFolders.map(folder => (
+                            {folders.map(folder => (
                                 <SelectItem key={folder} value={folder}>
                                     {folder}
                                 </SelectItem>

@@ -31,7 +31,7 @@ type SheetRow = {
   pronunciation: string;
   pronunciationLoading: boolean;
   vietnameseTranslation: string;
-  folderId: string;
+  folder: string;
 };
 
 let nextId = 1;
@@ -41,10 +41,8 @@ export function ManualAddSheet() {
   const { toast } = useToast();
   const [rows, setRows] = useState<SheetRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const sortedFolders = [...folders].sort((a,b) => a.name.localeCompare(b.name));
-  
+
   useEffect(() => {
-    const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
     setRows([{
       id: 0,
       word: "",
@@ -52,9 +50,9 @@ export function ManualAddSheet() {
       pronunciation: "",
       pronunciationLoading: false,
       vietnameseTranslation: "",
-      folderId: defaultFolderId,
+      folder: "Cơ bản",
     }]);
-  }, [folders]);
+  }, []);
 
 
   const handleInputChange = (
@@ -88,7 +86,6 @@ export function ManualAddSheet() {
 
   const addRow = () => {
     const lastRow = rows[rows.length - 1];
-    const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
     setRows([
       ...rows,
       {
@@ -98,7 +95,7 @@ export function ManualAddSheet() {
         pronunciation: "",
         pronunciationLoading: false,
         vietnameseTranslation: "",
-        folderId: lastRow?.folderId || defaultFolderId,
+        folder: lastRow?.folder || "Cơ bản",
       },
     ]);
   };
@@ -110,7 +107,7 @@ export function ManualAddSheet() {
 
   const handleSave = async () => {
     const validRows = rows.filter(
-      (row) => row.word && row.vietnameseTranslation && row.folderId
+      (row) => row.word && row.vietnameseTranslation && row.folder
     );
 
     if (validRows.length === 0) {
@@ -128,7 +125,7 @@ export function ManualAddSheet() {
             word: row.word,
             language: row.language as Language,
             vietnameseTranslation: row.vietnameseTranslation,
-            folderId: row.folderId,
+            folder: row.folder,
             ipa: row.language === 'english' ? row.pronunciation : undefined,
             pinyin: row.language === 'chinese' ? row.pronunciation : undefined,
         }));
@@ -140,7 +137,7 @@ export function ManualAddSheet() {
             description: `${validRows.length} từ đã được thêm vào từ vựng của bạn.`,
         });
 
-        const defaultFolderId = sortedFolders.find(f => f.name === 'Cơ bản')?.id || sortedFolders[0]?.id || "";
+        // Reset to a single blank row
         setRows([
             {
             id: nextId++,
@@ -149,7 +146,7 @@ export function ManualAddSheet() {
             pronunciation: "",
             pronunciationLoading: false,
             vietnameseTranslation: "",
-            folderId: defaultFolderId,
+            folder: "Cơ bản",
             },
         ]);
 
@@ -243,9 +240,9 @@ export function ManualAddSheet() {
                 </TableCell>
                 <TableCell>
                   <Select
-                    value={row.folderId}
+                    value={row.folder}
                     onValueChange={(value) =>
-                      handleInputChange(index, "folderId", value)
+                      handleInputChange(index, "folder", value)
                     }
                     disabled={isSaving || folders.length === 0}
                   >
@@ -253,9 +250,9 @@ export function ManualAddSheet() {
                       <SelectValue placeholder="Chọn thư mục" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sortedFolders.map((folder) => (
-                        <SelectItem key={folder.id} value={folder.id}>
-                          {folder.name}
+                      {folders.map((folder) => (
+                        <SelectItem key={folder} value={folder}>
+                          {folder}
                         </SelectItem>
                       ))}
                     </SelectContent>

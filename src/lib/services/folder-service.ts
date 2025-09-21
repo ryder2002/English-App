@@ -9,84 +9,75 @@ import {
   query,
   where,
   writeBatch,
-  serverTimestamp,
-  getDoc,
+  serverTimestamp
 } from "firebase/firestore";
-import type { Folder } from "@/lib/types";
 
 const FOLDERS_COLLECTION = "folders";
 
-// Get all folders where the user is a member (owner or shared with)
-export const getFolders = async (userId: string): Promise<Folder[]> => {
+export const getFolders = async (userId: string): Promise<string[]> => {
   if (!userId) return [];
   const q = query(
     collection(db, FOLDERS_COLLECTION),
-    where("members", "array-contains", userId)
+    where("userId", "==", userId)
   );
   const querySnapshot = await getDocs(q);
-  const folders: Folder[] = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  } as Folder));
-  return folders.sort((a, b) => a.name.localeCompare(b.name));
+  const folders: string[] = querySnapshot.docs.map((doc) => doc.data().name);
+  return folders.sort();
 };
 
-export const getFolderById = async (folderId: string): Promise<Folder | null> => {
-    const docRef = doc(db, FOLDERS_COLLECTION, folderId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as Folder;
-    }
-    return null;
-}
-
-
-export const addFolder = async (folderName: string, userId: string): Promise<Folder> => {
+export const addFolder = async (folderName: string, userId: string): Promise<void> => {
   if (!userId) {
     throw new Error("User ID is required to add a folder.");
   }
-  const newFolderData = {
+  await addDoc(collection(db, FOLDERS_COLLECTION), {
     name: folderName,
-    ownerId: userId,
-    members: [userId], // Owner is the first member
+    userId,
     createdAt: serverTimestamp(),
-  };
-  const docRef = await addDoc(collection(db, FOLDERS_COLLECTION), newFolderData);
-  return { id: docRef.id, ...newFolderData } as Folder;
+  });
 };
 
-// This function now adds a member to the folder's member list
-export const addMemberToFolder = async (folderId: string, memberId: string): Promise<void> => {
-    const folderRef = doc(db, FOLDERS_COLLECTION, folderId);
-    const folderSnap = await getDoc(folderRef);
-    if (!folderSnap.exists()) {
-        throw new Error("Folder not found.");
-    }
-    const folderData = folderSnap.data() as Folder;
-    if (!folderData.members.includes(memberId)) {
-        await updateDoc(folderRef, {
-            members: [...folderData.members, memberId]
-        });
-    }
-}
-
-export const updateFolder = async (folderId: string, newName: string): Promise<void> => {
-    const folderDoc = doc(db, FOLDERS_COLLECTION, folderId);
-    await updateDoc(folderDoc, { name: newName });
+export const updateFolder = async (
+  oldName: string,
+  newName: string,
+  userId: string
+): Promise<void> => {
+  if (!userId) return;
+  const q = query(
+    collection(db, FOLDERS_COLLECTION),
+    where("userId", "==", userId),
+    where("name", "==", oldName)
+  );
+  const querySnapshot = await getDocs(q);
+  if (querySnapshot.empty) {
+    throw new Error("Folder not found to update.");
+  }
+  const folderDoc = doc(db, FOLDERS_COLLECTION, querySnapshot.docs[0].id);
+  await updateDoc(folderDoc, { name: newName });
 };
 
-export const deleteFolder = async (folderId: string): Promise<void> => {
-    // Note: This only deletes the folder document.
-    // Associated vocabulary items should be handled separately, perhaps with a batched write.
-    await deleteDoc(doc(db, FOLDERS_COLLECTION, folderId));
+export const deleteFolder = async (
+  folderName: string,
+  userId: string
+): Promise<void> => {
+  if (!userId) return;
+  const q = query(
+    collection(db, FOLDERS_COLLECTION),
+    where("userId", "==", userId),
+    where("name", "==", folderName)
+  );
+  const querySnapshot = await getDocs(q);
+  if (querySnapshot.empty) {
+    throw new Error("Folder not found to delete.");
+  }
+  await deleteDoc(doc(db, FOLDERS_COLLECTION, querySnapshot.docs[0].id));
 };
+
 
 export const clearFolders = async (userId: string): Promise<void> => {
   if (!userId) return;
-  // This is more complex now. We should only clear folders owned by the user.
   const q = query(
     collection(db, FOLDERS_COLLECTION),
-    where("ownerId", "==", userId)
+    where("userId", "==", userId)
   );
   const querySnapshot = await getDocs(q);
   if (querySnapshot.empty) return;
