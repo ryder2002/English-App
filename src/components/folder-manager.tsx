@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -170,7 +171,7 @@ export function FolderManager() {
                                     </DropdownMenuItem>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal" disabled={isSubmitting || folder === 'Cơ bản'}>
+                                            <Button variant="ghost" className="text-destructive hover:text-destructive w-full justify-start px-2 py-1.5 text-sm h-auto font-normal" disabled={isSubmitting}>
                                                 <Trash2 className="mr-2 h-4 w-4"/> Xóa
                                             </Button>
                                         </AlertDialogTrigger>
