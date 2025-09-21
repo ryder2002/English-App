@@ -15,7 +15,7 @@ const GenerateIpaInputSchema = z.object({
 type GenerateIpaInput = z.infer<typeof GenerateIpaInputSchema>;
 
 const GenerateIpaOutputSchema = z.object({
-  ipa: z.string().optional().describe("The IPA transcription for the English word."),
+  ipa: z.string().optional().describe("The IPA transcription for the English word, enclosed in slashes."),
 });
 type GenerateIpaOutput = z.infer<typeof GenerateIpaOutputSchema>;
 
@@ -28,7 +28,9 @@ const generateIpaPrompt = ai.definePrompt({
   input: {schema: GenerateIpaInputSchema},
   output: {schema: GenerateIpaOutputSchema},
   prompt: `You are a linguistic expert specializing in phonetics.
-Provide ONLY the International Phonetic Alphabet (IPA) transcription for the given English word.
+Provide ONLY the International Phonetic Alphabet (IPA) transcription for the given English word, enclosed in slashes.
+
+Example for 'hello': /həˈloʊ/
 
 Word: {{{word}}}
 

@@ -18,10 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, PlusCircle, Save, Trash2 } from "lucide-react";
+import { Loader2, PlusCircle, Save, Sparkles, Trash2 } from "lucide-react";
 import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useToast } from "@/hooks/use-toast";
-import { getIpaAction, getPinyinAction } from "@/app/actions";
+import { getIpaAction, getPinyinAction, getVocabularyDetailsAction } from "@/app/actions";
 import type { Language } from "@/lib/types";
 
 type SheetRow = {
@@ -31,6 +31,7 @@ type SheetRow = {
   pronunciation: string;
   pronunciationLoading: boolean;
   vietnameseTranslation: string;
+  translationLoading: boolean;
   folder: string;
 };
 
@@ -43,69 +44,105 @@ export function ManualAddSheet() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setRows([{
-      id: 0,
-      word: "",
-      language: "english",
-      pronunciation: "",
-      pronunciationLoading: false,
-      vietnameseTranslation: "",
-      folder: folders.length > 0 ? folders[0] : "",
-    }]);
+    // Initialize with one blank row, setting a default folder if available.
+    if (folders.length > 0) {
+      setRows([createBlankRow(folders[0])]);
+    } else {
+      setRows([createBlankRow("")]);
+    }
   }, [folders]);
+
+  const createBlankRow = (defaultFolder: string): SheetRow => ({
+    id: nextId++,
+    word: "",
+    language: "english",
+    pronunciation: "",
+    pronunciationLoading: false,
+    vietnameseTranslation: "",
+    translationLoading: false,
+    folder: defaultFolder,
+  });
 
 
   const handleInputChange = (
     index: number,
     field: keyof SheetRow,
-    value: string
+    value: any
   ) => {
     const newRows = [...rows];
     (newRows[index] as any)[field] = value;
 
+    // When language changes to Vietnamese, clear pronunciation fields
     if (field === 'language' && value === 'vietnamese') {
         newRows[index].pronunciation = '';
         newRows[index].pronunciationLoading = false;
-    }
-
-    setRows(newRows);
-  };
-
-  const handleWordBlur = async (index: number) => {
-    const row = rows[index];
-    if (!row.word) return;
-
-    handleInputChange(index, "pronunciationLoading", "true"); // It's a string from HTML
-    let pronunciation: string | undefined;
-
-    if (row.language === 'english') {
-        pronunciation = await getIpaAction(row.word);
-    } else if (row.language === 'chinese') {
-        pronunciation = await getPinyinAction(row.word);
-    } else {
-        handleInputChange(index, "pronunciationLoading", "false");
-        return;
+        newRows[index].vietnameseTranslation = newRows[index].word;
     }
     
-    const newRows = [...rows];
-    newRows[index].pronunciation = pronunciation || "";
-    newRows[index].pronunciationLoading = false;
+    // If the word is cleared, clear the translation too
+    if (field === 'word' && value === '') {
+        newRows[index].vietnameseTranslation = '';
+    }
+
     setRows(newRows);
   };
+
+  const fetchPronunciation = async (index: number) => {
+    const row = rows[index];
+    if (!row.word || row.language === 'vietnamese') {
+        handleInputChange(index, "pronunciationLoading", false);
+        return;
+    }
+
+    handleInputChange(index, "pronunciationLoading", true);
+    let pronunciation: string | undefined;
+
+    try {
+        if (row.language === 'english') {
+            pronunciation = await getIpaAction(row.word);
+        } else if (row.language === 'chinese') {
+            pronunciation = await getPinyinAction(row.word);
+        }
+    } catch (error) {
+        console.error("Pronunciation fetch error:", error);
+    } finally {
+        const newRows = [...rows];
+        newRows[index].pronunciation = pronunciation || "";
+        newRows[index].pronunciationLoading = false;
+        setRows(newRows);
+    }
+  };
+
+  const fetchTranslation = async (index: number) => {
+      const row = rows[index];
+      if (!row.word || row.language === 'vietnamese') {
+          handleInputChange(index, "translationLoading", false);
+          return;
+      }
+      
+      handleInputChange(index, "translationLoading", true);
+      try {
+          const details = await getVocabularyDetailsAction(row.word, row.language, "vietnamese");
+          if (details && details.translation) {
+              handleInputChange(index, "vietnameseTranslation", details.translation);
+          }
+      } catch (error) {
+          console.error("Translation fetch error", error);
+      } finally {
+          handleInputChange(index, "translationLoading", false);
+      }
+  };
+  
+  const handleWordBlur = async (index: number) => {
+      await fetchPronunciation(index);
+      await fetchTranslation(index);
+  }
 
   const addRow = () => {
     const lastRow = rows[rows.length - 1];
     setRows([
       ...rows,
-      {
-        id: nextId++,
-        word: "",
-        language: lastRow?.language || "english",
-        pronunciation: "",
-        pronunciationLoading: false,
-        vietnameseTranslation: "",
-        folder: lastRow?.folder || (folders.length > 0 ? folders[0] : ""),
-      },
+      createBlankRow(lastRow?.folder || (folders.length > 0 ? folders[0] : "")),
     ]);
   };
 
@@ -148,15 +185,7 @@ export function ManualAddSheet() {
 
         // Reset to a single blank row
         setRows([
-            {
-            id: nextId++,
-            word: "",
-            language: "english",
-            pronunciation: "",
-            pronunciationLoading: false,
-            vietnameseTranslation: "",
-            folder: folders.length > 0 ? folders[0] : "",
-            },
+            createBlankRow(folders.length > 0 ? folders[0] : ""),
         ]);
 
     } catch (error) {
@@ -186,7 +215,7 @@ export function ManualAddSheet() {
               <TableHead className="w-[200px]">Từ vựng</TableHead>
               <TableHead className="w-[150px]">Ngôn ngữ</TableHead>
               <TableHead className="w-[180px]">Phát âm (AI)</TableHead>
-              <TableHead className="w-[200px]">Nghĩa tiếng Việt</TableHead>
+              <TableHead className="w-[200px]">Nghĩa tiếng Việt (AI)</TableHead>
               <TableHead className="w-[180px]">Thư mục</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -207,10 +236,13 @@ export function ManualAddSheet() {
                   <Select
                     value={row.language}
                     onValueChange={(value) => {
-                      handleInputChange(index, "language", value)
-                      // Refetch pronunciation if word exists
-                      if (rows[index].word) {
-                          handleWordBlur(index);
+                      handleInputChange(index, "language", value);
+                      const newRows = [...rows];
+                      newRows[index].language = value as any;
+                      setRows(newRows);
+                       // Refetch pronunciation and translation if word exists
+                      if (newRows[index].word) {
+                         handleWordBlur(index);
                       }
                     }}
                     disabled={isSaving}
@@ -224,28 +256,47 @@ export function ManualAddSheet() {
                   </Select>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center">
-                    {row.pronunciationLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Input
+                  <div className="flex items-center gap-2">
+                     <Input
                         value={row.pronunciation}
-                        readOnly
-                        className="bg-muted/50 border-none"
-                        placeholder={row.language === 'vietnamese' ? 'N/A' : 'AI-generated'}
+                        onChange={(e) => handleInputChange(index, "pronunciation", e.target.value)}
+                        className="bg-muted/50"
+                        placeholder={row.language === 'vietnamese' ? 'N/A' : '...'}
+                        disabled={isSaving || row.pronunciationLoading}
                       />
-                    )}
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => fetchPronunciation(index)} 
+                        disabled={isSaving || row.pronunciationLoading || !row.word || row.language === 'vietnamese'}
+                        className="h-8 w-8"
+                        aria-label="Tạo phát âm"
+                    >
+                        {row.pronunciationLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Input
-                    value={row.vietnameseTranslation}
-                    onChange={(e) =>
-                      handleInputChange(index, "vietnameseTranslation", e.target.value)
-                    }
-                    placeholder="ví dụ: xin chào"
-                    disabled={isSaving}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={row.vietnameseTranslation}
+                      onChange={(e) =>
+                        handleInputChange(index, "vietnameseTranslation", e.target.value)
+                      }
+                      placeholder="ví dụ: xin chào"
+                      disabled={isSaving || row.translationLoading}
+                    />
+                     <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => fetchTranslation(index)} 
+                        disabled={isSaving || row.translationLoading || !row.word || row.language === 'vietnamese'}
+                        className="h-8 w-8"
+                        aria-label="Tạo nghĩa"
+                    >
+                        {row.translationLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Select
