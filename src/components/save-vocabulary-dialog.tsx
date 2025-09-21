@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -40,6 +41,7 @@ const formSchema = z.object({
   language: z.enum(["english", "chinese", "vietnamese"], {
     required_error: "Vui lòng chọn một ngôn ngữ.",
   }),
+  vietnameseTranslation: z.string().optional(),
   folder: z.string().min(1, { message: "Thư mục không được để trống." }),
 });
 
@@ -68,6 +70,7 @@ export function SaveVocabularyDialog({
     defaultValues: {
       word: "",
       language: "english",
+      vietnameseTranslation: "",
       folder: "",
     },
   });
@@ -78,12 +81,14 @@ export function SaveVocabularyDialog({
         form.reset({
           word: itemToEdit.word,
           language: itemToEdit.language as "english" | "chinese" | "vietnamese",
+          vietnameseTranslation: itemToEdit.vietnameseTranslation,
           folder: itemToEdit.folder,
         });
       } else {
         form.reset({
           word: "",
           language: "english",
+          vietnameseTranslation: "",
           folder: defaultFolder || (folders.length > 0 ? folders[0] : ""),
         });
       }
@@ -105,15 +110,15 @@ export function SaveVocabularyDialog({
       
       let success = false;
       if (itemToEdit) {
-        // Only folder can be changed when editing
-        const editData = {
+        const editData: Partial<VocabularyItem> = {
           folder: targetFolder,
+          vietnameseTranslation: values.vietnameseTranslation || itemToEdit.vietnameseTranslation,
         };
         success = await updateVocabularyItem(itemToEdit.id, editData);
         if (success) {
           toast({
             title: "Thành công!",
-            description: `Từ đã được chuyển tới thư mục "${targetFolder}".`,
+            description: `Từ "${itemToEdit.word}" đã được cập nhật.`,
           });
         }
       } else {
@@ -123,15 +128,17 @@ export function SaveVocabularyDialog({
           "vietnamese"
         );
 
-        if (!details || !details.translation) {
-          throw new Error("AI không trả về dữ liệu hợp lệ.");
+        const finalVietnameseTranslation = values.vietnameseTranslation || (values.language === 'vietnamese' ? values.word : details.translation);
+        
+        if (!finalVietnameseTranslation) {
+             throw new Error("Không thể tìm thấy nghĩa Tiếng Việt cho từ này.");
         }
       
         const vocabularyData = {
           word: values.word,
           language: values.language as Language,
           folder: targetFolder,
-          vietnameseTranslation: values.language === 'vietnamese' ? values.word : details.translation,
+          vietnameseTranslation: finalVietnameseTranslation,
           ipa: details.ipa,
           pinyin: details.pinyin,
         };
@@ -172,7 +179,7 @@ export function SaveVocabularyDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {itemToEdit
-              ? "Chỉnh sửa thư mục cho từ của bạn."
+              ? "Chỉnh sửa nghĩa hoặc thư mục cho từ của bạn."
               : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
           </DialogDescription>
         </DialogHeader>
@@ -213,6 +220,19 @@ export function SaveVocabularyDialog({
                       <SelectItem value="vietnamese">Tiếng Việt</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="vietnameseTranslation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nghĩa Tiếng Việt</FormLabel>
+                  <FormControl>
+                    <Input placeholder={itemToEdit ? "Chỉnh sửa nghĩa..." : "Có thể bỏ trống, AI sẽ tự điền"} {...field} disabled={isSubmitting} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -273,3 +293,5 @@ export function SaveVocabularyDialog({
     </Dialog>
   );
 }
+
+    
