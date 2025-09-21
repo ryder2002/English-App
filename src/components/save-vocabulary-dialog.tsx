@@ -37,7 +37,7 @@ import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   word: z.string().min(1, { message: "Từ không được để trống." }),
-  language: z.enum(["english", "chinese"], {
+  language: z.enum(["english", "chinese", "vietnamese"], {
     required_error: "Vui lòng chọn một ngôn ngữ.",
   }),
   folder: z.string().min(1, { message: "Thư mục không được để trống." }),
@@ -77,7 +77,7 @@ export function SaveVocabularyDialog({
       if (itemToEdit) {
         form.reset({
           word: itemToEdit.word,
-          language: itemToEdit.language as "english" | "chinese",
+          language: itemToEdit.language as "english" | "chinese" | "vietnamese",
           folder: itemToEdit.folder,
         });
       } else {
@@ -131,9 +131,9 @@ export function SaveVocabularyDialog({
           word: values.word,
           language: values.language as Language,
           folder: targetFolder,
-          vietnameseTranslation: details.translation,
-          ipa: details.pronunciation,
-          pinyin: values.language === "chinese" ? details.pronunciation : undefined,
+          vietnameseTranslation: values.language === 'vietnamese' ? values.word : details.translation,
+          ipa: details.ipa,
+          pinyin: details.pinyin,
         };
         
         success = await addVocabularyItem(vocabularyData);
@@ -210,6 +210,7 @@ export function SaveVocabularyDialog({
                     <SelectContent>
                       <SelectItem value="english">Tiếng Anh</SelectItem>
                       <SelectItem value="chinese">Tiếng Trung</SelectItem>
+                      <SelectItem value="vietnamese">Tiếng Việt</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

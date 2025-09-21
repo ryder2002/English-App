@@ -21,7 +21,7 @@ import {
 import { Loader2, PlusCircle, Save, Trash2 } from "lucide-react";
 import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useToast } from "@/hooks/use-toast";
-import { getPronunciationAction } from "@/app/actions";
+import { getIpaAction, getPinyinAction } from "@/app/actions";
 import type { Language } from "@/lib/types";
 
 type SheetRow = {
@@ -73,10 +73,19 @@ export function ManualAddSheet() {
 
   const handleWordBlur = async (index: number) => {
     const row = rows[index];
-    if (!row.word || (row.language !== 'english' && row.language !== 'chinese')) return;
+    if (!row.word) return;
 
     handleInputChange(index, "pronunciationLoading", "true"); // It's a string from HTML
-    const pronunciation = await getPronunciationAction(row.word, row.language);
+    let pronunciation: string | undefined;
+
+    if (row.language === 'english') {
+        pronunciation = await getIpaAction(row.word);
+    } else if (row.language === 'chinese') {
+        pronunciation = await getPinyinAction(row.word);
+    } else {
+        handleInputChange(index, "pronunciationLoading", "false");
+        return;
+    }
     
     const newRows = [...rows];
     newRows[index].pronunciation = pronunciation || "";
@@ -200,7 +209,7 @@ export function ManualAddSheet() {
                     onValueChange={(value) => {
                       handleInputChange(index, "language", value)
                       // Refetch pronunciation if word exists
-                      if (rows[index].word && (value === 'english' || value === 'chinese')) {
+                      if (rows[index].word) {
                           handleWordBlur(index);
                       }
                     }}

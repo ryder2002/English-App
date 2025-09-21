@@ -265,8 +265,8 @@ export function DictionarySearch() {
                         <CardTitle className="text-4xl font-bold font-headline flex items-center gap-3">
                             {result.word}
                         </CardTitle>
-                        {result.definitions[0]?.pronunciation && (
-                           <p className="text-xl text-muted-foreground">{result.definitions[0].pronunciation}</p>
+                        {result.pronunciation && (
+                           <p className="text-xl text-muted-foreground">{result.pronunciation}</p>
                         )}
                     </div>
                      <Button size="icon" variant="ghost" className="rounded-full h-14 w-14" onClick={() => playAudio(result.word, result.sourceLanguage, 'original')}>

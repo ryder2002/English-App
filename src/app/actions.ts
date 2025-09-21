@@ -13,7 +13,8 @@ import {
 import {
   interactWithLanguageChatbot,
 } from "@/ai/flows/interact-with-language-chatbot";
-import { generatePronunciation } from "@/ai/flows/generate-pronunciation-flow";
+import { generateIpa } from "@/ai/flows/generate-ipa-flow";
+import { generatePinyin } from "@/ai/flows/generate-pinyin-flow";
 import type { Language } from "@/lib/types";
 
 // NOTE: Audio generation actions have been removed.
@@ -27,7 +28,8 @@ type GenerateQuickVocabularyDetailsInput = {
 }
 type GenerateQuickVocabularyDetailsOutput = {
     translation: string;
-    pronunciation?: string;
+    ipa?: string;
+    pinyin?: string;
 }
 
 type GenerateBatchVocabularyDetailsInput = {
@@ -64,7 +66,8 @@ export async function getVocabularyDetailsAction(
 
     return {
         translation: details.translation,
-        pronunciation: details.pronunciation,
+        ipa: details.ipa,
+        pinyin: details.pinyin,
     };
 }
 
@@ -90,12 +93,22 @@ export async function getChatbotResponseAction(
   return result.response;
 }
 
-export async function getPronunciationAction(word: string, language: 'english' | 'chinese'): Promise<string | undefined> {
+export async function getIpaAction(word: string): Promise<string | undefined> {
     try {
-        const result = await generatePronunciation({ word, language });
-        return result.pronunciation;
+        const result = await generateIpa({ word });
+        return result.ipa;
     } catch (e) {
-        console.error("Error generating pronunciation in getPronunciationAction", e);
+        console.error("Error generating IPA in getIpaAction", e);
+        return undefined;
+    }
+}
+
+export async function getPinyinAction(word: string): Promise<string | undefined> {
+    try {
+        const result = await generatePinyin({ word });
+        return result.pinyin;
+    } catch (e) {
+        console.error("Error generating Pinyin in getPinyinAction", e);
         return undefined;
     }
 }

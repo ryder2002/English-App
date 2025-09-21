@@ -9,6 +9,8 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { Language, VocabularyItem } from '@/lib/types';
+import { generateIpa } from './generate-ipa-flow';
+import { generatePinyin } from './generate-pinyin-flow';
 
 
 const GenerateBatchVocabularyDetailsInputSchema = z.object({
@@ -46,8 +48,8 @@ export async function generateBatchVocabularyDetails(
 }
 
 
-const singleWordPrompt = ai.definePrompt({
-    name: 'singleWordPrompt',
+const translationPrompt = ai.definePrompt({
+    name: 'translationPrompt',
     input: { schema: z.object({ 
         word: z.string(),
         sourceLanguage: z.string(),
@@ -55,19 +57,14 @@ const singleWordPrompt = ai.definePrompt({
      }) },
     output: { schema: z.object({
         translation: z.string().describe("The translation of the word in the target language."),
-        pronunciation: z.string().optional().describe("The IPA (for English) or Pinyin (for Chinese) transcription. Omit if not applicable.")
     }) },
-    prompt: `You are a multilingual language expert. Provide the translation and pronunciation for a single word.
+    prompt: `You are a multilingual language expert. Provide the translation for a single word.
 
 Word: {{{word}}}
 Source Language: {{{sourceLanguage}}}
 Target Language: {{{targetLanguage}}}
 
-Provide the following:
-1.  The translation of the word in the target language.
-2.  The pronunciation (IPA for English, Pinyin for Chinese).
-
-Return a valid JSON object.
+Return a valid JSON object with only the translation.
   `,
 });
 
@@ -93,24 +90,35 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
 
     const promises = words.map(async (word) => {
       try {
-        const { output: details } = await singleWordPrompt({
+        const { output: translationDetails } = await translationPrompt({
             word,
             sourceLanguage,
             targetLanguage,
         });
 
-        if (!details) {
+        if (!translationDetails) {
             return null;
+        }
+
+        let ipa: string | undefined = undefined;
+        let pinyin: string | undefined = undefined;
+
+        if (sourceLanguage === 'english') {
+            const ipaResult = await generateIpa({ word });
+            ipa = ipaResult.ipa;
+        } else if (sourceLanguage === 'chinese') {
+            const pinyinResult = await generatePinyin({ word });
+            pinyin = pinyinResult.pinyin;
         }
         
         let vietnameseTranslation: string;
         if (targetLanguage === 'vietnamese') {
-            vietnameseTranslation = details.translation;
+            vietnameseTranslation = translationDetails.translation;
         } else if (sourceLanguage === 'vietnamese') {
             vietnameseTranslation = word;
         } else {
             // This case handles EN -> CN or CN -> EN. We still need a Vietnamese translation.
-            const vietnameseResult = await singleWordPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
+            const vietnameseResult = await translationPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
             vietnameseTranslation = vietnameseResult.output?.translation || word;
         }
 
@@ -119,8 +127,8 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             language: sourceLanguage as Language,
             vietnameseTranslation: vietnameseTranslation,
             folder,
-            ipa: sourceLanguage === 'english' ? details.pronunciation : undefined,
-            pinyin: sourceLanguage === 'chinese' ? details.pronunciation : undefined,
+            ipa,
+            pinyin,
         }
       } catch (error) {
         console.error(`Failed to process word: ${word}`, error);

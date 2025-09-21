@@ -10,11 +10,13 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import type { Language } from '@/lib/types';
+import { generateIpa } from './generate-ipa-flow';
+import { generatePinyin } from './generate-pinyin-flow';
 
 const GenerateQuickVocabularyDetailsInputSchema = z.object({
   word: z.string().describe('The vocabulary word to generate details for.'),
   sourceLanguage: z
-    .enum(['english', 'chinese'])
+    .enum(['english', 'chinese', 'vietnamese'])
     .describe('The source language of the word.'),
   targetLanguage: z
     .enum(['english', 'chinese', 'vietnamese'])
@@ -26,7 +28,8 @@ type GenerateQuickVocabularyDetailsInput = z.infer<
 
 const GenerateQuickVocabularyDetailsOutputSchema = z.object({
   translation: z.string().describe("The most common translation of the word in the target language."),
-  pronunciation: z.string().optional().describe("The IPA (for English) or Pinyin (for Chinese) transcription. Omit if not applicable."),
+  ipa: z.string().optional().describe("The IPA transcription for an English word."),
+  pinyin: z.string().optional().describe("The Pinyin transcription for a Chinese word."),
 });
 type GenerateQuickVocabularyDetailsOutput = z.infer<
   typeof GenerateQuickVocabularyDetailsOutputSchema
@@ -38,24 +41,23 @@ export async function generateQuickVocabularyDetails(
   return generateQuickVocabularyDetailsFlow(input);
 }
 
-const generateQuickVocabularyDetailsPrompt = ai.definePrompt({
-  name: 'generateQuickVocabularyDetailsPrompt',
-  input: {schema: GenerateQuickVocabularyDetailsInputSchema},
+const generateQuickTranslationPrompt = ai.definePrompt({
+  name: 'generateQuickTranslationPrompt',
+  input: {schema: z.object({
+      word: z.string(),
+      sourceLanguage: z.string(),
+      targetLanguage: z.string(),
+  })},
   output: {schema: z.object({
     translation: z.string(),
-    pronunciation: z.string().optional(),
   })},
-  prompt: `You are a highly efficient multilingual translator. Provide only the most essential details for a given word.
+  prompt: `You are a highly efficient multilingual translator. Provide only the single, most common translation for a given word.
 
 Word: {{{word}}}
 Source Language: {{{sourceLanguage}}}
 Target Language: {{{targetLanguage}}}
 
-Provide the following and nothing more:
-1.  The single, most common translation of the word in the target language.
-2.  The pronunciation (IPA for English, Pinyin for Chinese). Omit this field if the source language is Vietnamese.
-
-Return a valid JSON object.
+Return a valid JSON object with only the "translation" field.
   `,
 });
 
@@ -66,19 +68,45 @@ const generateQuickVocabularyDetailsFlow = ai.defineFlow(
     outputSchema: GenerateQuickVocabularyDetailsOutputSchema,
   },
   async input => {
-    // Prevent self-translation
-    if (input.sourceLanguage === input.targetLanguage) {
+    // Prevent self-translation for non-Vietnamese
+    if (input.sourceLanguage === input.targetLanguage && input.sourceLanguage !== 'vietnamese') {
       return {
         translation: input.word,
-        pronunciation: "",
       };
     }
     
-    const { output } = await generateQuickVocabularyDetailsPrompt(input);
+    // When source is Vietnamese, we translate to English by default to get IPA
+    const translationTarget = input.sourceLanguage === 'vietnamese' ? 'english' : input.targetLanguage;
+
+    const { output: translationOutput } = await generateQuickTranslationPrompt({
+        word: input.word,
+        sourceLanguage: input.sourceLanguage,
+        targetLanguage: translationTarget,
+    });
+    
+    if (!translationOutput) {
+        throw new Error("Failed to get translation from AI.");
+    }
+    
+    let ipa: string | undefined = undefined;
+    let pinyin: string | undefined = undefined;
+
+    if (input.sourceLanguage === 'english') {
+      const ipaResult = await generateIpa({ word: input.word });
+      ipa = ipaResult.ipa;
+    } else if (input.sourceLanguage === 'chinese') {
+      const pinyinResult = await generatePinyin({ word: input.word });
+      pinyin = pinyinResult.pinyin;
+    } else if (input.sourceLanguage === 'vietnamese') {
+      // If the original word is Vietnamese, we get the IPA of its English translation
+      const ipaResult = await generateIpa({ word: translationOutput.translation });
+      ipa = ipaResult.ipa;
+    }
 
     return {
-        translation: output!.translation,
-        pronunciation: output!.pronunciation,
+        translation: translationOutput.translation,
+        ipa: ipa,
+        pinyin: pinyin,
     };
   }
 );
