@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-config();
+config({ path: '.env.local' });
 
 import '@/ai/flows/generate-vocabulary-details.ts';
 import '@/ai/flows/interact-with-language-chatbot.ts';
