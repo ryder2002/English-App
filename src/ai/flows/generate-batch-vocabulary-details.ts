@@ -1,17 +1,15 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow to generate details for a batch of vocabulary words.
+ * @fileOverview This file defines a Genkit flow to generate details for a batch of vocabulary words
+ * by processing the entire list in a single, optimized AI call.
  *
  * - generateBatchVocabularyDetails - A function that triggers the batch vocabulary details generation flow.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import type { Language, VocabularyItem } from '@/lib/types';
-import { generateIpa } from './generate-ipa-flow';
-import { generatePinyin } from './generate-pinyin-flow';
-
+import type { Language } from '@/lib/types';
 
 const GenerateBatchVocabularyDetailsInputSchema = z.object({
   words: z.array(z.string()).describe('A list of vocabulary words to generate details for.'),
@@ -28,13 +26,13 @@ type GenerateBatchVocabularyDetailsInput = z.infer<
 >;
 
 const WordDetailSchema = z.object({
-    word: z.string(),
-    language: z.enum(['english', 'chinese', 'vietnamese']),
-    vietnameseTranslation: z.string(),
-    folder: z.string(),
-    ipa: z.string().optional(),
-    pinyin: z.string().optional(),
-})
+    word: z.string().describe("The original word from the input list."),
+    language: z.enum(['english', 'chinese', 'vietnamese']).describe("The source language of the word."),
+    vietnameseTranslation: z.string().describe("The Vietnamese translation of the word."),
+    folder: z.string().describe("The folder to add the vocabulary to."),
+    ipa: z.string().optional().describe("The IPA transcription for the English word, enclosed in slashes."),
+    pinyin: z.string().optional().describe("The Pinyin transcription for the Chinese word."),
+});
 
 const GenerateBatchVocabularyDetailsOutputSchema = z.array(WordDetailSchema);
 type GenerateBatchVocabularyDetailsOutput = z.infer<
@@ -48,23 +46,33 @@ export async function generateBatchVocabularyDetails(
 }
 
 
-const translationPrompt = ai.definePrompt({
-    name: 'translationPrompt',
+const generateBatchDetailsPrompt = ai.definePrompt({
+    name: 'generateBatchDetailsPrompt',
     input: { schema: z.object({ 
-        word: z.string(),
+        words: z.array(z.string()),
         sourceLanguage: z.string(),
         targetLanguage: z.string(),
+        folder: z.string(),
      }) },
-    output: { schema: z.object({
-        translation: z.string().describe("The translation of the word in the target language."),
-    }) },
-    prompt: `You are a multilingual language expert. Provide the translation for a single word.
+    output: { schema: GenerateBatchVocabularyDetailsOutputSchema },
+    prompt: `You are a highly efficient multilingual expert. Your task is to process a batch of vocabulary words and return a structured JSON array.
 
-Word: {{{word}}}
+For each word in the input list, provide the following details:
+1. 'word': The original word.
+2. 'language': The source language provided ({{{sourceLanguage}}}).
+3. 'vietnameseTranslation': The translation of the word into Vietnamese.
+    - If the source language is Vietnamese, this field should be the same as the original word.
+    - If the target language is Vietnamese, this is the direct translation.
+    - If translating between English and Chinese, you MUST still provide a Vietnamese translation for the source word.
+4. 'folder': The folder name provided ({{{folder}}}).
+5. 'ipa': The International Phonetic Alphabet (IPA) transcription, enclosed in slashes (e.g., /həˈloʊ/). Provide this ONLY if the source language is 'english'. Otherwise, omit this field.
+6. 'pinyin': The Pinyin transcription. Provide this ONLY if the source language is 'chinese'. Otherwise, omit this field.
+
+Input Words: {{{json words}}}
 Source Language: {{{sourceLanguage}}}
 Target Language: {{{targetLanguage}}}
 
-Return a valid JSON object with only the translation.
+Process all words and return a single, valid JSON array of objects, with each object conforming to the schema. Do not skip any words.
   `,
 });
 
@@ -77,68 +85,32 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
   },
   async (input) => {
     const { words, sourceLanguage, targetLanguage, folder } = input;
-    const results: GenerateBatchVocabularyDetailsOutput = [];
 
-    // Handle self-translation case
-    if (sourceLanguage === targetLanguage) {
+    // Handle self-translation case directly to avoid unnecessary AI calls
+    if (sourceLanguage === 'vietnamese' && targetLanguage === 'vietnamese') {
         return words.map(word => ({
             word: word,
-            language: sourceLanguage as Language,
+            language: 'vietnamese',
             vietnameseTranslation: word,
             folder: folder,
         }));
     }
+    
+    const { output } = await generateBatchDetailsPrompt(input);
 
-    for (const word of words) {
-        try {
-            const { output: translationDetails } = await translationPrompt({
-                word,
-                sourceLanguage,
-                targetLanguage,
-            });
-
-            if (!translationDetails) {
-                console.error(`Failed to get translation for word: ${word}`);
-                continue; // Skip this word and proceed to the next one
-            }
-
-            let ipa: string | undefined = undefined;
-            let pinyin: string | undefined = undefined;
-
-            if (sourceLanguage === 'english') {
-                const ipaResult = await generateIpa({ word });
-                ipa = ipaResult.ipa;
-            } else if (sourceLanguage === 'chinese') {
-                const pinyinResult = await generatePinyin({ word });
-                pinyin = pinyinResult.pinyin;
-            }
-            
-            let vietnameseTranslation: string;
-            if (targetLanguage === 'vietnamese') {
-                vietnameseTranslation = translationDetails.translation;
-            } else if (sourceLanguage === 'vietnamese') {
-                vietnameseTranslation = word;
-            } else {
-                // This case handles EN -> CN or CN -> EN. We still need a Vietnamese translation.
-                const vietnameseResult = await translationPrompt({ word, sourceLanguage, targetLanguage: 'vietnamese'});
-                vietnameseTranslation = vietnameseResult.output?.translation || word;
-            }
-
-            results.push({
-                word,
-                language: sourceLanguage as Language,
-                vietnameseTranslation: vietnameseTranslation,
-                folder,
-                ipa,
-                pinyin,
-            });
-
-        } catch (error) {
-            console.error(`Failed to process word: ${word}`, error);
-            // Continue to the next word even if one fails
-        }
+    if (!output) {
+      console.error('Batch generation failed: AI returned no output.');
+      throw new Error('Failed to generate vocabulary details for the batch.');
     }
     
-    return results;
+    // Ensure all words from input are present in the output, to prevent silent failures
+    const outputWords = new Set(output.map(item => item.word.toLowerCase()));
+    const missingWords = words.filter(inputWord => !outputWords.has(inputWord.toLowerCase()));
+
+    if (missingWords.length > 0) {
+        console.warn(`AI did not return details for some words: ${missingWords.join(', ')}`);
+    }
+
+    return output;
   }
 );
