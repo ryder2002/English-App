@@ -74,11 +74,9 @@ export function LoginForm() {
     <div className="animated-gradient-border">
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center items-center">
-              <div className="animated-gradient-border rounded-xl mb-2">
-                <div className="flex items-center gap-2 p-2 bg-card rounded-xl">
-                    <h1 className="text-5xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
-                    <Languages className="h-10 w-10 text-primary" />
-                </div>
+              <div className="animated-gradient-border inline-flex items-center gap-2 p-2 bg-card rounded-xl mb-2">
+                <h1 className="text-5xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+                <Languages className="h-10 w-10 text-primary" />
               </div>
               <CardTitle className="text-2xl">Đăng nhập</CardTitle>
               <CardDescription>Nhập email và mật khẩu để tiếp tục.</CardDescription>
