@@ -144,7 +144,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper",
               className
             )}
             ref={ref}
@@ -178,14 +178,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-    const { user, signOut } = useAuth();
-    
-    const getInitials = (email: string | null | undefined) => {
-      if (!email) return "U";
-      return email.charAt(0).toUpperCase();
-    }
-
+    const { isMobile, state } = useSidebar()
 
     if (collapsible === "none") {
       return (
@@ -203,41 +196,7 @@ const Sidebar = React.forwardRef<
     }
 
     if (isMobile) {
-      return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-          <SheetContent
-            data-sidebar="sidebar"
-            data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground flex flex-col"
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-              } as React.CSSProperties
-            }
-            side={side}
-          >
-            {children}
-            <div className="mt-auto p-4 border-t border-sidebar-border space-y-4">
-                {user && (
-                    <div className="flex items-center gap-3 p-2 rounded-md">
-                        <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
-                                {getInitials(user.email)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col text-sm overflow-hidden">
-                            <span className="font-medium truncate">{user.email}</span>
-                        </div>
-                    </div>
-                )}
-                 <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Đăng xuất
-                </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
-      )
+      return null;
     }
 
     return (
@@ -401,7 +360,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2 mt-auto", className)}
       {...props}
     />
   )
@@ -788,4 +747,6 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
+  Sheet,
+  SheetContent,
 }
