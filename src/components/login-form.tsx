@@ -22,6 +22,7 @@ import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { CNLogo } from "./cn-logo";
 
 
 const formSchema = z.object({
@@ -73,11 +74,8 @@ export function LoginForm() {
   return (
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center items-center">
-              <div className="animated-gradient-border mb-2">
-                <div className="flex items-center justify-center gap-2 bg-card rounded-lg p-2">
-                    <h1 className="text-5xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
-                    <Languages className="h-10 w-10 text-primary" />
-                </div>
+              <div className="mb-2">
+                <CNLogo />
               </div>
               <CardTitle className="text-2xl">Đăng nhập</CardTitle>
               <CardDescription>Nhập email và mật khẩu để tiếp tục.</CardDescription>

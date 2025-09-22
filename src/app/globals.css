@@ -91,10 +91,7 @@
   .animated-gradient-border::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: conic-gradient(from var(--angle, 0deg), hsl(var(--accent) / 0.9), hsl(var(--primary) / 0.8), hsl(var(--accent) / 0.9));
     border-radius: inherit; /* Use the parent's border-radius */
     animation: gradient-spin 4s linear infinite;
@@ -108,10 +105,7 @@
   .active-nav-item-gradient::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: conic-gradient(from var(--angle, 0deg), hsl(var(--primary) / 0.7), hsl(var(--accent) / 0.8), hsl(var(--primary) / 0.7));
     border-radius: inherit;
     animation: gradient-spin 4s linear infinite;
