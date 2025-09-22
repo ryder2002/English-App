@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <div className="md:grid md:grid-cols-[auto_1fr]">
       <Sidebar>
         <SidebarHeader className="p-4">
           <CNLogo />
@@ -116,6 +116,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         
         <main>{children}</main>
       </SidebarInset>
-    </>
+    </div>
   );
 }
