@@ -1,5 +1,6 @@
 
 import { cn } from "@/lib/utils";
+import { Languages } from "lucide-react";
 
 interface CNLogoProps {
     className?: string;
@@ -7,8 +8,13 @@ interface CNLogoProps {
 
 export function CNLogo({ className }: CNLogoProps) {
   return (
-    <div className={cn("flex items-center", className)}>
-        <span className="text-3xl font-bold text-gradient">CN</span>
+    <div className={cn("flex items-center gap-2", className)}>
+        <div className="p-1 rounded-xl logo-icon-gradient">
+            <div className="h-7 w-7 flex items-center justify-center bg-background rounded-xl">
+                 <Languages className="h-5 w-5 text-primary" />
+            </div>
+        </div>
+        <span className="text-2xl font-bold text-gradient">CN</span>
     </div>
   );
 }
