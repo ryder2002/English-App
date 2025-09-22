@@ -1,22 +1,23 @@
 {
-  "theme_color": "#f69435",
-  "background_color": "#f69435",
-  "display": "standalone",
-  "scope": "/",
-  "start_url": "/",
-  "name": "CN - Language Learning",
-  "short_name": "CN",
-  "description": "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
-  "icons": [
-    {
-      "src": "/images/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/images/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+    "name": "CN - Trợ lý học ngôn ngữ",
+    "short_name": "CN",
+    "description": "Ứng dụng học từ vựng và trợ lý ngôn ngữ AI",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0A0F1F",
+    "theme_color": "#0A0F1F",
+    "icons": [
+        {
+            "src": "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
 }
