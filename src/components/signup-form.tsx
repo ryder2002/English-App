@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Languages, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
@@ -75,7 +75,8 @@ export function SignupForm() {
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
               <div className="flex items-center gap-2 justify-center mb-2">
-                  <h1 className="text-3xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+                  <Languages className="h-10 w-10 text-primary" />
+                  <h1 className="text-4xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
               </div>
               <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
               <CardDescription>Bắt đầu hành trình học ngôn ngữ của bạn.</CardDescription>
