@@ -1,6 +1,8 @@
 import { BatchAddForm } from "@/components/batch-add-form";
 import { ManualAddTable } from "@/components/manual-add-table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Info } from "lucide-react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -22,15 +24,21 @@ export default function AddVocabularyPage() {
                     <TabsTrigger value="manual">Thêm thủ công</TabsTrigger>
                 </TabsList>
                 <TabsContent value="batch" className="mt-6">
-                     <div className="text-center max-w-2xl mx-auto mb-6">
-                        <p className="text-sm text-muted-foreground">Nhập danh sách từ, AI sẽ tự động tạo các phần còn lại (dịch nghĩa, phát âm, âm thanh).</p>
-                    </div>
+                     <Alert className="max-w-2xl mx-auto mb-6">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                            Nhập danh sách từ, AI sẽ tự động tạo các phần còn lại (dịch nghĩa, phát âm, âm thanh).
+                        </AlertDescription>
+                    </Alert>
                     <BatchAddForm />
                 </TabsContent>
                 <TabsContent value="manual" className="mt-6">
-                    <div className="text-center max-w-3xl mx-auto mb-6">
-                        <p className="text-sm text-muted-foreground">Tự điền các cột như một bảng tính. AI sẽ hỗ trợ tạo tự động phần phát âm và nghĩa khi bạn nhập xong từ.</p>
-                    </div>
+                    <Alert className="max-w-3xl mx-auto mb-6">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                           Tự điền các cột như một bảng tính. AI sẽ hỗ trợ tạo tự động phần phát âm và nghĩa khi bạn nhập xong từ.
+                        </AlertDescription>
+                    </Alert>
                     <ManualAddTable />
                 </TabsContent>
             </Tabs>
