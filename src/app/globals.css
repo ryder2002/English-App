@@ -84,6 +84,9 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-orange-400 via-red-500 to-purple-600 bg-clip-text text-transparent;
+  }
+  .logo-icon-gradient {
+    @apply bg-gradient-to-br from-orange-400 via-red-500 to-purple-600;
   }
 }
