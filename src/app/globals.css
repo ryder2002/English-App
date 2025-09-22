@@ -84,8 +84,8 @@
 
 @layer utilities {
   .animated-gradient-border {
-    @apply relative rounded-lg p-px;
-    box-shadow: 0 0 1.5rem hsl(var(--primary) / 0.2);
+    @apply relative p-px rounded-lg;
+    box-shadow: 0 0 1rem hsl(var(--primary) / 0.25);
   }
 
   .animated-gradient-border::before {
@@ -100,7 +100,7 @@
     animation: gradient-spin 4s linear infinite;
     z-index: -1;
   }
-
+  
   .active-nav-item-gradient {
     @apply relative rounded-md p-px;
   }
