@@ -7,6 +7,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SettingsProvider } from "@/contexts/settings-context";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -42,7 +43,9 @@ export default function RootLayout({
         <AuthProvider>
           <SettingsProvider>
             <VocabularyProvider>
-              <AppShell>{children}</AppShell>
+              <SidebarProvider>
+                <AppShell>{children}</AppShell>
+              </SidebarProvider>
               <Toaster />
             </VocabularyProvider>
           </SettingsProvider>

@@ -8,13 +8,12 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
   SheetContent,
   Sheet,
 } from "@/components/ui/sidebar";
 import { SidebarNav } from "./sidebar-nav";
-import { LogOut, Languages } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
