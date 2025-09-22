@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -21,7 +22,6 @@ import Link from "next/link";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 
 const formSchema = z.object({
@@ -75,8 +75,7 @@ export function SignupForm() {
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
               <div className="flex items-center gap-2 justify-center mb-2">
-                  <Image src="/image/BG.png" alt="CN Logo" width={32} height={32} />
-                  <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+                  <h1 className="text-3xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
               </div>
               <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
               <CardDescription>Bắt đầu hành trình học ngôn ngữ của bạn.</CardDescription>
