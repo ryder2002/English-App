@@ -35,8 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader className="p-4">
-          <div className="animated-gradient-border rounded-lg">
-            <div className="flex items-center gap-2 p-2 bg-sidebar rounded-lg">
+          <div className="animated-gradient-border rounded-xl">
+            <div className="flex items-center gap-2 p-2 bg-sidebar rounded-xl">
               <h1 className="text-4xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
               <Languages className="h-8 w-8 text-primary" />
             </div>
