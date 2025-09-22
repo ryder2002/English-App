@@ -61,12 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarInset className="bg-background min-h-screen">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
           <SidebarTrigger />
-           <div className="animated-gradient-border">
-            <div className="flex items-center justify-center gap-2 bg-card rounded-lg p-1.5">
-              <h1 className="text-3xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
-              <Languages className="h-7 w-7 text-primary" />
-            </div>
-          </div>
+          <CNLogo backgroundClass="bg-card" />
         </header>
         <main>{children}</main>
       </SidebarInset>

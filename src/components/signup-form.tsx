@@ -75,7 +75,7 @@ export function SignupForm() {
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center items-center">
               <div className="mb-2">
-                <CNLogo />
+                <CNLogo backgroundClass="bg-card" />
               </div>
               <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
               <CardDescription>Bắt đầu hành trình học ngôn ngữ của bạn.</CardDescription>

@@ -1,9 +1,15 @@
 import { Languages } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function CNLogo() {
+interface CNLogoProps {
+    className?: string;
+    backgroundClass?: string;
+}
+
+export function CNLogo({ className, backgroundClass = "bg-sidebar" }: CNLogoProps) {
   return (
-    <div className="animated-gradient-border">
-      <div className="flex items-center justify-center gap-2 rounded-lg bg-sidebar p-2">
+    <div className={cn("animated-gradient-border", className)}>
+      <div className={cn("flex items-center justify-center gap-2 rounded-lg p-2", backgroundClass)}>
         <h1 className="text-4xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">
           CN
         </h1>
