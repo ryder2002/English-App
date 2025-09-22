@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   title: "CN - Language Learning",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
   icons: {
-    icon: `/BG.png`,
+    icon: `/images/BG.png`,
   }
 };
 
