@@ -22,7 +22,7 @@ export function FolderDetailClient({ folderName }: FolderDetailClientProps) {
                             <ChevronLeft className="h-4 w-4" />
                         </Link>
                     </Button>
-                    <h1 className="text-3xl font-bold font-headline tracking-tight bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">
+                    <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
                         {folderName}
                     </h1>
                 </div>
