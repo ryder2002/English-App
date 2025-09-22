@@ -13,6 +13,11 @@ const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
 export const metadata: Metadata = {
   title: "CN",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
+  icons: {
+    icon: "/BG.png",
+    shortcut: "/BG.png",
+    apple: "/BG.png",
+  },
 };
 
 export default function RootLayout({

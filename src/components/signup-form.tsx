@@ -14,13 +14,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Languages } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 
 const formSchema = z.object({
@@ -74,9 +75,7 @@ export function SignupForm() {
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
               <div className="flex items-center gap-2 justify-center mb-2">
-                  <div className="p-2 rounded-lg bg-primary/20 text-primary">
-                  <Languages className="h-6 w-6" />
-                  </div>
+                  <Image src="/BG.png" alt="CN Logo" width={32} height={32} />
                   <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
               </div>
               <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
