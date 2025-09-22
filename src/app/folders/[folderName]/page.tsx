@@ -7,7 +7,7 @@ interface FolderDetailPageProps {
     }
 }
 
-export default function FolderDetailPage({ params }: FolderDetailPageProps) {
+export default async function FolderDetailPage({ params }: FolderDetailPageProps) {
     const folderName = decodeURIComponent(params.folderName);
     
     return (
