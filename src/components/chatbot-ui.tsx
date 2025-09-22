@@ -119,6 +119,7 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
     const parts = content.split(/(<speak word='[^']*' lang='[^']*'>[^<]*<\/speak>)/g);
 
     return parts.map((part, i) => {
+        if (!part) return null;
         const match = part.match(/<speak word='([^']*)' lang='([^']*)'>([^<]*)<\/speak>/);
         if (match) {
             const [_, word, lang, innerText] = match;

@@ -59,7 +59,7 @@ Use this format ONLY when pronunciation is explicitly requested. For all other q
 Please respond to the user's query. Use Markdown for formatting to make the response professional, readable, and well-structured.
 - Use **bold** with asterisks (**) to highlight important terms or key points.
 - Use bullet points with a hyphen (-). CRUCIAL: Each bullet point MUST be on a new line.
-- Use newlines for paragraph breaks.
+- Use newlines (\\n) for paragraph breaks.
 
 Conversation History:
 {{#each history}}
