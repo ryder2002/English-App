@@ -3,18 +3,17 @@ import { cn } from "@/lib/utils";
 
 interface CNLogoProps {
     className?: string;
-    backgroundClass?: string;
 }
 
-export function CNLogo({ className, backgroundClass = "bg-sidebar" }: CNLogoProps) {
+export function CNLogo({ className }: CNLogoProps) {
   return (
-    <div className={cn("animated-gradient-border", className)}>
-      <div className={cn("flex items-center justify-center gap-2 rounded-lg p-2", backgroundClass)}>
-        <h1 className="text-4xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">
-          CN
-        </h1>
-        <Languages className="h-8 w-8 text-primary" />
-      </div>
+    <div className={cn("flex items-center gap-3", className)}>
+        <div className="p-0.5 rounded-lg bg-gradient-to-br from-orange-400 to-pink-600">
+            <div className="bg-gray-900 rounded-md p-1.5">
+                 <Languages className="h-6 w-6 text-white" />
+            </div>
+        </div>
+        <span className="text-2xl font-bold text-foreground">CN</span>
     </div>
   );
 }

@@ -75,7 +75,7 @@ export function LoginForm() {
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center items-center">
               <div className="mb-2">
-                <CNLogo backgroundClass="bg-card" />
+                <CNLogo />
               </div>
               <CardTitle className="text-2xl">Đăng nhập</CardTitle>
               <CardDescription>Nhập email và mật khẩu để tiếp tục.</CardDescription>
