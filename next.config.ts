@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -8,7 +9,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     '@genkit-ai/googleai',
     'genkit',
-    'firebase-admin',
   ],
   typescript: {
     ignoreBuildErrors: true,
