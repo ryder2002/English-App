@@ -1,6 +1,6 @@
 {
-    "name": "CN - Trợ lý học ngôn ngữ",
     "short_name": "CN - VOCAB",
+    "name": "CN - VOCAB",
     "description": "Ứng dụng học từ vựng và trợ lý ngôn ngữ AI",
     "start_url": "/",
     "display": "standalone",
@@ -8,13 +8,13 @@
     "theme_color": "#0A0F1F",
     "icons": [
         {
-            "src": "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
+            "src": "/BG.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
+            "src": "/BG.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
