@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "CN - Language Learning",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
   icons: {
-    icon: "/images/BG.png",
+    icon: "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
   },
   manifest: "/manifest.json",
 };
