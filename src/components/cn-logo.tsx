@@ -1,6 +1,7 @@
 
+"use client";
+
 import { cn } from "@/lib/utils";
-import { Languages } from "lucide-react";
 
 interface CNLogoProps {
     className?: string;
@@ -8,9 +9,15 @@ interface CNLogoProps {
 
 export function CNLogo({ className }: CNLogoProps) {
   return (
-    <div className={cn("flex items-center gap-1.5", className)}>
-        <Languages className="h-8 w-8 logo-icon-gradient text-transparent bg-clip-text" />
+    <div className={cn("flex items-center gap-2", className)}>
+        <img 
+            src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAhGVYSWZNTQAqAAAACAAFARIAAwAAAAEAAQAAARoABQAAAAEAAABeASgAAwAAAAEAAgAAh2kABAAAAAEAAABmAAAAAAAAAEgAAAABAAAASAAAAAEAAqACAAQAAAABAAAAQKADAAQAAAABAAAAQAAAAABGUUKwAAAAHwAAAAABwAAAAEAAAAwMjIwOjA4OjI5IDE3OjA0OjE5AAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAQKADAAQAAAABAAAAQAAAAADrA+0SAAADZ0lEQVR4Ae2bvU/bQBiAn1E7sSMKC8sGlRkWVhYkZFEiC4sLC8sGFxZWJkZGRkYGBgYGRkYkMhgMBoNBYDCkYGFhZkZkZkZkZkZkZkZmZmZmZmb+O7+dJ3f3/d3e33f3ne/v/+/36+X089gA9L58+fLlzQcDA1tPY/Pz80e3w6GgB8B59U83P+v2kP3g4OAgV+p+1H5gH4D4N0EEQQRBwAACPwGIfxMEEQRBwCGAwE8A4t8EQQRBECcQ+AlA/JsgBsjF4/HjW2Lz5s0/i4sL97t448aNVy5fvvxt33TlyhV8/vnn1372s5+xc+fO/Zdr166N79gDfu3aNZ8+fXp7eHj4GzZsuPzNN9+wffv2t1x11VW3XXPNNW+//vrr/y3QoCA/pG/fvj+7Z88e1q1bx7Zt237zm9/85h/+4R/85Cc/4fHHH3/lG2+8we7du1n//v354IMP+Pjjj3/t5z//OTt27PhvAQ0K8kcQBEEQBEEQBEEQBEEQBEEQBPGT+L1jCIJgIgJ/Aezf//3f7P7v//7v1wH+/e//Pu+//vWvX/3Hf/xH+/31r39t79d//df+13/+53/y7Nmz418AAv6C3f/gD/4AewYw3nLLLVdcccUV/8Y3vvGvfu/3fq+3/8d//Mc//O///M///M//7C/+4i/4+c9/zt/+7d+yzz//nL3xxhv84he/8MEHH/gXgIA/4DOf+Qy7/fbbWfvzn//Mfve73/HHf/zH/slPfsLe+MY3snfddZd/AQj4I7Zv337ZsmXL/u3f/u0bN27c/O///u+88847/vjP/3y33377F379619//etf/7q/+7u/+7d+67d+62/+5m/4l3/5l/7Zn/0Z+0c/+hF78803XbZ+/XpWnz59fvWrX/26Dz/8sL3vvvs+//zz7OOPP+7dd9/1r371K7/5zW9+67e//vW/93u/92/+5m/8xV/8hX/yJ3/i9+///t/87u/+Lu/v//7v/vqv/7o/85nPfN3f/d3f7M9+9jP24osv+oc//IG///u/z17++ed/8Rd/8f9v/dZv3Xnzze/97W/91V/9Vf/hH/4he/3116/du3fvuuuu89Zbby3r5MmTXWfOnLHvfve7r/nzn/+cveOOO2659tpr/tZf/dVf+7f/9t/6l3/5lyxraGhwcHDg6urq1q1b57Of/exl169fZ82bN8/q6uqWlpYmCIJgFgJ/AQgKgiAI/AXA84YgCDwhgUQQBCfE3Vn0+v23zV93t72c5v0X3e/b3b/p9l+hL1mGDBkykM0K6ZBhK5tkyHAkMmTIkM2wDBkyZMhwJGTIkCFDhjMkZMiQIUOGMwQZMmTIkCEMGTJkyJAhw/kSgU8Y8/8Awg1A0c0+tL0AAAAldEVYdGRhdGU6Y3JlYXRlADIwMjItMDgtMjlUMTc6MDQ6MTkrMDA6MDB36DppAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDIyLTA4LTI5VDE3OjA0OjE5KzAwOjAwx3hpmAAAAABJRU5ErkJggg=="
+            alt="CN Logo" 
+            className="h-8 w-8"
+        />
         <span className="text-2xl font-bold text-gradient">CN</span>
     </div>
   );
 }
+
+    
