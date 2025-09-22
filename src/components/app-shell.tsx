@@ -35,9 +35,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader className="p-4">
-          <div className="flex items-center gap-2">
-             <Languages className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+          <div className="animated-gradient-border rounded-lg">
+            <div className="flex items-center gap-2 p-2 bg-sidebar rounded-lg">
+              <Languages className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+            </div>
           </div>
         </SidebarHeader>
         <SidebarContent className="p-2">
@@ -65,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SidebarTrigger />
            <div className="flex items-center gap-2">
              <Languages className="h-7 w-7 text-primary" />
-            <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+            <h1 className="text-3xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
           </div>
         </header>
         <main>{children}</main>
