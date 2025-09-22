@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
-            <Image src="/BG.png" alt="CN Logo" width={32} height={32} />
+            <Image src="/image/BG.png" alt="CN Logo" width={32} height={32} />
             <h1 className="text-xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
           </div>
         </SidebarHeader>
@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
           <SidebarTrigger />
            <div className="flex items-center gap-2">
-            <Image src="/BG.png" alt="CN Logo" width={28} height={28} />
+            <Image src="/image/BG.png" alt="CN Logo" width={28} height={28} />
             <h1 className="text-xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
           </div>
         </header>

@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   title: "CN",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
   icons: {
-    icon: "/BG.png",
-    shortcut: "/BG.png",
-    apple: "/BG.png",
+    icon: "/image/BG.png",
+    shortcut: "/image/BG.png",
+    apple: "/image/BG.png",
   },
 };
 

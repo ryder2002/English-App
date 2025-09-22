@@ -75,7 +75,7 @@ export function LoginForm() {
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
               <div className="flex items-center gap-2 justify-center mb-2">
-                  <Image src="/BG.png" alt="CN Logo" width={32} height={32} />
+                  <Image src="/image/BG.png" alt="CN Logo" width={32} height={32} />
                   <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
               </div>
               <CardTitle className="text-2xl">Đăng nhập</CardTitle>
