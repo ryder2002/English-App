@@ -81,3 +81,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent;
+  }
+}

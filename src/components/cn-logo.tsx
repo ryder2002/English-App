@@ -7,13 +7,9 @@ interface CNLogoProps {
 
 export function CNLogo({ className }: CNLogoProps) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-        <div className="p-0.5 rounded-lg bg-gradient-to-br from-orange-400 to-pink-600">
-            <div className="bg-gray-900 rounded-md p-1.5">
-                 <Languages className="h-6 w-6 text-white" />
-            </div>
-        </div>
-        <span className="text-2xl font-bold text-foreground">CN</span>
+    <div className={cn("flex items-center gap-2", className)}>
+        <span className="text-3xl font-bold text-gradient">CN</span>
+        <Languages className="h-7 w-7 text-primary" />
     </div>
   );
 }
