@@ -76,8 +76,8 @@ export function SignupForm() {
           <CardHeader className="text-center items-center">
               <div className="animated-gradient-border rounded-lg mb-2">
                 <div className="flex items-center gap-2 p-2 bg-card rounded-lg">
-                    <Languages className="h-10 w-10 text-primary" />
                     <h1 className="text-5xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+                    <Languages className="h-10 w-10 text-primary" />
                 </div>
               </div>
               <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
