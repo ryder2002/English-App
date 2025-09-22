@@ -84,8 +84,8 @@
 
 @layer utilities {
   .animated-gradient-border {
-    @apply relative rounded-xl p-px;
-    box-shadow: 0 0 2rem hsl(var(--primary) / 0.15);
+    @apply relative rounded-lg p-px;
+    box-shadow: 0 0 1.5rem hsl(var(--primary) / 0.2);
   }
 
   .animated-gradient-border::before {
@@ -95,7 +95,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: conic-gradient(from var(--angle, 0deg), hsl(var(--primary) / 0.8), hsl(var(--accent) / 0.9), hsl(var(--primary) / 0.8));
+    background: conic-gradient(from var(--angle, 0deg), hsl(var(--accent) / 0.9), hsl(var(--primary) / 0.8), hsl(var(--accent) / 0.9));
     border-radius: inherit; /* Use the parent's border-radius */
     animation: gradient-spin 4s linear infinite;
     z-index: -1;

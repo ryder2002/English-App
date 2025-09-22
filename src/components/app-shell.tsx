@@ -35,8 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader className="p-4">
-          <div className="animated-gradient-border inline-block rounded-xl">
-            <div className="flex items-center justify-center gap-2 bg-sidebar rounded-xl p-2">
+          <div className="animated-gradient-border inline-block">
+            <div className="flex items-center justify-center gap-2 bg-sidebar rounded-lg p-2">
                 <h1 className="text-4xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
                 <Languages className="h-8 w-8 text-primary" />
             </div>
@@ -65,9 +65,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarInset className="bg-background min-h-screen">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
           <SidebarTrigger />
-           <div className="flex items-center justify-center gap-2">
-            <h1 className="text-3xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
-            <Languages className="h-7 w-7 text-primary" />
+           <div className="animated-gradient-border inline-block">
+            <div className="flex items-center justify-center gap-2 bg-background rounded-lg p-1.5">
+              <h1 className="text-3xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
+              <Languages className="h-7 w-7 text-primary" />
+            </div>
           </div>
         </header>
         <main>{children}</main>

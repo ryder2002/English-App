@@ -71,11 +71,11 @@ export function SignupForm() {
   };
 
   return (
-    <div className="animated-gradient-border rounded-xl">
+    <div className="animated-gradient-border">
       <Card className="w-full max-w-sm">
           <CardHeader className="text-center items-center">
-              <div className="animated-gradient-border inline-block rounded-xl mb-2">
-                <div className="flex items-center justify-center gap-2 bg-card rounded-xl p-2">
+              <div className="animated-gradient-border inline-block mb-2">
+                <div className="flex items-center justify-center gap-2 bg-card rounded-lg p-2">
                     <h1 className="text-5xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
                     <Languages className="h-10 w-10 text-primary" />
                 </div>
