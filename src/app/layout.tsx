@@ -14,8 +14,9 @@ export const metadata: Metadata = {
   title: "CN - Language Learning",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
   icons: {
-    icon: `/images/BG.png`,
-  }
+    icon: "/images/BG.png",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -25,6 +26,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
+       <head>
+        <meta name="application-name" content="CN" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="CN" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#000000" />
+      </head>
       <body className={`${inter.variable} font-body antialiased`}>
         <AuthProvider>
           <SettingsProvider>
