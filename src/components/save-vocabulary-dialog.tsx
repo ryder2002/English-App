@@ -52,6 +52,7 @@ interface SaveVocabularyDialogProps {
   onOpenChange: (open: boolean) => void;
   itemToEdit?: VocabularyItem | null;
   defaultFolder?: string;
+  initialData?: Partial<VocabularyItem>;
 }
 
 export function SaveVocabularyDialog({
@@ -59,6 +60,7 @@ export function SaveVocabularyDialog({
   onOpenChange,
   itemToEdit,
   defaultFolder,
+  initialData,
 }: SaveVocabularyDialogProps) {
   const { addVocabularyItem, updateVocabularyItem, folders, addFolder } = useVocabulary();
   const { toast } = useToast();
@@ -84,6 +86,13 @@ export function SaveVocabularyDialog({
           vietnameseTranslation: itemToEdit.vietnameseTranslation,
           folder: itemToEdit.folder,
         });
+      } else if (initialData) {
+        form.reset({
+          word: initialData.word || "",
+          language: initialData.language || "english",
+          vietnameseTranslation: initialData.vietnameseTranslation || "",
+          folder: defaultFolder || initialData.folder || (folders.length > 0 ? folders[0] : ""),
+        });
       } else {
         form.reset({
           word: "",
@@ -94,7 +103,7 @@ export function SaveVocabularyDialog({
       }
       setNewFolderName("");
     }
-  }, [itemToEdit, form, open, defaultFolder, folders]);
+  }, [itemToEdit, initialData, form, open, defaultFolder, folders]);
 
   const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
@@ -139,8 +148,8 @@ export function SaveVocabularyDialog({
           language: values.language as Language,
           folder: targetFolder,
           vietnameseTranslation: finalVietnameseTranslation,
-          ipa: details.ipa,
-          pinyin: details.pinyin,
+          ipa: initialData?.ipa || details.ipa, // Use initialData if available
+          pinyin: initialData?.pinyin || details.pinyin, // Use initialData if available
         };
         
         success = await addVocabularyItem(vocabularyData);
@@ -172,13 +181,16 @@ export function SaveVocabularyDialog({
   const buttonText = itemToEdit ? "Lưu thay đổi" : "Thêm từ";
   const selectedFolder = form.watch("folder");
 
+  const isNewWordFromDictionary = !!initialData && !itemToEdit;
+  const isEditing = !!itemToEdit;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            {itemToEdit
+            {isEditing
               ? "Chỉnh sửa nghĩa hoặc thư mục cho từ của bạn."
               : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
           </DialogDescription>
@@ -192,7 +204,7 @@ export function SaveVocabularyDialog({
                 <FormItem>
                   <FormLabel>Từ</FormLabel>
                   <FormControl>
-                    <Input placeholder="ví dụ: hello, 你好" {...field} disabled={isSubmitting || !!itemToEdit} />
+                    <Input placeholder="ví dụ: hello, 你好" {...field} disabled={isSubmitting || isEditing || isNewWordFromDictionary} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -207,7 +219,7 @@ export function SaveVocabularyDialog({
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={isSubmitting || !!itemToEdit}
+                    disabled={isSubmitting || isEditing || isNewWordFromDictionary}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -231,7 +243,7 @@ export function SaveVocabularyDialog({
                 <FormItem>
                   <FormLabel>Nghĩa Tiếng Việt</FormLabel>
                   <FormControl>
-                    <Input placeholder={itemToEdit ? "Chỉnh sửa nghĩa..." : "Có thể bỏ trống, AI sẽ tự điền"} {...field} disabled={isSubmitting} />
+                    <Input placeholder={isEditing ? "Chỉnh sửa nghĩa..." : "Có thể bỏ trống, AI sẽ tự điền"} {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

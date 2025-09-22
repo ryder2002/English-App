@@ -23,14 +23,16 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { dictionaryLookupAction } from "@/app/actions";
-import { ArrowRightLeft, Loader2, Search, Volume2 } from "lucide-react";
+import { ArrowRightLeft, Loader2, PlusCircle, Search, Volume2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card";
 import { Separator } from "./ui/separator";
 import type { Language } from "@/lib/types";
 import { Skeleton } from "./ui/skeleton";
 import type { GenerateVocabularyDetailsOutput } from "@/ai/flows/generate-vocabulary-details";
 import { useSettings } from "@/contexts/settings-context";
+import { SaveVocabularyDialog } from "./save-vocabulary-dialog";
+import type { VocabularyItem } from "@/lib/types";
 
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
@@ -53,6 +55,7 @@ export function DictionarySearch() {
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { selectedVoices } = useSettings();
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   
   useEffect(() => {
     // Cleanup: stop speech synthesis on component unmount
@@ -166,7 +169,24 @@ export function DictionarySearch() {
       {value: 'vietnamese', label: 'Tiếng Việt'}
   ]
 
+  const getInitialDataForSave = (): Partial<VocabularyItem> | undefined => {
+    if (!result) return undefined;
+    
+    // We get the first translation available.
+    const primaryTranslation = result.definitions[0]?.translation || "";
+
+    return {
+      word: result.word,
+      language: result.sourceLanguage,
+      vietnameseTranslation: primaryTranslation,
+      ipa: result.sourceLanguage === 'english' ? result.pronunciation : undefined,
+      pinyin: result.sourceLanguage === 'chinese' ? result.pronunciation : undefined,
+    }
+  }
+
+
   return (
+    <>
     <div className="max-w-3xl mx-auto">
       <Card>
         <CardContent className="p-6">
@@ -328,8 +348,20 @@ export function DictionarySearch() {
                   </div>
                 )}
             </CardContent>
+             <CardFooter>
+                <Button onClick={() => setIsSaveDialogOpen(true)} className="w-full">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Thêm vào từ vựng
+                </Button>
+            </CardFooter>
         </Card>
       )}
     </div>
+    <SaveVocabularyDialog
+        open={isSaveDialogOpen}
+        onOpenChange={setIsSaveDialogOpen}
+        initialData={getInitialDataForSave()}
+    />
+    </>
   );
 }
