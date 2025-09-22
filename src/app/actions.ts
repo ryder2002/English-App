@@ -47,8 +47,14 @@ type GenerateBatchVocabularyDetailsOutput = {
     pinyin?: string;
 }[];
 
+type Message = {
+    role: 'user' | 'assistant';
+    content: string;
+};
+
 type InteractWithLanguageChatbotInput = {
     query: string;
+    history: Message[];
 };
 
 
@@ -86,9 +92,10 @@ export async function batchAddVocabularyAction(
 }
 
 export async function getChatbotResponseAction(
-  query: string
+  query: string,
+  history: Message[],
 ): Promise<string> {
-  const input: InteractWithLanguageChatbotInput = { query };
+  const input: InteractWithLanguageChatbotInput = { query, history };
   const result = await interactWithLanguageChatbot(input);
   return result.response;
 }

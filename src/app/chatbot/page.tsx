@@ -65,11 +65,13 @@ export default function ChatbotPage() {
     const onSubmit = async (values: ChatFormValues) => {
         setIsLoading(true);
         const userMessage: Message = { role: 'user', content: values.query };
+        const currentHistory = [...messages];
+        
         setMessages(prev => [...prev, userMessage]);
         form.reset();
 
         try {
-            const response = await getChatbotResponseAction(values.query);
+            const response = await getChatbotResponseAction(values.query, currentHistory);
             const assistantMessage: Message = { role: 'assistant', content: response };
             setMessages(prev => [...prev, assistantMessage]);
         } catch (error) {

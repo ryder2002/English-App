@@ -8,8 +8,15 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const MessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+});
+type Message = z.infer<typeof MessageSchema>;
+
 const InteractWithLanguageChatbotInputSchema = z.object({
-  query: z.string().describe('The user query related to language learning.'),
+  query: z.string().describe('The latest user query related to language learning.'),
+  history: z.array(MessageSchema).describe('The history of the conversation so far.')
 });
 type InteractWithLanguageChatbotInput = z.infer<
   typeof InteractWithLanguageChatbotInputSchema
@@ -34,6 +41,8 @@ const interactWithLanguageChatbotPrompt = ai.definePrompt({
   output: {schema: InteractWithLanguageChatbotOutputSchema},
   prompt: `You are a helpful and friendly AI language learning assistant. Your goal is to provide clear, concise, and easy-to-understand explanations.
 
+You MUST consider the entire conversation history to understand the context of the user's latest query.
+
 IMPORTANT: Always respond in the same language as the user's query. If the user asks in Vietnamese, you MUST respond in Vietnamese.
 
 SPECIAL INSTRUCTION:
@@ -52,7 +61,12 @@ Please respond to the user's query. Use Markdown for formatting to make the resp
 - Use bullet points with a hyphen (-). CRUCIAL: Each bullet point MUST be on a new line.
 - Use newlines for paragraph breaks.
 
-User Query: {{{query}}}`,
+Conversation History:
+{{#each history}}
+- **{{role}}**: {{{content}}}
+{{/each}}
+
+Latest User Query: {{{query}}}`,
 });
 
 const interactWithLanguageChatbotFlow = ai.defineFlow(
