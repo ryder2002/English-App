@@ -32,7 +32,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     // Load saved settings from localStorage
     useEffect(() => {
         try {
-            const savedVoices = localStorage.getItem("ryder-selected-voices");
+            const savedVoices = localStorage.getItem("cn-selected-voices");
             if (savedVoices) {
                 setSelectedVoices(JSON.parse(savedVoices));
             }
@@ -72,7 +72,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             if (changed) {
                 setSelectedVoices(updatedSelectedVoices);
                  try {
-                    localStorage.setItem("ryder-selected-voices", JSON.stringify(updatedSelectedVoices));
+                    localStorage.setItem("cn-selected-voices", JSON.stringify(updatedSelectedVoices));
                 } catch (error) {
                     console.error("Failed to save default settings to localStorage", error);
                 }
@@ -93,7 +93,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const newSelectedVoices = { ...selectedVoices, [lang]: voiceURI };
         setSelectedVoices(newSelectedVoices);
         try {
-            localStorage.setItem("ryder-selected-voices", JSON.stringify(newSelectedVoices));
+            localStorage.setItem("cn-selected-voices", JSON.stringify(newSelectedVoices));
         } catch (error) {
             console.error("Failed to save settings to localStorage", error);
         }

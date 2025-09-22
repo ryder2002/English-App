@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { getChatbotResponseAction } from "@/app/actions";
 
-const CHAT_SESSION_STORAGE_KEY = 'ryder-chat-session';
+const CHAT_SESSION_STORAGE_KEY = 'cn-chat-session';
 
 const formSchema = z.object({
   query: z.string().min(1),

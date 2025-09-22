@@ -2,7 +2,7 @@ import { DictionarySearch } from "@/components/dictionary-search";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Từ điển - RYDER",
+    title: "Từ điển - CN",
 };
 
 export default function DictionaryPage() {

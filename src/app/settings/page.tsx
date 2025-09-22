@@ -2,7 +2,7 @@ import { VoiceSettings } from "@/components/voice-settings";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Cài đặt - RYDER",
+    title: "Cài đặt - CN",
 };
 
 export default function SettingsPage() {

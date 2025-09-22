@@ -49,7 +49,7 @@ export function SignupForm() {
       await createUserWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: "Tạo tài khoản thành công-!",
-        description: "Chào mừng bạn đến với RYDER.",
+        description: "Chào mừng bạn đến với CN.",
       });
       router.push("/");
     } catch (error: any) {
@@ -77,7 +77,7 @@ export function SignupForm() {
                   <div className="p-2 rounded-lg bg-primary/20 text-primary">
                   <Languages className="h-6 w-6" />
                   </div>
-                  <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">RYDER</h1>
+                  <h1 className="text-2xl font-headline font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-transparent bg-clip-text">CN</h1>
               </div>
               <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
               <CardDescription>Bắt đầu hành trình học ngôn ngữ của bạn.</CardDescription>

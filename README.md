@@ -1,4 +1,4 @@
-# RYDER - Trợ lý học ngôn ngữ
+# CN - Trợ lý học ngôn ngữ
 
 Đây là một ứng dụng học từ vựng được xây dựng với Next.js, Firebase và Google AI (Genkit).
 

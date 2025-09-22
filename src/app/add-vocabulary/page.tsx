@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Thêm từ vựng - RYDER",
+    title: "Thêm từ vựng - CN",
 };
 
 export default function AddVocabularyPage() {
