@@ -3,12 +3,12 @@ import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/toaster";
 import { VocabularyProvider } from "@/contexts/vocabulary-context";
 import "./globals.css";
-import { Inter, Lexend } from "next/font/google";
+import { Inter, Orbitron } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend" });
+const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
 
 export const metadata: Metadata = {
   title: "CN - Language Learning",
@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
+      <body className={`${inter.variable} ${orbitron.variable} font-body antialiased`}>
         <AuthProvider>
           <SettingsProvider>
             <VocabularyProvider>
