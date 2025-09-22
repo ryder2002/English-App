@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { LogOut, PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -19,6 +19,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useAuth } from "@/contexts/auth-context"
+import { Avatar, AvatarFallback } from "./avatar"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -177,6 +179,13 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { user, signOut } = useAuth();
+    
+    const getInitials = (email: string | null | undefined) => {
+      if (!email) return "U";
+      return email.charAt(0).toUpperCase();
+    }
+
 
     if (collapsible === "none") {
       return (
@@ -199,7 +208,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground"
+            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground flex flex-col"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -207,11 +216,25 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-             <SheetHeader className="p-4 border-b border-sidebar-border">
-                <SheetTitle className="text-lg font-semibold text-sidebar-foreground">Menu</SheetTitle>
-                <SheetDescription className="text-sm text-sidebar-foreground/70">Điều hướng ứng dụng</SheetDescription>
-            </SheetHeader>
-            <div className="flex h-full w-full flex-col">{children}</div>
+            {children}
+            <div className="mt-auto p-4 border-t border-sidebar-border space-y-4">
+                {user && (
+                    <div className="flex items-center gap-3 p-2 rounded-md">
+                        <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
+                                {getInitials(user.email)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col text-sm overflow-hidden">
+                            <span className="font-medium truncate">{user.email}</span>
+                        </div>
+                    </div>
+                )}
+                 <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Đăng xuất
+                </Button>
+            </div>
           </SheetContent>
         </Sheet>
       )
