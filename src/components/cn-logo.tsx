@@ -9,8 +9,8 @@ interface CNLogoProps {
 export function CNLogo({ className }: CNLogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-        <div className="p-1 rounded-md logo-icon-gradient">
-            <div className="p-1.5 rounded-sm bg-background">
+        <div className="p-1 rounded-xl logo-icon-gradient">
+            <div className="p-1.5 rounded-lg bg-background">
                 <Languages className="h-7 w-7 text-red-500" />
             </div>
         </div>
