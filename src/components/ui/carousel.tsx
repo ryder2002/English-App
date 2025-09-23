@@ -74,9 +74,14 @@ const Carousel = React.forwardRef<
         return
       }
 
-      setCanScrollPrev(api.canScrollPrev())
-      setCanScrollNext(api.canScrollNext())
-    }, [])
+      if (opts?.loop) {
+        setCanScrollPrev(true);
+        setCanScrollNext(true);
+      } else {
+        setCanScrollPrev(api.canScrollPrev())
+        setCanScrollNext(api.canScrollNext())
+      }
+    }, [opts?.loop])
 
     const scrollPrev = React.useCallback(() => {
       api?.scrollPrev()
@@ -261,5 +266,3 @@ export {
   CarouselPrevious,
   CarouselNext,
 }
-
-    
