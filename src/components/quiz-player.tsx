@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -42,7 +43,8 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
 
 
     const startNewGame = (deckToUse: VocabularyItem[] = fullDeck) => {
-        if (deckToUse.length < 4) { // Need at least 4 items to generate 3 wrong answers
+        // We allow games with < 4 cards now, the question generation will handle it.
+        if (deckToUse.length === 0) {
             setQuizDeck([]);
             return;
         }
@@ -63,20 +65,33 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
         
         const questionItem = quizDeck[currentIndex];
         const correctAnswer = questionItem.vietnameseTranslation;
-
-        // Get 3 wrong answers from the full deck to ensure variety
+        
+        // Decide which pool of words to generate wrong answers from.
+        // If the quiz deck is small (e.g. retrying a few words), use the full deck to get more variety.
+        // Otherwise, use the quiz deck itself.
+        const sourceForWrongAnswers = quizDeck.length < 4 ? fullDeck : quizDeck;
+        
+        // Get up to 3 wrong answers.
         const wrongAnswers = shuffleArray(
-            fullDeck.filter(item => item.id !== questionItem.id)
+            sourceForWrongAnswers.filter(item => item.id !== questionItem.id)
         )
         .slice(0, 3)
         .map(item => item.vietnameseTranslation);
 
-        const options = shuffleArray([correctAnswer, ...wrongAnswers]);
+        // Ensure we always have 4 options if possible
+        let options = shuffleArray([correctAnswer, ...wrongAnswers]);
+        
+        // If we still have less than 4 options (e.g. only 1-3 cards in total), duplicate options to fill up.
+        let i = 0;
+        while (options.length > 0 && options.length < 4) {
+            options.push(options[i % options.length]);
+            i++;
+        }
 
         return {
             word: questionItem.word,
             correctAnswer,
-            options,
+            options: shuffleArray(options), // Final shuffle for presentation
         };
     }, [quizDeck, currentIndex, fullDeck]);
 
@@ -89,7 +104,8 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
         } else {
             // Add the incorrect item to the list for later review
             const incorrectItem = quizDeck[currentIndex];
-            if (incorrectItem) {
+            // Ensure we don't add duplicates
+            if (incorrectItem && !incorrectAnswers.find(item => item.id === incorrectItem.id)) {
                 setIncorrectAnswers(prev => [...prev, incorrectItem]);
             }
         }
@@ -107,25 +123,34 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     const handleRetryIncorrect = () => {
         // Only start if there are incorrect answers
         if (incorrectAnswers.length > 0) {
-            // If there are fewer than 4 incorrect words, we can't make a full quiz.
-            // In a real scenario, you might want a different UI for this case,
-            // but for now, we'll just start the quiz if possible.
-            if (incorrectAnswers.length < 4 && incorrectAnswers.length > 0) {
-                 startNewGame(incorrectAnswers);
-            } else {
-                startNewGame(incorrectAnswers);
-            }
+            startNewGame(incorrectAnswers);
         }
     };
     
-    if (fullDeck.length < 4) {
+    if (fullDeck.length === 0) { // Check fullDeck for initial message
         return (
              <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
                 <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium text-muted-foreground">Không đủ từ vựng để kiểm tra.</p>
+                <p className="text-lg font-medium text-muted-foreground">Không có từ vựng để kiểm tra.</p>
                 <p className="text-sm text-muted-foreground">
-                Cần có ít nhất 4 từ trong thư mục này để bắt đầu một bài kiểm tra.
+                Hãy thêm từ vào thư mục này để tạo bài kiểm tra.
                 </p>
+            </div>
+        );
+    }
+    
+    // Check if the current quiz has run out of valid questions
+    if (!currentQuestion && !isFinished) {
+         return (
+            <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
+                <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium text-muted-foreground">Không đủ từ để bắt đầu.</p>
+                <p className="text-sm text-muted-foreground">
+                    Cần có ít nhất 1 từ để bắt đầu bài kiểm tra.
+                </p>
+                <Button onClick={() => startNewGame(fullDeck)} className="mt-4">
+                    <RefreshCw className="mr-2 h-4 w-4" /> Bắt đầu lại
+                </Button>
             </div>
         );
     }
@@ -162,21 +187,6 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     }
 
     if (!currentQuestion) {
-        // This can happen if the deck is too small and gets filtered to < 4 items
-         if (quizDeck.length > 0 && quizDeck.length < 4) {
-            return (
-                <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
-                    <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-lg font-medium text-muted-foreground">Không đủ từ để tiếp tục.</p>
-                    <p className="text-sm text-muted-foreground">
-                        Cần ít nhất 4 từ để tạo một bài kiểm tra. Bộ từ hiện tại của bạn quá nhỏ.
-                    </p>
-                    <Button onClick={() => startNewGame(fullDeck)} className="mt-4">
-                        <RefreshCw className="mr-2 h-4 w-4" /> Quay lại từ đầu
-                    </Button>
-                </div>
-            );
-        }
         return null;
     }
 
