@@ -300,18 +300,18 @@ export function DictionarySearch() {
         <Card className="mt-8 animate-in fade-in duration-500">
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
-                    <div className="flex-grow">
-                        <CardTitle className="text-4xl font-bold font-headline flex items-center gap-2">
-                            {result.word}
-                            <Button size="icon" variant="ghost" className="rounded-full h-11 w-11" onClick={(e) => playAudio(e, result.word, result.sourceLanguage, 'original')}>
-                                {speakingId === 'original' ? <Loader2 className="h-6 w-6 animate-spin"/> : <Volume2 className="h-6 w-6"/>}
+                    <div className="flex-grow min-w-0">
+                        <CardTitle className="text-3xl font-bold font-headline flex items-center gap-2">
+                            <span className="truncate">{result.word}</span>
+                            <Button size="icon" variant="ghost" className="rounded-full h-9 w-9 flex-shrink-0" onClick={(e) => playAudio(e, result.word, result.sourceLanguage, 'original')}>
+                                {speakingId === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
                             </Button>
                         </CardTitle>
                         {result.pronunciation && (
-                           <p className="text-xl text-muted-foreground">{result.pronunciation}</p>
+                           <p className="text-lg text-muted-foreground">{result.pronunciation}</p>
                         )}
                     </div>
-                    <div className="flex-shrink-0 flex items-center gap-1">
+                    <div className="flex-shrink-0">
                         <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Thêm
@@ -343,7 +343,7 @@ export function DictionarySearch() {
                           <div key={index} className="pl-4 border-l-2 border-primary">
                             <div className="flex items-center gap-2">
                                 <p className="font-medium flex-grow">{ex.source}</p>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => playAudio(ex.source, result.sourceLanguage, audioId)}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={(e) => playAudio(e, ex.source, result.sourceLanguage, audioId)}>
                                     {speakingId === audioId ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
                                 </Button>
                             </div>
@@ -366,5 +366,3 @@ export function DictionarySearch() {
     </>
   );
 }
-
-    
