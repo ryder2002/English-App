@@ -18,8 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem, Language } from "@/lib/types";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
 import { useSettings } from "@/contexts/settings-context";
-import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react'
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { type EmblaCarouselType } from 'embla-carousel-react'
+import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
@@ -34,7 +34,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const { selectedVoices } = useSettings();
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [emblaApi, setEmblaApi] = useState<CarouselApi | null>(null);
 
   const deck = useMemo(() => {
     if (selectedFolder === 'all') {
@@ -181,7 +181,7 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   return (
     <div className="flex flex-col items-center gap-6">
         <Carousel 
-            setApi={emblaApi} 
+            setApi={setEmblaApi} 
             className="w-full max-w-2xl"
             opts={{ align: 'center', loop: true }}
         >
@@ -241,8 +241,8 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious className="hidden sm:flex" />
-            <CarouselNext className="hidden sm:flex" />
+            <CarouselPrevious className="hidden md:inline-flex" />
+            <CarouselNext className="hidden md:inline-flex" />
         </Carousel>
 
 
