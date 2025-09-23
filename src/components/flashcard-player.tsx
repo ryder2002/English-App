@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -9,7 +10,7 @@ import {
   RefreshCw,
   Volume2,
 } from "lucide-react";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Progress } from "./ui/progress";
@@ -17,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem, Language } from "@/lib/types";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
 import { useSettings } from "@/contexts/settings-context";
+import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 
 interface FlashcardPlayerProps {
     selectedFolder: string;
@@ -31,6 +34,8 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const { selectedVoices } = useSettings();
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+
   const deck = useMemo(() => {
     if (selectedFolder === 'all') {
         return vocabulary;
@@ -39,7 +44,6 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   }, [vocabulary, selectedFolder]);
 
   useEffect(() => {
-    // Cleanup: stop speech synthesis on component unmount
     return () => {
       if (utteranceRef.current) {
         utteranceRef.current.onend = null;
@@ -53,7 +57,6 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
 
   const shuffleDeck = (deckToShuffle: typeof vocabulary) => {
     const newDeck = [...deckToShuffle];
-    // Fisher-Yates shuffle algorithm
     for (let i = newDeck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
@@ -62,44 +65,36 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   };
   
   useEffect(() => {
-    setShuffledDeck(shuffleDeck(deck));
+    const newShuffledDeck = shuffleDeck(deck);
+    setShuffledDeck(newShuffledDeck);
     setCurrentIndex(0);
     setIsFlipped(false);
-  }, [deck]);
+    emblaApi?.reInit();
+    emblaApi?.scrollTo(0, true);
+  }, [deck, emblaApi]);
 
-  const currentCard = useMemo(() => {
-    return shuffledDeck.length > 0 ? shuffledDeck[currentIndex] : null;
-  }, [shuffledDeck, currentIndex]);
+  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
+    const newIndex = emblaApi.selectedScrollSnap();
+    if (currentIndex !== newIndex) {
+        setIsFlipped(false);
+        setSpeakingId(null);
+        window.speechSynthesis.cancel();
+    }
+    setCurrentIndex(newIndex);
+  }, [currentIndex]);
 
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (shuffledDeck.length === 0) return;
-    setIsFlipped(false);
-    setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % shuffledDeck.length);
-    }, 150); // wait for flip animation
-  };
+  useEffect(() => {
+    if (emblaApi) {
+      emblaApi.on('select', onSelect);
+      return () => {
+        emblaApi.off('select', onSelect);
+      };
+    }
+  }, [emblaApi, onSelect]);
 
-  const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (shuffledDeck.length === 0) return;
-    setIsFlipped(false);
-    setTimeout(() => {
-      setCurrentIndex(
-        (prev) => (prev - 1 + shuffledDeck.length) % shuffledDeck.length
-      );
-    }, 150);
-  };
-  
-  const handleShuffle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShuffledDeck(shuffleDeck(deck));
-    setCurrentIndex(0);
-    setIsFlipped(false);
-  };
-  
-  const handleFlip = () => {
-    if (!currentCard) return;
+
+  const handleFlip = (cardId: string | undefined) => {
+    if (!cardId) return;
     window.speechSynthesis.cancel();
     setSpeakingId(null);
     setIsFlipped(prev => !prev);
@@ -161,6 +156,15 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     speak();
   };
 
+  const handleShuffle = () => {
+    const newShuffledDeck = shuffleDeck(deck);
+    setShuffledDeck(newShuffledDeck);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    emblaApi?.reInit();
+    emblaApi?.scrollTo(0, true);
+  };
+
 
   if (deck.length === 0) {
     return (
@@ -176,76 +180,89 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="w-full max-w-2xl">
-        <div
-          className="relative w-full cursor-pointer group"
-          style={{ perspective: "1000px" }}
-          onClick={handleFlip}
+        <Carousel 
+            setApi={emblaApi} 
+            className="w-full max-w-2xl"
+            opts={{ align: 'center', loop: true }}
         >
-          <Card
-            className={`w-full h-80 transition-transform duration-500 ease-in-out relative`}
-            style={{ 
-                transformStyle: "preserve-3d",
-                transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-            }}
-          >
-            {/* Front of card */}
-            <CardContent
-              className="absolute w-full h-full flex flex-col items-center justify-center text-center p-6 bg-card rounded-lg shadow-lg"
-              style={{ backfaceVisibility: "hidden" }}
-            >
-              <p className="text-4xl md:text-5xl font-bold">{currentCard?.word}</p>
-                 {currentCard && (
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={(e) => playAudio(e, currentCard)}
-                      className="absolute bottom-4 right-4 h-12 w-12 text-muted-foreground"
-                    >
-                      {speakingId === currentCard.id
-                        ? <Loader2 className="h-6 w-6 animate-spin"/> 
-                        : <Volume2 className="h-6 w-6"/>
-                      }
-                    </Button>
-                 )}
-            </CardContent>
+            <CarouselContent>
+                {shuffledDeck.map((cardItem, index) => (
+                    <CarouselItem key={cardItem.id}>
+                         <div
+                            className="relative w-full cursor-pointer group"
+                            style={{ perspective: "1000px" }}
+                            onClick={() => handleFlip(cardItem.id)}
+                        >
+                            <Card
+                                className={`w-full h-80 transition-transform duration-500 ease-in-out relative`}
+                                style={{ 
+                                    transformStyle: "preserve-3d",
+                                    transform: isFlipped && currentIndex === index ? "rotateY(180deg)" : "rotateY(0deg)",
+                                }}
+                            >
+                                {/* Front of card */}
+                                <CardContent
+                                className="absolute w-full h-full flex flex-col items-center justify-center text-center p-6 bg-card rounded-lg shadow-lg"
+                                style={{ backfaceVisibility: "hidden" }}
+                                >
+                                <p className="text-4xl md:text-5xl font-bold">{cardItem?.word}</p>
+                                    {cardItem && (
+                                        <Button 
+                                        size="icon" 
+                                        variant="ghost" 
+                                        onClick={(e) => playAudio(e, cardItem)}
+                                        className="absolute bottom-4 right-4 h-12 w-12 text-muted-foreground"
+                                        >
+                                        {speakingId === cardItem.id
+                                            ? <Loader2 className="h-6 w-6 animate-spin"/> 
+                                            : <Volume2 className="h-6 w-6"/>
+                                        }
+                                        </Button>
+                                    )}
+                                </CardContent>
 
-            {/* Back of card */}
-            <CardContent
-              className="absolute w-full h-full flex flex-col items-center justify-center text-center p-6 bg-card rounded-lg shadow-lg"
-              style={{
-                backfaceVisibility: "hidden",
-                transform: "rotateY(180deg)",
-              }}
-            >
-              <p className="text-3xl md:text-4xl font-semibold text-primary">
-                {currentCard?.vietnameseTranslation}
-              </p>
-              <p className="text-muted-foreground text-lg mt-2">
-                {currentCard?.ipa || currentCard?.pinyin}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                                {/* Back of card */}
+                                <CardContent
+                                className="absolute w-full h-full flex flex-col items-center justify-center text-center p-6 bg-card rounded-lg shadow-lg"
+                                style={{
+                                    backfaceVisibility: "hidden",
+                                    transform: "rotateY(180deg)",
+                                }}
+                                >
+                                <p className="text-3xl md:text-4xl font-semibold text-primary">
+                                    {cardItem?.vietnameseTranslation}
+                                </p>
+                                <p className="text-muted-foreground text-lg mt-2">
+                                    {cardItem?.ipa || cardItem?.pinyin}
+                                </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex" />
+            <CarouselNext className="hidden sm:flex" />
+        </Carousel>
+
 
       <div className="w-full max-w-2xl space-y-4">
         <Progress value={shuffledDeck.length > 0 ? ((currentIndex + 1) / shuffledDeck.length) * 100 : 0} />
 
         <div className="flex items-center justify-center gap-4">
-          <Button variant="outline" size="icon" onClick={handlePrev}>
+          <Button variant="outline" size="icon" onClick={() => emblaApi?.scrollPrev()}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
           <Button
             className="px-8 bg-accent hover:bg-accent/90"
-            onClick={(e) => { e.stopPropagation(); handleFlip(); }}
+            onClick={() => handleFlip(shuffledDeck[currentIndex]?.id)}
             aria-label="Flip card"
           >
             <FlipHorizontal className="mr-2 h-4 w-4" /> Lật thẻ
           </Button>
 
-          <Button variant="outline" size="icon" onClick={handleNext}>
+          <Button variant="outline" size="icon" onClick={() => emblaApi?.scrollNext()}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -258,3 +275,5 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     </div>
   );
 }
+
+    
