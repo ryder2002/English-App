@@ -17,7 +17,6 @@ export const metadata: Metadata = {
     icon: "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
   },
   manifest: "/manifest.json",
-
 };
 
 
@@ -35,7 +34,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="CN" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#0A0F1F" />
       </head>
       <body className={`${inter.variable} font-body antialiased`}>
         <AuthProvider>
