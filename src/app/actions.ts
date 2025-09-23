@@ -81,6 +81,9 @@ export async function dictionaryLookupAction(
   input: { word: string; sourceLanguage: Language; targetLanguage: Language; }
 ): Promise<GenerateVocabularyDetailsOutput> {
   const details = await generateVocabularyDetails(input);
+  if (!details.exists) {
+    throw new Error("Từ vựng này không tồn tại.");
+  }
   return details;
 }
 

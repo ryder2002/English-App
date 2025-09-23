@@ -95,13 +95,16 @@ export function DictionarySearch() {
         sourceLanguage: values.sourceLanguage,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      const errorMessage = error.message === "Từ vựng này không tồn tại." 
+        ? "Từ vựng này không tồn tại hoặc không hợp lệ."
+        : "Có lỗi khi tra từ. Vui lòng thử lại.";
+
       toast({
         variant: "destructive",
-        title: "Ôi! Đã có lỗi xảy ra.",
-        description:
-          "Có lỗi khi tra từ. Vui lòng thử lại.",
+        title: "Không tìm thấy kết quả",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

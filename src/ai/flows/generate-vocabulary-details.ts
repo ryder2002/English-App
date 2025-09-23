@@ -34,6 +34,7 @@ const DefinitionSchema = z.object({
 });
 
 const GenerateVocabularyDetailsOutputSchema = z.object({
+  exists: z.boolean().describe("Whether the word exists in the source language."),
   pronunciation: z.string().optional().describe("The IPA (for English) or Pinyin (for Chinese) transcription."),
   definitions: z.array(DefinitionSchema).describe("A list of definitions for the word, covering different parts of speech."),
   examples: z.array(z.object({
@@ -55,6 +56,7 @@ const generateVocabularyDetailsPrompt = ai.definePrompt({
   name: 'generateVocabularyDetailsPrompt',
   input: {schema: GenerateVocabularyDetailsInputSchema},
   output: {schema: z.object({
+      exists: z.boolean(),
       definitions: z.array(z.object({
         partOfSpeech: z.string(),
         meaning: z.string(),
@@ -65,19 +67,24 @@ const generateVocabularyDetailsPrompt = ai.definePrompt({
         target: z.string(),
       })).optional(),
   })},
-  prompt: `You are a multilingual language expert. Your task is to provide comprehensive details for a vocabulary word.
+  prompt: `You are a multilingual language expert and a strict validator. Your task is to provide comprehensive details for a vocabulary word, but ONLY if the word is real and valid in the source language.
 
 Word: {{{word}}}
 Source Language: {{{sourceLanguage}}}
 Target Language: {{{targetLanguage}}}
 
-Provide the following:
-1.  A list of definitions for the word, covering all relevant parts of speech (e.g., noun, verb, adjective). For the source language 'vietnamese', provide the definition in Vietnamese.
-2.  For each definition:
-    - The part of speech.
-    - The meaning in the source language.
-    - The translation of the meaning in the target language.
-3.  Provide 2-3 example sentences in the source language and their translations in the target language.
+CRITICAL STEP 1: VALIDATION
+- First, determine if '{{{word}}}' is a real, valid word in '{{{sourceLanguage}}}'.
+- If the word is NOT real (e.g., it's gibberish, a typo, or from another language), you MUST set 'exists' to 'false' and return immediately with empty 'definitions' and 'examples' arrays.
+
+CRITICAL STEP 2: PROVIDE DETAILS (only if the word is valid)
+- If 'exists' is 'true', provide the following:
+  1.  A list of definitions for the word, covering all relevant parts of speech (e.g., noun, verb, adjective). For the source language 'vietnamese', provide the definition in Vietnamese.
+  2.  For each definition:
+      - The part of speech.
+      - The meaning in the source language.
+      - The translation of the meaning in the target language.
+  3.  Provide 2-3 example sentences in the source language and their translations in the target language.
 
 Do NOT include pronunciation in your response. It will be fetched separately.
 
@@ -95,6 +102,7 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
     // Prevent self-translation
     if (input.sourceLanguage === input.targetLanguage) {
       return {
+        exists: true,
         pronunciation: "",
         definitions: [{
             partOfSpeech: "từ", 
@@ -109,6 +117,15 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
     if (!output) {
       throw new Error("Failed to get details from AI.");
     }
+    
+    if (!output.exists) {
+        return {
+            exists: false,
+            pronunciation: '',
+            definitions: [],
+            examples: [],
+        }
+    }
 
     let pronunciation: string | undefined = undefined;
     if (input.sourceLanguage === 'english') {
@@ -120,6 +137,7 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
     }
 
     return {
+        exists: true,
         ...output,
         pronunciation,
     };
