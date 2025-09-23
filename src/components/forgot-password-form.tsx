@@ -15,55 +15,50 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Languages, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
 import { CNLogo } from "./cn-logo";
 
 
 const formSchema = z.object({
   email: z.string().email({ message: "Email không hợp lệ." }),
-  password: z.string().min(6, { message: "Mật khẩu phải có ít nhất 6 ký tự." }),
 });
 
-type LoginFormValues = z.infer<typeof formSchema>;
+type ForgotPasswordFormValues = z.infer<typeof formSchema>;
 
-export function LoginForm() {
+export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
 
-  const form = useForm<LoginFormValues>({
+  const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
-  const onSubmit = async (values: LoginFormValues) => {
+  const onSubmit = async (values: ForgotPasswordFormValues) => {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      await sendPasswordResetEmail(auth, values.email);
       toast({
-        title: "Đăng nhập thành công!",
-        description: "Chào mừng bạn quay trở lại.",
+        title: "Đã gửi email!",
+        description: "Vui lòng kiểm tra hộp thư của bạn để đặt lại mật khẩu.",
       });
-      router.push("/");
+      form.reset();
     } catch (error: any) {
       console.error(error);
-      const errorCode = error.code;
       let errorMessage = "Đã có lỗi xảy ra. Vui lòng thử lại.";
-       if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
-        errorMessage = 'Email hoặc mật khẩu không chính xác.';
+       if (error.code === 'auth/user-not-found') {
+        errorMessage = 'Không tìm thấy tài khoản nào với địa chỉ email này.';
       }
       toast({
         variant: "destructive",
-        title: "Đăng nhập thất bại",
+        title: "Gửi email thất bại",
         description: errorMessage,
       });
     } finally {
@@ -77,8 +72,8 @@ export function LoginForm() {
               <div className="mb-2">
                 <CNLogo />
               </div>
-              <CardTitle className="text-2xl">Đăng nhập</CardTitle>
-              <CardDescription>Nhập email và mật khẩu để tiếp tục.</CardDescription>
+              <CardTitle className="text-2xl">Quên mật khẩu</CardTitle>
+              <CardDescription>Nhập email của bạn để nhận liên kết đặt lại mật khẩu.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -100,40 +95,16 @@ export function LoginForm() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                        <div className="flex items-center justify-between">
-                         <FormLabel>Mật khẩu</FormLabel>
-                          <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
-                            Quên mật khẩu?
-                         </Link>
-                        </div>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          {...field}
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <Button type="submit" disabled={isLoading} className="w-full">
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Đăng nhập
+                  Gửi email đặt lại
                 </Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center text-sm">
-              <p>Chưa có tài khoản?&nbsp;</p>
-              <Link href="/signup" className="font-medium text-primary hover:underline">
-                  Đăng ký
+              <Link href="/login" className="font-medium text-primary hover:underline">
+                  Quay lại trang Đăng nhập
               </Link>
           </CardFooter>
         </Card>
