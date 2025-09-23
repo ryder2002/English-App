@@ -176,8 +176,14 @@ export function DictionarySearch() {
   const getInitialDataForSave = (): Partial<VocabularyItem> | undefined => {
     if (!result) return undefined;
     
-    // We get the first translation available.
-    const primaryTranslation = result.definitions[0]?.translation || "";
+    // Get the first translation available.
+    let primaryTranslation = result.definitions[0]?.translation || "";
+
+    // If the translation contains a semicolon, extract the part after it.
+    const semicolonIndex = primaryTranslation.indexOf(';');
+    if (semicolonIndex !== -1) {
+      primaryTranslation = primaryTranslation.substring(semicolonIndex + 1).trim();
+    }
 
     return {
       word: result.word,
@@ -302,21 +308,25 @@ export function DictionarySearch() {
       {result && !isLoading && (
         <Card className="mt-8 animate-in fade-in duration-500">
             <CardHeader>
-                <CardTitle className="text-3xl font-bold font-headline flex items-center gap-2">
-                    <span className="truncate">{result.word}</span>
-                    <Button size="icon" variant="ghost" className="rounded-full h-9 w-9 flex-shrink-0" onClick={(e) => playAudio(e, result.word, result.sourceLanguage, 'original')}>
-                        {speakingId === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
-                    </Button>
-                </CardTitle>
-                {result.pronunciation && (
-                    <p className="text-lg text-muted-foreground">{result.pronunciation}</p>
-                )}
+                <div className="flex justify-between items-start gap-4">
+                    <div className="flex-grow">
+                        <CardTitle className="text-3xl font-bold font-headline flex items-center gap-2">
+                            <span className="truncate">{result.word}</span>
+                             <Button size="icon" variant="ghost" className="rounded-full h-9 w-9 flex-shrink-0" onClick={(e) => playAudio(e, result.word, result.sourceLanguage, 'original')}>
+                                {speakingId === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                            </Button>
+                        </CardTitle>
+                        {result.pronunciation && (
+                            <p className="text-lg text-muted-foreground">{result.pronunciation}</p>
+                        )}
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
                      <div className="flex items-center justify-between mb-2">
                         <h3 className="text-lg font-semibold font-headline tracking-tight">Định nghĩa</h3>
-                        <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
+                         <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Thêm
                         </Button>
@@ -365,3 +375,5 @@ export function DictionarySearch() {
     </>
   );
 }
+
+    
