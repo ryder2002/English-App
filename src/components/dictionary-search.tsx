@@ -299,29 +299,25 @@ export function DictionarySearch() {
       {result && !isLoading && (
         <Card className="mt-8 animate-in fade-in duration-500">
             <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex-grow min-w-0">
-                        <CardTitle className="text-3xl font-bold font-headline flex items-center gap-2">
-                            <span className="truncate">{result.word}</span>
-                            <Button size="icon" variant="ghost" className="rounded-full h-9 w-9 flex-shrink-0" onClick={(e) => playAudio(e, result.word, result.sourceLanguage, 'original')}>
-                                {speakingId === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
-                            </Button>
-                        </CardTitle>
-                        {result.pronunciation && (
-                           <p className="text-lg text-muted-foreground">{result.pronunciation}</p>
-                        )}
-                    </div>
-                    <div className="flex-shrink-0">
+                <CardTitle className="text-3xl font-bold font-headline flex items-center gap-2">
+                    <span className="truncate">{result.word}</span>
+                    <Button size="icon" variant="ghost" className="rounded-full h-9 w-9 flex-shrink-0" onClick={(e) => playAudio(e, result.word, result.sourceLanguage, 'original')}>
+                        {speakingId === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                    </Button>
+                </CardTitle>
+                {result.pronunciation && (
+                    <p className="text-lg text-muted-foreground">{result.pronunciation}</p>
+                )}
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                     <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold font-headline tracking-tight">Định nghĩa</h3>
                         <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Thêm
                         </Button>
                     </div>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div>
-                     <h3 className="text-lg font-semibold mb-2 font-headline tracking-tight">Định nghĩa</h3>
                      <div className="space-y-4">
                         {result.definitions.map((def, index) => (
                             <div key={index} className="p-4 bg-muted/50 rounded-lg">
