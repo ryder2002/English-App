@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { dictionaryLookupAction } from "@/app/actions";
-import { ArrowRightLeft, Loader2, PlusCircle, Search, Volume2 } from "lucide-react";
+import { ArrowRightLeft, Loader2, PlusCircle, Search, Volume2, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card";
 import { Separator } from "./ui/separator";
@@ -298,18 +298,27 @@ export function DictionarySearch() {
       {result && !isLoading && (
         <Card className="mt-8 animate-in fade-in duration-500">
             <CardHeader>
-                <div className="flex items-baseline justify-between">
-                    <div>
-                        <CardTitle className="text-4xl font-bold font-headline flex items-center gap-3">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-grow">
+                        <CardTitle className="text-4xl font-bold font-headline">
                             {result.word}
                         </CardTitle>
                         {result.pronunciation && (
                            <p className="text-xl text-muted-foreground">{result.pronunciation}</p>
                         )}
                     </div>
-                     <Button size="icon" variant="ghost" className="rounded-full h-14 w-14" onClick={() => playAudio(result.word, result.sourceLanguage, 'original')}>
-                        {speakingId === 'original' ? <Loader2 className="h-6 w-6 animate-spin"/> : <Volume2 className="h-6 w-6"/>}
-                    </Button>
+                    <div className="flex-shrink-0 flex items-center gap-1">
+                        <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Thêm
+                        </Button>
+                         <Button size="icon" variant="ghost" className="rounded-full h-10 w-10" onClick={() => playAudio(result.word, result.sourceLanguage, 'original')}>
+                            {speakingId === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                        </Button>
+                        <Button size="icon" variant="ghost" className="rounded-full h-10 w-10" onClick={() => setResult(null)}>
+                            <X className="h-5 w-5"/>
+                        </Button>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -348,12 +357,6 @@ export function DictionarySearch() {
                   </div>
                 )}
             </CardContent>
-             <CardFooter>
-                <Button onClick={() => setIsSaveDialogOpen(true)} className="w-full">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Thêm vào từ vựng
-                </Button>
-            </CardFooter>
         </Card>
       )}
     </div>
