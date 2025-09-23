@@ -16,9 +16,8 @@ export const metadata: Metadata = {
   icons: {
     icon: "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
   },
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=2",
 };
-
 
 export default function RootLayout({
   children,

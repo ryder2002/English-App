@@ -1,6 +1,6 @@
 {
     "name": "CN - Trợ lý học ngôn ngữ",
-    "short_name": "CN",
+    "short_name": "CN - VOCAB",
     "description": "Ứng dụng học từ vựng và trợ lý ngôn ngữ AI",
     "start_url": "/",
     "display": "standalone",
