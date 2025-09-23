@@ -25,13 +25,15 @@ interface QuizPlayerProps {
 
 export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     const { vocabulary } = useVocabulary();
-    const [shuffledDeck, setShuffledDeck] = useState<VocabularyItem[]>([]);
+    const [quizDeck, setQuizDeck] = useState<VocabularyItem[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isFinished, setIsFinished] = useState(false);
+    const [incorrectAnswers, setIncorrectAnswers] = useState<VocabularyItem[]>([]);
 
-    const deck = useMemo(() => {
+
+    const fullDeck = useMemo(() => {
         if (selectedFolder === 'all') {
             return vocabulary;
         }
@@ -39,31 +41,32 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     }, [vocabulary, selectedFolder]);
 
 
-    const startNewGame = () => {
-        if (deck.length < 4) { // Need at least 4 items to generate 3 wrong answers
-            setShuffledDeck([]);
+    const startNewGame = (deckToUse: VocabularyItem[] = fullDeck) => {
+        if (deckToUse.length < 4) { // Need at least 4 items to generate 3 wrong answers
+            setQuizDeck([]);
             return;
         }
-        setShuffledDeck(shuffleArray(deck));
+        setQuizDeck(shuffleArray(deckToUse));
         setCurrentIndex(0);
         setScore(0);
         setSelectedAnswer(null);
         setIsFinished(false);
+        setIncorrectAnswers([]);
     };
 
     useEffect(() => {
-        startNewGame();
-    }, [deck]);
+        startNewGame(fullDeck);
+    }, [fullDeck]);
 
     const currentQuestion = useMemo(() => {
-        if (shuffledDeck.length === 0 || currentIndex >= shuffledDeck.length) return null;
+        if (quizDeck.length === 0 || currentIndex >= quizDeck.length) return null;
         
-        const questionItem = shuffledDeck[currentIndex];
+        const questionItem = quizDeck[currentIndex];
         const correctAnswer = questionItem.vietnameseTranslation;
 
-        // Get 3 wrong answers from the current deck
+        // Get 3 wrong answers from the full deck to ensure variety
         const wrongAnswers = shuffleArray(
-            deck.filter(item => item.id !== questionItem.id)
+            fullDeck.filter(item => item.id !== questionItem.id)
         )
         .slice(0, 3)
         .map(item => item.vietnameseTranslation);
@@ -75,7 +78,7 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
             correctAnswer,
             options,
         };
-    }, [shuffledDeck, currentIndex, deck]);
+    }, [quizDeck, currentIndex, fullDeck]);
 
     const handleAnswerSelect = (answer: string) => {
         if (selectedAnswer) return; // Already answered
@@ -83,19 +86,39 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
         setSelectedAnswer(answer);
         if (answer === currentQuestion?.correctAnswer) {
             setScore(prev => prev + 1);
+        } else {
+            // Add the incorrect item to the list for later review
+            const incorrectItem = quizDeck[currentIndex];
+            if (incorrectItem) {
+                setIncorrectAnswers(prev => [...prev, incorrectItem]);
+            }
         }
     };
 
     const handleNextQuestion = () => {
-        if (currentIndex < shuffledDeck.length - 1) {
+        if (currentIndex < quizDeck.length - 1) {
             setCurrentIndex(prev => prev + 1);
             setSelectedAnswer(null);
         } else {
             setIsFinished(true);
         }
     };
+
+    const handleRetryIncorrect = () => {
+        // Only start if there are incorrect answers
+        if (incorrectAnswers.length > 0) {
+            // If there are fewer than 4 incorrect words, we can't make a full quiz.
+            // In a real scenario, you might want a different UI for this case,
+            // but for now, we'll just start the quiz if possible.
+            if (incorrectAnswers.length < 4 && incorrectAnswers.length > 0) {
+                 startNewGame(incorrectAnswers);
+            } else {
+                startNewGame(incorrectAnswers);
+            }
+        }
+    };
     
-    if (deck.length < 4) {
+    if (fullDeck.length < 4) {
         return (
              <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
                 <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
@@ -117,16 +140,21 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
                     </CardHeader>
                     <CardContent className="text-center">
                         <p className="text-4xl font-bold">
-                            {score} / {shuffledDeck.length}
+                            {score} / {quizDeck.length}
                         </p>
                         <p className="text-muted-foreground mt-2">
-                           Tỷ lệ chính xác: {((score / shuffledDeck.length) * 100).toFixed(0)}%
+                           Tỷ lệ chính xác: {quizDeck.length > 0 ? ((score / quizDeck.length) * 100).toFixed(0) : 0}%
                         </p>
                     </CardContent>
-                    <CardFooter>
-                         <Button onClick={startNewGame} className="w-full">
-                            <RefreshCw className="mr-2 h-4 w-4" /> Làm lại bài kiểm tra
+                    <CardFooter className="flex flex-col gap-2">
+                         <Button onClick={() => startNewGame(fullDeck)} className="w-full">
+                            <RefreshCw className="mr-2 h-4 w-4" /> Làm lại toàn bộ
                         </Button>
+                        {incorrectAnswers.length > 0 && (
+                            <Button onClick={handleRetryIncorrect} className="w-full" variant="outline">
+                                <RefreshCw className="mr-2 h-4 w-4" /> Kiểm tra lại {incorrectAnswers.length} từ sai
+                            </Button>
+                        )}
                     </CardFooter>
                  </Card>
             </div>
@@ -134,14 +162,29 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     }
 
     if (!currentQuestion) {
+        // This can happen if the deck is too small and gets filtered to < 4 items
+         if (quizDeck.length > 0 && quizDeck.length < 4) {
+            return (
+                <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
+                    <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-lg font-medium text-muted-foreground">Không đủ từ để tiếp tục.</p>
+                    <p className="text-sm text-muted-foreground">
+                        Cần ít nhất 4 từ để tạo một bài kiểm tra. Bộ từ hiện tại của bạn quá nhỏ.
+                    </p>
+                    <Button onClick={() => startNewGame(fullDeck)} className="mt-4">
+                        <RefreshCw className="mr-2 h-4 w-4" /> Quay lại từ đầu
+                    </Button>
+                </div>
+            );
+        }
         return null;
     }
 
     return (
         <div className="max-w-2xl mx-auto">
             <div className="mb-4 space-y-2">
-                <Progress value={(currentIndex / shuffledDeck.length) * 100} />
-                <p className="text-right text-sm text-muted-foreground">Câu {currentIndex + 1} trên {shuffledDeck.length}</p>
+                <Progress value={(currentIndex / quizDeck.length) * 100} />
+                <p className="text-right text-sm text-muted-foreground">Câu {currentIndex + 1} trên {quizDeck.length}</p>
             </div>
             <Card>
                 <CardHeader>
@@ -176,7 +219,7 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
                 {selectedAnswer && (
                      <CardFooter>
                         <Button onClick={handleNextQuestion} className="w-full">
-                            {currentIndex === shuffledDeck.length - 1 ? 'Xem kết quả' : 'Câu tiếp theo'}
+                            {currentIndex === quizDeck.length - 1 ? 'Xem kết quả' : 'Câu tiếp theo'}
                         </Button>
                      </CardFooter>
                 )}
