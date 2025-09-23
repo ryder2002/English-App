@@ -1,7 +1,17 @@
 
-import type {NextConfig} from 'next';
+import withPWAInit from "@ducanh2912/next-pwa";
 
-const nextConfig: NextConfig = {
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  // add your own strategies to the existing ones
+  // fallbacks: {
+  //   document: "/~offline",
+  // },
+});
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   /* config options here */
   allowedDevOrigins: [
     'https://6000-firebase-studio-1758209928865.cluster-bqwaigqtxbeautecnatk4o6ynk.cloudworkstations.dev',
@@ -40,4 +50,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);
