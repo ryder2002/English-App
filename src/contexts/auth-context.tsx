@@ -15,6 +15,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const publicPaths = ["/login", "/signup", "/forgot-password"];
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setIsLoading(false);
-            if (!currentUser && pathname !== '/login' && pathname !== '/signup') {
+            
+            // If user is not logged in AND the current path is NOT a public one, redirect to login.
+            if (!currentUser && !publicPaths.includes(pathname)) {
                 router.push("/login");
             }
         });
@@ -56,9 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     // If not loading and no user, but we are on a protected route,
-    // the useEffect above will handle redirection. If we are on login/signup,
-    // children (the login/signup page) should be rendered.
-    // The main protection is the redirection inside useEffect. We can just render children.
+    // the useEffect above will handle redirection. If we are on a public page,
+    // children (the login/signup/forgot-password page) should be rendered.
     return (
         <AuthContext.Provider value={value}>
             {children}
