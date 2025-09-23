@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { dictionaryLookupAction } from "@/app/actions";
-import { ArrowRightLeft, Loader2, PlusCircle, Search, Volume2, X } from "lucide-react";
+import { ArrowRightLeft, Loader2, PlusCircle, Search, Volume2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card";
 import { Separator } from "./ui/separator";
@@ -108,7 +108,8 @@ export function DictionarySearch() {
     }
   };
 
-  const playAudio = (text: string, lang: Language, id: string) => {
+  const playAudio = (e: React.MouseEvent, text: string, lang: Language, id: string) => {
+    e.stopPropagation();
     if (speakingId === id) {
       window.speechSynthesis.cancel();
       setSpeakingId(null);
@@ -300,8 +301,11 @@ export function DictionarySearch() {
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-grow">
-                        <CardTitle className="text-4xl font-bold font-headline">
+                        <CardTitle className="text-4xl font-bold font-headline flex items-center gap-2">
                             {result.word}
+                            <Button size="icon" variant="ghost" className="rounded-full h-11 w-11" onClick={(e) => playAudio(e, result.word, result.sourceLanguage, 'original')}>
+                                {speakingId === 'original' ? <Loader2 className="h-6 w-6 animate-spin"/> : <Volume2 className="h-6 w-6"/>}
+                            </Button>
                         </CardTitle>
                         {result.pronunciation && (
                            <p className="text-xl text-muted-foreground">{result.pronunciation}</p>
@@ -311,12 +315,6 @@ export function DictionarySearch() {
                         <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Thêm
-                        </Button>
-                         <Button size="icon" variant="ghost" className="rounded-full h-10 w-10" onClick={() => playAudio(result.word, result.sourceLanguage, 'original')}>
-                            {speakingId === 'original' ? <Loader2 className="h-5 w-5 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
-                        </Button>
-                        <Button size="icon" variant="ghost" className="rounded-full h-10 w-10" onClick={() => setResult(null)}>
-                            <X className="h-5 w-5"/>
                         </Button>
                     </div>
                 </div>
@@ -368,3 +366,5 @@ export function DictionarySearch() {
     </>
   );
 }
+
+    
