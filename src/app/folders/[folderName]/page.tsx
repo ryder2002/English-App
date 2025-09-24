@@ -1,7 +1,13 @@
 import { VocabularyFolderList } from "@/components/vocabulary-folder-list";
 import { FolderDetailClient } from "@/components/folder-detail-client";
 
-export default async function FolderDetailPage({ params }: { params: { folderName: string } }) {
+interface FolderDetailPageProps {
+    params: {
+        folderName: string;
+    }
+}
+
+export default async function FolderDetailPage({ params }: FolderDetailPageProps) {
     const folderName = decodeURIComponent(params.folderName);
     
     return (

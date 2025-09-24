@@ -1,4 +1,3 @@
-
 import { BatchAddForm } from "@/components/batch-add-form";
 import { ManualAddTable } from "@/components/manual-add-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
