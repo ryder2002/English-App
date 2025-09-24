@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Language } from "@/lib/types";
@@ -46,7 +47,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const populateVoiceList = () => {
             const voices = window.speechSynthesis.getVoices();
             if (voices.length === 0) {
-                setIsTTSLoading(true);
+                 // On some browsers (especially mobile), getVoices() is async and needs a nudge.
+                 // We will retry after a short delay.
+                setTimeout(populateVoiceList, 100);
                 return;
             }
             
@@ -58,26 +61,38 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
             setVoicesByLang(categorized);
             setIsTTSLoading(false);
+            
+            // This needs to be a function to get the latest state
+            setSelectedVoices(currentSelectedVoices => {
+                let changed = false;
+                const updatedSelectedVoices = { ...currentSelectedVoices };
 
-            // Set default voice if none is selected for a language
-            const updatedSelectedVoices = { ...selectedVoices };
-            let changed = false;
-            (Object.keys(categorized) as Language[]).forEach(lang => {
-                if (!selectedVoices[lang] && categorized[lang].length > 0) {
-                    updatedSelectedVoices[lang] = categorized[lang][0].voiceURI;
-                    changed = true;
+                (Object.keys(categorized) as Language[]).forEach(lang => {
+                    if (!updatedSelectedVoices[lang] && categorized[lang].length > 0) {
+                        updatedSelectedVoices[lang] = categorized[lang][0].voiceURI;
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    try {
+                        localStorage.setItem("cn-selected-voices", JSON.stringify(updatedSelectedVoices));
+                    } catch (error) {
+                        console.error("Failed to save default settings to localStorage", error);
+                    }
+                    return updatedSelectedVoices;
                 }
+                return currentSelectedVoices; // No change needed
             });
-
-            if (changed) {
-                setSelectedVoices(updatedSelectedVoices);
-                 try {
-                    localStorage.setItem("cn-selected-voices", JSON.stringify(updatedSelectedVoices));
-                } catch (error) {
-                    console.error("Failed to save default settings to localStorage", error);
-                }
-            }
         };
+
+        // This is a workaround for some mobile browsers that need a "kickstart"
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            // Speak an empty utterance to wake up the synthesis engine on mobile
+            const utterance = new SpeechSynthesisUtterance('');
+            utterance.volume = 0; // Make it silent
+            window.speechSynthesis.speak(utterance);
+        }
 
         populateVoiceList();
         if (window.speechSynthesis.onvoiceschanged !== undefined) {
@@ -85,9 +100,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
 
         return () => {
-            window.speechSynthesis.onvoiceschanged = null;
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                window.speechSynthesis.onvoiceschanged = null;
+            }
         }
-    }, []); // Run only once
+    }, []);
 
     const setSelectedVoice = useCallback((lang: Language, voiceURI: string) => {
         const newSelectedVoices = { ...selectedVoices, [lang]: voiceURI };
