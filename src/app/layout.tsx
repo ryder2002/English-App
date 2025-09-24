@@ -39,7 +39,6 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#0A0F1F" />
-        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${inter.variable} font-body antialiased`}>
         <AuthProvider>
