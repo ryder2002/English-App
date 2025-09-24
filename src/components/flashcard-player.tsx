@@ -18,7 +18,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { VocabularyItem, Language } from "@/lib/types";
 import { CardStackPlusIcon } from "@radix-ui/react-icons";
 import { useSettings } from "@/contexts/settings-context";
-import { type EmblaCarouselType } from 'embla-carousel-react'
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 
 interface FlashcardPlayerProps {
@@ -73,7 +72,8 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     emblaApi?.scrollTo(0, true);
   }, [deck, emblaApi]);
 
-  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
+  const onSelect = useCallback((emblaApi: CarouselApi) => {
+    if (!emblaApi) return;
     const newIndex = emblaApi.selectedScrollSnap();
     if (currentIndex !== newIndex) {
         setIsFlipped(false);
@@ -275,5 +275,3 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
     </div>
   );
 }
-
-    
