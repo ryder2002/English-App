@@ -14,6 +14,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "CN - Language Learning",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
+  manifest: "/manifest.json",
   icons: {
     icon: "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
     apple: "/apple-touch-icon.png",
