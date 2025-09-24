@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     icon: "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
     apple: "/apple-touch-icon.png",
   },
-  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
