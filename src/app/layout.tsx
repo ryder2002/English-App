@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
   icons: {
     icon: "https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
 };
@@ -33,8 +34,8 @@ export default function RootLayout({
         <meta name="application-name" content="CN" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-w-app-title" content="CN" />
-        <link rel="apple-touch-icon" href="/BG.png" />
+        <meta name="apple-mobile-web-app-title" content="CN" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#0A0F1F" />
