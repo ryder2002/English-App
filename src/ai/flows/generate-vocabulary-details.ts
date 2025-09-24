@@ -137,7 +137,6 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
     }
 
     return {
-        exists: true,
         ...output,
         pronunciation,
     };
