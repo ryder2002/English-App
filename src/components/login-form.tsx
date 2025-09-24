@@ -72,7 +72,7 @@ export function LoginForm() {
   };
 
   return (
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm relative">
           <CardHeader className="text-center items-center">
               <div className="mb-2">
                 <CNLogo />
