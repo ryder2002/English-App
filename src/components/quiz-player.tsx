@@ -138,6 +138,14 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
                 setIncorrectAnswers(prev => [...prev, incorrectItem]);
             }
         }
+        setTimeout(() => {
+            if (currentIndex < quizDeck.length - 1) {
+                setCurrentIndex(prev => prev + 1);
+                setSelectedAnswer(null);
+            } else {
+                setIsFinished(true);
+            }
+        }, 1000);
     };
 
     const handleNextQuestion = () => {
@@ -258,16 +266,7 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
                        )
                    })}
                 </CardContent>
-                {selectedAnswer && (
-                     <CardFooter>
-                        <Button onClick={handleNextQuestion} className="w-full">
-                            {currentIndex === quizDeck.length - 1 ? 'Xem kết quả' : 'Câu tiếp theo'}
-                        </Button>
-                     </CardFooter>
-                )}
             </Card>
         </div>
     );
 }
-
-    
