@@ -175,7 +175,7 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                       </div>
                       <div className="mt-2 text-sm space-y-1">
                         <p className="text-muted-foreground">
-                            {item.partOfSpeech && <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded-sm mr-2">{item.partOfSpeech}</span>}
+                            {item.partOfSpeech && <span className="font-mono text-xs px-1.5 py-0.5 rounded-sm mr-2">{item.partOfSpeech}</span>}
                             {item.ipa || item.pinyin}
                         </p>
                         <Badge
@@ -232,7 +232,7 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                                 {languageMap[item.language]}
                               </Badge>
                             </TableCell>
-                            <TableCell><span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded-sm">{item.partOfSpeech}</span></TableCell>
+                            <TableCell><span className="font-mono text-xs px-1.5 py-0.5 rounded-sm">{item.partOfSpeech}</span></TableCell>
                             <TableCell>{item.ipa || item.pinyin}</TableCell>
                             <TableCell>{item.vietnameseTranslation}</TableCell>
                             <TableCell className="text-right pr-4">
@@ -268,3 +268,5 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
     </>
   );
 }
+
+    
