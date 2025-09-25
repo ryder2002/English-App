@@ -92,7 +92,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
     if (sourceLanguage === 'vietnamese' && targetLanguage === 'vietnamese') {
         return words.map(word => ({
             word: word,
-            language: 'vietnamese',
+            language: 'vietnamese' as 'vietnamese',
             vietnameseTranslation: word,
             partOfSpeech: 'từ',
             folder: folder,

@@ -68,8 +68,8 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         }
 
         const newGamePairs = deck.flatMap(item => [
-            { id: `word-${item.id}`, pairId: item.id, type: 'word', content: item.word, isMatched: false },
-            { id: `meaning-${item.id}`, pairId: item.id, type: 'meaning', content: item.vietnameseTranslation, isMatched: false }
+            { id: `word-${item.id}`, pairId: item.id, type: 'word' as CardType, content: item.word, isMatched: false },
+            { id: `meaning-${item.id}`, pairId: item.id, type: 'meaning' as CardType, content: item.vietnameseTranslation, isMatched: false }
         ]);
 
         setGameCards(shuffleArray(newGamePairs));
