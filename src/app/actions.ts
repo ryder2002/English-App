@@ -70,6 +70,7 @@ export async function getVocabularyDetailsAction(
         sourceLanguage,
         targetLanguage,
     };
+    // This now returns the full details object including partOfSpeech.
     const details = await generateQuickVocabularyDetails(input);
 
     return {

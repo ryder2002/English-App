@@ -61,8 +61,8 @@ const generateBatchDetailsPrompt = ai.definePrompt({
 For each word in the input list, provide the following details:
 1. 'word': The original word.
 2. 'language': The source language provided ({{{sourceLanguage}}}).
-3. 'partOfSpeech': The grammatical part of speech. Use abbreviations (e.g., N, V, Adj, Adv, Prep). If it's a phrase, determine the core part of speech. For Vietnamese words, this can be omitted.
-4. 'vietnameseTranslation': The translation of the word into Vietnamese.
+3. 'partOfSpeech': The grammatical part of speech. Use standard abbreviations (e.g., N, V, Adj, Adv, Prep). For phrases, determine the core part of speech. This field is optional but highly recommended. For Vietnamese words, this can be omitted if not applicable.
+4. 'vietnameseTranslation': The most common translation of the word into Vietnamese.
     - If the source language is Vietnamese, this field should be the same as the original word.
     - If the target language is Vietnamese, this is the direct translation.
     - If translating between English and Chinese, you MUST still provide a Vietnamese translation for the source word.

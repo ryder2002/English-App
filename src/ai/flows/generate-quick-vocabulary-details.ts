@@ -2,12 +2,12 @@
 
 /**
  * @fileOverview This file defines a Genkit flow to quickly generate essential details for a vocabulary word.
- * It does this by leveraging the batch generation flow for a single word.
+ * It leverages the more comprehensive batch generation flow for a single word to ensure consistency.
  *
  * - generateQuickVocabularyDetails - A function that triggers the quick vocabulary details generation flow.
  */
 
-import {z} from 'genkit';
+import {z} from 'zod';
 import type { Language } from '@/lib/types';
 import { generateBatchVocabularyDetails } from './generate-batch-vocabulary-details';
 
@@ -30,7 +30,7 @@ const GenerateQuickVocabularyDetailsOutputSchema = z.object({
   ipa: z.string().optional().describe("The IPA transcription for an English word."),
   pinyin: z.string().optional().describe("The Pinyin transcription for a Chinese word."),
 });
-type GenerateQuickVocabularyDetailsOutput = z.infer<
+export type GenerateQuickVocabularyDetailsOutput = z.infer<
   typeof GenerateQuickVocabularyDetailsOutputSchema
 >;
 
@@ -39,12 +39,12 @@ export async function generateQuickVocabularyDetails(
 ): Promise<GenerateQuickVocabularyDetailsOutput> {
     const { word, sourceLanguage, targetLanguage } = input;
     
-    // Use the batch generation flow for a single word to keep logic consistent.
+    // Use the batch generation flow for a single word to keep all AI logic consistent.
     const batchResult = await generateBatchVocabularyDetails({
         words: [word],
         sourceLanguage,
         targetLanguage,
-        folder: "temp", // Folder is required but not used here
+        folder: "temp", // A temporary folder name is required by the batch flow but not used here.
     });
 
     const details = batchResult[0];
