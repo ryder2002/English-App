@@ -2,16 +2,14 @@
 
 /**
  * @fileOverview This file defines a Genkit flow to quickly generate essential details for a vocabulary word.
- * It focuses on speed by fetching only the primary translation and pronunciation.
+ * It does this by leveraging the batch generation flow for a single word.
  *
  * - generateQuickVocabularyDetails - A function that triggers the quick vocabulary details generation flow.
  */
 
-import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import type { Language } from '@/lib/types';
-import { generateIpa } from './generate-ipa-flow';
-import { generatePinyin } from './generate-pinyin-flow';
+import { generateBatchVocabularyDetails } from './generate-batch-vocabulary-details';
 
 const GenerateQuickVocabularyDetailsInputSchema = z.object({
   word: z.string().describe('The vocabulary word to generate details for.'),
@@ -39,78 +37,26 @@ type GenerateQuickVocabularyDetailsOutput = z.infer<
 export async function generateQuickVocabularyDetails(
   input: GenerateQuickVocabularyDetailsInput
 ): Promise<GenerateQuickVocabularyDetailsOutput> {
-  return generateQuickVocabularyDetailsFlow(input);
-}
-
-const generateQuickDetailsPrompt = ai.definePrompt({
-  name: 'generateQuickDetailsPrompt',
-  input: {schema: z.object({
-      word: z.string(),
-      sourceLanguage: z.string(),
-      targetLanguage: z.string(),
-  })},
-  output: {schema: z.object({
-    translation: z.string(),
-    partOfSpeech: z.string().optional(),
-  })},
-  prompt: `You are a highly efficient multilingual translator. Provide the single, most common translation and the part of speech for a given word.
-
-Word: {{{word}}}
-Source Language: {{{sourceLanguage}}}
-Target Language: {{{targetLanguage}}}
-
-Return a valid JSON object with the "translation" and "partOfSpeech" (e.g., N, V, Adj) fields.
-For Vietnamese words, the partOfSpeech can be omitted.
-  `,
-});
-
-const generateQuickVocabularyDetailsFlow = ai.defineFlow(
-  {
-    name: 'generateQuickVocabularyDetailsFlow',
-    inputSchema: GenerateQuickVocabularyDetailsInputSchema,
-    outputSchema: GenerateQuickVocabularyDetailsOutputSchema,
-  },
-  async input => {
-    // Prevent self-translation for non-Vietnamese
-    if (input.sourceLanguage === input.targetLanguage && input.sourceLanguage !== 'vietnamese') {
-      return {
-        translation: input.word,
-      };
-    }
+    const { word, sourceLanguage, targetLanguage } = input;
     
-    // When source is Vietnamese, we translate to English by default to get IPA
-    const translationTarget = input.sourceLanguage === 'vietnamese' ? 'english' : input.targetLanguage;
-
-    const { output: detailsOutput } = await generateQuickDetailsPrompt({
-        word: input.word,
-        sourceLanguage: input.sourceLanguage,
-        targetLanguage: translationTarget,
+    // Use the batch generation flow for a single word to keep logic consistent.
+    const batchResult = await generateBatchVocabularyDetails({
+        words: [word],
+        sourceLanguage,
+        targetLanguage,
+        folder: "temp", // Folder is required but not used here
     });
-    
-    if (!detailsOutput) {
-        throw new Error("Failed to get details from AI.");
-    }
-    
-    let ipa: string | undefined = undefined;
-    let pinyin: string | undefined = undefined;
 
-    if (input.sourceLanguage === 'english') {
-      const ipaResult = await generateIpa({ word: input.word });
-      ipa = ipaResult.ipa;
-    } else if (input.sourceLanguage === 'chinese') {
-      const pinyinResult = await generatePinyin({ word: input.word });
-      pinyin = pinyinResult.pinyin;
-    } else if (input.sourceLanguage === 'vietnamese') {
-      // If the original word is Vietnamese, we get the IPA of its English translation
-      const ipaResult = await generateIpa({ word: detailsOutput.translation });
-      ipa = ipaResult.ipa;
+    const details = batchResult[0];
+
+    if (!details) {
+        throw new Error(`Failed to generate quick details for the word: ${word}`);
     }
 
     return {
-        translation: detailsOutput.translation,
-        partOfSpeech: detailsOutput.partOfSpeech,
-        ipa: ipa,
-        pinyin: pinyin,
+        translation: details.vietnameseTranslation,
+        partOfSpeech: details.partOfSpeech,
+        ipa: details.ipa,
+        pinyin: details.pinyin,
     };
-  }
-);
+}

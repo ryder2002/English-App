@@ -83,6 +83,9 @@ export function ManualAddTable() {
         newRows[index].partOfSpeechLoading = false;
         if (value === 'vietnamese') {
             newRows[index].vietnameseTranslation = newRows[index].word;
+        } else {
+             // If word exists, clear translation to trigger refetch
+             if(newRows[index].word) newRows[index].vietnameseTranslation = '';
         }
     }
     
@@ -90,6 +93,7 @@ export function ManualAddTable() {
     if (field === 'word' && value === '') {
         newRows[index].vietnameseTranslation = '';
         newRows[index].partOfSpeech = '';
+        newRows[index].pronunciation = '';
     }
 
     setRows(newRows);
@@ -116,44 +120,27 @@ export function ManualAddTable() {
               if (details.partOfSpeech) {
                   newRows[index].partOfSpeech = details.partOfSpeech;
               }
+              if (details.ipa) {
+                  newRows[index].pronunciation = details.ipa;
+              }
+              if (details.pinyin) {
+                  newRows[index].pronunciation = details.pinyin;
+              }
               setRows(newRows);
           }
       } catch (error) {
           console.error("Details fetch error", error);
+          toast({ variant: 'destructive', title: 'Lỗi', description: 'Không thể lấy chi tiết từ.' });
       } finally {
-          handleInputChange(index, "translationLoading", false);
-          handleInputChange(index, "partOfSpeechLoading", false);
+        const finalRows = [...rows];
+        finalRows[index].translationLoading = false;
+        finalRows[index].partOfSpeechLoading = false;
+        finalRows[index].pronunciationLoading = false;
+        setRows(finalRows);
       }
   };
   
-  const fetchPronunciation = async (index: number) => {
-    const row = rows[index];
-    if (!row.word || row.language === 'vietnamese') {
-        handleInputChange(index, "pronunciationLoading", false);
-        return;
-    }
-
-    handleInputChange(index, "pronunciationLoading", true);
-    let pronunciation: string | undefined;
-
-    try {
-        if (row.language === 'english') {
-            pronunciation = await getIpaAction(row.word);
-        } else if (row.language === 'chinese') {
-            pronunciation = await getPinyinAction(row.word);
-        }
-    } catch (error) {
-        console.error("Pronunciation fetch error:", error);
-    } finally {
-        const newRows = [...rows];
-        newRows[index].pronunciation = pronunciation || "";
-        newRows[index].pronunciationLoading = false;
-        setRows(newRows);
-    }
-  };
-  
   const handleWordBlur = async (index: number) => {
-      await fetchPronunciation(index);
       await fetchDetails(index);
   }
 
@@ -226,6 +213,8 @@ export function ManualAddTable() {
         {value: 'vietnamese', label: 'Tiếng Việt'},
     ]
 
+    const anyLoading = rows.some(r => r.pronunciationLoading || r.translationLoading || r.partOfSpeechLoading);
+
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto border rounded-lg">
@@ -235,8 +224,8 @@ export function ManualAddTable() {
               <TableHead className="min-w-[200px]">Từ vựng</TableHead>
               <TableHead className="w-[150px]">Ngôn ngữ</TableHead>
               <TableHead className="min-w-[150px]">Phát âm (AI)</TableHead>
-              <TableHead className="min-w-[200px]">Nghĩa tiếng Việt</TableHead>
-              <TableHead className="min-w-[150px]">Từ loại</TableHead>
+              <TableHead className="min-w-[200px]">Nghĩa tiếng Việt (AI)</TableHead>
+              <TableHead className="min-w-[150px]">Từ loại (AI)</TableHead>
               <TableHead className="w-[200px]">Thư mục</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -259,13 +248,11 @@ export function ManualAddTable() {
                     value={row.language}
                     onValueChange={(value) => {
                       handleInputChange(index, "language", value);
-                      // Instantly update state for re-render
-                      const newRows = [...rows];
-                      newRows[index].language = value as any;
-                      setRows(newRows);
-                       // Refetch pronunciation and translation if word exists
-                      if (newRows[index].word) {
-                         handleWordBlur(index);
+                       // Refetch details if word exists
+                      const currentRow = rows[index];
+                      if (currentRow.word) {
+                         // A slight delay to allow state to update before fetching
+                         setTimeout(() => handleWordBlur(index), 0);
                       }
                     }}
                     disabled={isSaving}
@@ -287,16 +274,6 @@ export function ManualAddTable() {
                         placeholder={row.language === 'vietnamese' ? 'N/A' : '...'}
                         disabled={isSaving || row.pronunciationLoading}
                       />
-                    <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => fetchPronunciation(index)} 
-                        disabled={isSaving || row.pronunciationLoading || !row.word || row.language === 'vietnamese'}
-                        className="h-9 w-9 shrink-0"
-                        aria-label="Tạo phát âm"
-                    >
-                        {row.pronunciationLoading ? <Loader2 className="h-5 w-5 animate-spin"/> : <Sparkles className="h-5 w-5" />}
-                    </Button>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -310,16 +287,6 @@ export function ManualAddTable() {
                       disabled={isSaving || row.translationLoading}
                       className="text-base min-h-[80px]"
                     />
-                     <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => fetchDetails(index)} 
-                        disabled={isSaving || row.translationLoading || !row.word || row.language === 'vietnamese'}
-                        className="h-9 w-9 shrink-0"
-                        aria-label="Tạo nghĩa và từ loại"
-                    >
-                        {row.translationLoading ? <Loader2 className="h-5 w-5 animate-spin"/> : <Sparkles className="h-5 w-5" />}
-                    </Button>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -333,16 +300,6 @@ export function ManualAddTable() {
                       disabled={isSaving || row.partOfSpeechLoading}
                       className="text-base min-h-[80px]"
                     />
-                     <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={() => fetchDetails(index)} 
-                        disabled={isSaving || row.partOfSpeechLoading || !row.word || row.language === 'vietnamese'}
-                        className="h-9 w-9 shrink-0"
-                        aria-label="Tạo từ loại"
-                    >
-                        {row.partOfSpeechLoading ? <Loader2 className="h-5 w-5 animate-spin"/> : <Sparkles className="h-5 w-5" />}
-                    </Button>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -366,15 +323,30 @@ export function ManualAddTable() {
                   </Select>
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeRow(index)}
-                    disabled={rows.length <= 1 || isSaving}
-                    aria-label="Remove row"
-                  >
-                    <Trash2 className="h-5 w-5 text-muted-foreground" />
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => fetchDetails(index)} 
+                        disabled={isSaving || anyLoading || !row.word || row.language === 'vietnamese'}
+                        className="h-9 w-9 shrink-0"
+                        aria-label="Tạo tất cả"
+                    >
+                        { (row.translationLoading || row.partOfSpeechLoading || row.pronunciationLoading) 
+                            ? <Loader2 className="h-5 w-5 animate-spin"/> 
+                            : <Sparkles className="h-5 w-5" />
+                        }
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeRow(index)}
+                      disabled={rows.length <= 1 || isSaving}
+                      aria-label="Remove row"
+                    >
+                      <Trash2 className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -386,7 +358,7 @@ export function ManualAddTable() {
           <PlusCircle className="mr-2 h-4 w-4" />
           Thêm hàng
         </Button>
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={handleSave} disabled={isSaving || anyLoading}>
           {isSaving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (

@@ -94,6 +94,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
             word: word,
             language: 'vietnamese',
             vietnameseTranslation: word,
+            partOfSpeech: 'từ',
             folder: folder,
         }));
     }
