@@ -38,11 +38,11 @@ export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> =
   return vocabulary.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
-// Helper function to remove undefined fields from an object
+// Helper function to remove undefined or null fields from an object
 const cleanData = (data: { [key: string]: any }) => {
   const cleanedData = { ...data };
   Object.keys(cleanedData).forEach((key) => {
-    if (cleanedData[key] === undefined) {
+    if (cleanedData[key] === undefined || cleanedData[key] === null) {
       delete cleanedData[key];
     }
   });

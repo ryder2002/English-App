@@ -6,6 +6,7 @@ export interface VocabularyItem {
   language: Language;
   vietnameseTranslation: string;
   folder: string;
+  partOfSpeech?: string;
   ipa?: string;
   pinyin?: string;
   createdAt: string; // ISO 8601 date string

@@ -28,6 +28,7 @@ type GenerateBatchVocabularyDetailsInput = z.infer<
 const WordDetailSchema = z.object({
     word: z.string().describe("The original word from the input list."),
     language: z.enum(['english', 'chinese', 'vietnamese']).describe("The source language of the word."),
+    partOfSpeech: z.string().optional().describe("The part of speech of the word (e.g., N, V, Adj)."),
     vietnameseTranslation: z.string().describe("The Vietnamese translation of the word."),
     folder: z.string().describe("The folder to add the vocabulary to."),
     ipa: z.string().optional().describe("The IPA transcription for the English word, enclosed in slashes."),
@@ -60,13 +61,14 @@ const generateBatchDetailsPrompt = ai.definePrompt({
 For each word in the input list, provide the following details:
 1. 'word': The original word.
 2. 'language': The source language provided ({{{sourceLanguage}}}).
-3. 'vietnameseTranslation': The translation of the word into Vietnamese.
+3. 'partOfSpeech': The grammatical part of speech. Use abbreviations (e.g., N, V, Adj, Adv, Prep). If it's a phrase, determine the core part of speech. For Vietnamese words, this can be omitted.
+4. 'vietnameseTranslation': The translation of the word into Vietnamese.
     - If the source language is Vietnamese, this field should be the same as the original word.
     - If the target language is Vietnamese, this is the direct translation.
     - If translating between English and Chinese, you MUST still provide a Vietnamese translation for the source word.
-4. 'folder': The folder name provided ({{{folder}}}).
-5. 'ipa': The International Phonetic Alphabet (IPA) transcription, enclosed in slashes (e.g., /həˈloʊ/). Provide this ONLY if the source language is 'english'. Otherwise, omit this field.
-6. 'pinyin': The Pinyin transcription. Provide this ONLY if the source language is 'chinese'. Otherwise, omit this field.
+5. 'folder': The folder name provided ({{{folder}}}).
+6. 'ipa': The International Phonetic Alphabet (IPA) transcription, enclosed in slashes (e.g., /həˈloʊ/). Provide this ONLY if the source language is 'english'. Otherwise, omit this field.
+7. 'pinyin': The Pinyin transcription. Provide this ONLY if the source language is 'chinese'. Otherwise, omit this field.
 
 Input Words: {{{json words}}}
 Source Language: {{{sourceLanguage}}}

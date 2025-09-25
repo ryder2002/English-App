@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -208,6 +209,10 @@ export function VocabularyList() {
                         </DropdownMenu>
                       </div>
                       <div className="mt-2 text-sm space-y-1">
+                        <p className="text-muted-foreground">
+                            {item.partOfSpeech && <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded-sm mr-2">{item.partOfSpeech}</span>}
+                            {item.ipa || item.pinyin}
+                        </p>
                         <Badge
                           variant={
                             item.language === "english"
@@ -217,11 +222,6 @@ export function VocabularyList() {
                         >
                           {languageMap[item.language]}
                         </Badge>
-                        {(item.ipa || item.pinyin) && (
-                          <p className="text-muted-foreground">
-                            {item.ipa || item.pinyin}
-                          </p>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -235,6 +235,7 @@ export function VocabularyList() {
                         <TableRow className="hover:bg-transparent">
                           <TableHead className="w-[250px] pl-6">Từ</TableHead>
                           <TableHead>Ngôn ngữ</TableHead>
+                          <TableHead>Từ loại</TableHead>
                           <TableHead>Phát âm</TableHead>
                           <TableHead>Tiếng Việt</TableHead>
                           <TableHead className="text-right w-[100px] pr-6">
@@ -264,6 +265,7 @@ export function VocabularyList() {
                                 {languageMap[item.language]}
                               </Badge>
                             </TableCell>
+                            <TableCell><span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded-sm">{item.partOfSpeech}</span></TableCell>
                             <TableCell>{item.ipa || item.pinyin}</TableCell>
                             <TableCell>{item.vietnameseTranslation}</TableCell>
                             <TableCell className="text-right pr-4">

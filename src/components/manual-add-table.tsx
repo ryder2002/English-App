@@ -31,6 +31,8 @@ type SheetRow = {
   language: "english" | "chinese" | "vietnamese";
   pronunciation: string;
   pronunciationLoading: boolean;
+  partOfSpeech: string;
+  partOfSpeechLoading: boolean;
   vietnameseTranslation: string;
   translationLoading: boolean;
   folder: string;
@@ -57,6 +59,8 @@ export function ManualAddTable() {
     language: "english",
     pronunciation: "",
     pronunciationLoading: false,
+    partOfSpeech: "",
+    partOfSpeechLoading: false,
     vietnameseTranslation: "",
     translationLoading: false,
     folder: defaultFolder,
@@ -71,21 +75,57 @@ export function ManualAddTable() {
     const newRows = [...rows];
     (newRows[index] as any)[field] = value;
 
-    // When language changes to Vietnamese, clear pronunciation fields
-    if (field === 'language' && value === 'vietnamese') {
+    // When language changes, clear related fields
+    if (field === 'language') {
         newRows[index].pronunciation = '';
         newRows[index].pronunciationLoading = false;
-        newRows[index].vietnameseTranslation = newRows[index].word;
+        newRows[index].partOfSpeech = '';
+        newRows[index].partOfSpeechLoading = false;
+        if (value === 'vietnamese') {
+            newRows[index].vietnameseTranslation = newRows[index].word;
+        }
     }
     
-    // If the word is cleared, clear the translation too
+    // If the word is cleared, clear the translation and part of speech
     if (field === 'word' && value === '') {
         newRows[index].vietnameseTranslation = '';
+        newRows[index].partOfSpeech = '';
     }
 
     setRows(newRows);
   };
 
+  const fetchDetails = async (index: number) => {
+      const row = rows[index];
+      if (!row.word || row.language === 'vietnamese') {
+          handleInputChange(index, "translationLoading", false);
+          handleInputChange(index, "partOfSpeechLoading", false);
+          return;
+      }
+      
+      handleInputChange(index, "translationLoading", true);
+      handleInputChange(index, "partOfSpeechLoading", true);
+      
+      try {
+          const details = await getVocabularyDetailsAction(row.word, row.language, "vietnamese");
+          if (details) {
+              const newRows = [...rows];
+              if (details.translation) {
+                  newRows[index].vietnameseTranslation = details.translation;
+              }
+              if (details.partOfSpeech) {
+                  newRows[index].partOfSpeech = details.partOfSpeech;
+              }
+              setRows(newRows);
+          }
+      } catch (error) {
+          console.error("Details fetch error", error);
+      } finally {
+          handleInputChange(index, "translationLoading", false);
+          handleInputChange(index, "partOfSpeechLoading", false);
+      }
+  };
+  
   const fetchPronunciation = async (index: number) => {
     const row = rows[index];
     if (!row.word || row.language === 'vietnamese') {
@@ -111,30 +151,10 @@ export function ManualAddTable() {
         setRows(newRows);
     }
   };
-
-  const fetchTranslation = async (index: number) => {
-      const row = rows[index];
-      if (!row.word || row.language === 'vietnamese') {
-          handleInputChange(index, "translationLoading", false);
-          return;
-      }
-      
-      handleInputChange(index, "translationLoading", true);
-      try {
-          const details = await getVocabularyDetailsAction(row.word, row.language, "vietnamese");
-          if (details && details.translation) {
-              handleInputChange(index, "vietnameseTranslation", details.translation);
-          }
-      } catch (error) {
-          console.error("Translation fetch error", error);
-      } finally {
-          handleInputChange(index, "translationLoading", false);
-      }
-  };
   
   const handleWordBlur = async (index: number) => {
       await fetchPronunciation(index);
-      await fetchTranslation(index);
+      await fetchDetails(index);
   }
 
   const addRow = () => {
@@ -170,6 +190,7 @@ export function ManualAddTable() {
             word: row.word,
             language: row.language as Language,
             vietnameseTranslation: row.vietnameseTranslation,
+            partOfSpeech: row.partOfSpeech,
             folder: row.folder,
             ipa: row.language === 'english' ? row.pronunciation : undefined,
             pinyin: row.language === 'chinese' ? row.pronunciation : undefined,
@@ -211,10 +232,11 @@ export function ManualAddTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[250px]">Từ vựng</TableHead>
-              <TableHead className="w-[180px]">Ngôn ngữ</TableHead>
-              <TableHead className="min-w-[200px]">Phát âm (AI)</TableHead>
-              <TableHead className="min-w-[250px]">Nghĩa tiếng Việt</TableHead>
+              <TableHead className="min-w-[200px]">Từ vựng</TableHead>
+              <TableHead className="w-[150px]">Ngôn ngữ</TableHead>
+              <TableHead className="min-w-[150px]">Phát âm (AI)</TableHead>
+              <TableHead className="min-w-[200px]">Nghĩa tiếng Việt</TableHead>
+              <TableHead className="min-w-[150px]">Từ loại</TableHead>
               <TableHead className="w-[200px]">Thư mục</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -237,6 +259,7 @@ export function ManualAddTable() {
                     value={row.language}
                     onValueChange={(value) => {
                       handleInputChange(index, "language", value);
+                      // Instantly update state for re-render
                       const newRows = [...rows];
                       newRows[index].language = value as any;
                       setRows(newRows);
@@ -290,12 +313,35 @@ export function ManualAddTable() {
                      <Button 
                         size="icon" 
                         variant="ghost" 
-                        onClick={() => fetchTranslation(index)} 
+                        onClick={() => fetchDetails(index)} 
                         disabled={isSaving || row.translationLoading || !row.word || row.language === 'vietnamese'}
                         className="h-9 w-9 shrink-0"
-                        aria-label="Tạo nghĩa"
+                        aria-label="Tạo nghĩa và từ loại"
                     >
                         {row.translationLoading ? <Loader2 className="h-5 w-5 animate-spin"/> : <Sparkles className="h-5 w-5" />}
+                    </Button>
+                  </div>
+                </TableCell>
+                <TableCell>
+                   <div className="flex items-center gap-2">
+                    <Textarea
+                      value={row.partOfSpeech}
+                      onChange={(e) =>
+                        handleInputChange(index, "partOfSpeech", e.target.value)
+                      }
+                      placeholder="ví dụ: N, V, Adj"
+                      disabled={isSaving || row.partOfSpeechLoading}
+                      className="text-base min-h-[80px]"
+                    />
+                     <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => fetchDetails(index)} 
+                        disabled={isSaving || row.partOfSpeechLoading || !row.word || row.language === 'vietnamese'}
+                        className="h-9 w-9 shrink-0"
+                        aria-label="Tạo từ loại"
+                    >
+                        {row.partOfSpeechLoading ? <Loader2 className="h-5 w-5 animate-spin"/> : <Sparkles className="h-5 w-5" />}
                     </Button>
                   </div>
                 </TableCell>

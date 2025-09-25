@@ -28,6 +28,7 @@ type GenerateQuickVocabularyDetailsInput = {
 }
 type GenerateQuickVocabularyDetailsOutput = {
     translation: string;
+    partOfSpeech?: string;
     ipa?: string;
     pinyin?: string;
 }
@@ -42,6 +43,7 @@ type GenerateBatchVocabularyDetailsOutput = {
     word: string;
     language: Language;
     vietnameseTranslation: string;
+    partOfSpeech?: string;
     folder: string;
     ipa?: string;
     pinyin?: string;
@@ -72,6 +74,7 @@ export async function getVocabularyDetailsAction(
 
     return {
         translation: details.translation,
+        partOfSpeech: details.partOfSpeech,
         ipa: details.ipa,
         pinyin: details.pinyin,
     };

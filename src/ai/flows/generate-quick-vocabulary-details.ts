@@ -28,6 +28,7 @@ type GenerateQuickVocabularyDetailsInput = z.infer<
 
 const GenerateQuickVocabularyDetailsOutputSchema = z.object({
   translation: z.string().describe("The most common translation of the word in the target language."),
+  partOfSpeech: z.string().optional().describe("The grammatical part of speech of the word (e.g., N, V, Adj)."),
   ipa: z.string().optional().describe("The IPA transcription for an English word."),
   pinyin: z.string().optional().describe("The Pinyin transcription for a Chinese word."),
 });
@@ -41,8 +42,8 @@ export async function generateQuickVocabularyDetails(
   return generateQuickVocabularyDetailsFlow(input);
 }
 
-const generateQuickTranslationPrompt = ai.definePrompt({
-  name: 'generateQuickTranslationPrompt',
+const generateQuickDetailsPrompt = ai.definePrompt({
+  name: 'generateQuickDetailsPrompt',
   input: {schema: z.object({
       word: z.string(),
       sourceLanguage: z.string(),
@@ -50,14 +51,16 @@ const generateQuickTranslationPrompt = ai.definePrompt({
   })},
   output: {schema: z.object({
     translation: z.string(),
+    partOfSpeech: z.string().optional(),
   })},
-  prompt: `You are a highly efficient multilingual translator. Provide only the single, most common translation for a given word.
+  prompt: `You are a highly efficient multilingual translator. Provide the single, most common translation and the part of speech for a given word.
 
 Word: {{{word}}}
 Source Language: {{{sourceLanguage}}}
 Target Language: {{{targetLanguage}}}
 
-Return a valid JSON object with only the "translation" field.
+Return a valid JSON object with the "translation" and "partOfSpeech" (e.g., N, V, Adj) fields.
+For Vietnamese words, the partOfSpeech can be omitted.
   `,
 });
 
@@ -78,14 +81,14 @@ const generateQuickVocabularyDetailsFlow = ai.defineFlow(
     // When source is Vietnamese, we translate to English by default to get IPA
     const translationTarget = input.sourceLanguage === 'vietnamese' ? 'english' : input.targetLanguage;
 
-    const { output: translationOutput } = await generateQuickTranslationPrompt({
+    const { output: detailsOutput } = await generateQuickDetailsPrompt({
         word: input.word,
         sourceLanguage: input.sourceLanguage,
         targetLanguage: translationTarget,
     });
     
-    if (!translationOutput) {
-        throw new Error("Failed to get translation from AI.");
+    if (!detailsOutput) {
+        throw new Error("Failed to get details from AI.");
     }
     
     let ipa: string | undefined = undefined;
@@ -99,12 +102,13 @@ const generateQuickVocabularyDetailsFlow = ai.defineFlow(
       pinyin = pinyinResult.pinyin;
     } else if (input.sourceLanguage === 'vietnamese') {
       // If the original word is Vietnamese, we get the IPA of its English translation
-      const ipaResult = await generateIpa({ word: translationOutput.translation });
+      const ipaResult = await generateIpa({ word: detailsOutput.translation });
       ipa = ipaResult.ipa;
     }
 
     return {
-        translation: translationOutput.translation,
+        translation: detailsOutput.translation,
+        partOfSpeech: detailsOutput.partOfSpeech,
         ipa: ipa,
         pinyin: pinyin,
     };

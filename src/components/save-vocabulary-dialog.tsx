@@ -42,6 +42,7 @@ const formSchema = z.object({
     required_error: "Vui lòng chọn một ngôn ngữ.",
   }),
   vietnameseTranslation: z.string().optional(),
+  partOfSpeech: z.string().optional(),
   folder: z.string().min(1, { message: "Thư mục không được để trống." }),
 });
 
@@ -73,6 +74,7 @@ export function SaveVocabularyDialog({
       word: "",
       language: "english",
       vietnameseTranslation: "",
+      partOfSpeech: "",
       folder: "",
     },
   });
@@ -84,6 +86,7 @@ export function SaveVocabularyDialog({
           word: itemToEdit.word,
           language: itemToEdit.language as "english" | "chinese" | "vietnamese",
           vietnameseTranslation: itemToEdit.vietnameseTranslation,
+          partOfSpeech: itemToEdit.partOfSpeech,
           folder: itemToEdit.folder,
         });
       } else if (initialData) {
@@ -91,6 +94,7 @@ export function SaveVocabularyDialog({
           word: initialData.word || "",
           language: initialData.language || "english",
           vietnameseTranslation: initialData.vietnameseTranslation || "",
+          partOfSpeech: initialData.partOfSpeech || "",
           folder: defaultFolder || initialData.folder || (folders.length > 0 ? folders[0] : ""),
         });
       } else {
@@ -98,6 +102,7 @@ export function SaveVocabularyDialog({
           word: "",
           language: "english",
           vietnameseTranslation: "",
+          partOfSpeech: "",
           folder: defaultFolder || (folders.length > 0 ? folders[0] : ""),
         });
       }
@@ -122,6 +127,7 @@ export function SaveVocabularyDialog({
         const editData: Partial<VocabularyItem> = {
           folder: targetFolder,
           vietnameseTranslation: values.vietnameseTranslation || itemToEdit.vietnameseTranslation,
+          partOfSpeech: values.partOfSpeech,
         };
         success = await updateVocabularyItem(itemToEdit.id, editData);
         if (success) {
@@ -148,6 +154,7 @@ export function SaveVocabularyDialog({
           language: values.language as Language,
           folder: targetFolder,
           vietnameseTranslation: finalVietnameseTranslation,
+          partOfSpeech: values.partOfSpeech || details.partOfSpeech,
           ipa: initialData?.ipa || details.ipa, // Use initialData if available
           pinyin: initialData?.pinyin || details.pinyin, // Use initialData if available
         };
@@ -251,6 +258,19 @@ export function SaveVocabularyDialog({
             />
             <FormField
               control={form.control}
+              name="partOfSpeech"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Từ loại</FormLabel>
+                  <FormControl>
+                    <Input placeholder={isEditing ? "Chỉnh sửa từ loại..." : "Có thể bỏ trống, AI sẽ tự điền"} {...field} disabled={isSubmitting} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="folder"
               render={({ field }) => (
                 <FormItem>
@@ -305,5 +325,3 @@ export function SaveVocabularyDialog({
     </Dialog>
   );
 }
-
-    
