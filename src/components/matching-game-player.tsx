@@ -3,7 +3,7 @@
 import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "@/lib/utils";
 import { RefreshCw, Trophy } from "lucide-react";
 import { VocabularyItem } from "@/lib/types";
@@ -21,11 +21,10 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 type CardType = 'word' | 'meaning';
 
 interface GameCard {
-  id: string; // Unique ID for the card itself, e.g., "word-1" or "meaning-1"
-  pairId: string; // The ID of the original VocabularyItem
+  id: string; 
+  pairId: string; 
   type: CardType;
   content: string;
-  isFlipped: boolean;
   isMatched: boolean;
 }
 
@@ -36,7 +35,7 @@ interface MatchingGamePlayerProps {
 export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) {
     const { vocabulary } = useVocabulary();
     const [gameCards, setGameCards] = useState<GameCard[]>([]);
-    const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [isFinished, setIsFinished] = useState(false);
     const [moves, setMoves] = useState(0);
 
@@ -44,10 +43,12 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         let deck = selectedFolder === 'all'
             ? vocabulary
             : vocabulary.filter(item => item.folder === selectedFolder);
-        // Ensure even number for pairing
-        if (deck.length % 2 !== 0 && deck.length > 1) {
-            deck = deck.slice(0, -1);
-        }
+        // Ensure even number for pairing, we'll take a max of 6 pairs (12 cards) for a good layout
+        const maxPairs = 6;
+        deck = shuffleArray(deck).slice(0, maxPairs);
+
+        if (deck.length < 2) return [];
+        
         return deck;
     }, [vocabulary, selectedFolder]);
 
@@ -58,12 +59,12 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         }
 
         const pairs: GameCard[] = deckToUse.flatMap(item => [
-            { id: `word-${item.id}`, pairId: item.id, type: 'word', content: item.word, isFlipped: false, isMatched: false },
-            { id: `meaning-${item.id}`, pairId: item.id, type: 'meaning', content: item.vietnameseTranslation, isFlipped: false, isMatched: false }
+            { id: `word-${item.id}`, pairId: item.id, type: 'word', content: item.word, isMatched: false },
+            { id: `meaning-${item.id}`, pairId: item.id, type: 'meaning', content: item.vietnameseTranslation, isMatched: false }
         ]);
 
         setGameCards(shuffleArray(pairs));
-        setFlippedIndices([]);
+        setSelectedIndex(null);
         setIsFinished(false);
         setMoves(0);
     };
@@ -72,48 +73,36 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         startNewGame(fullDeck);
     }, [fullDeck]);
 
-    const handleCardClick = (index: number) => {
-        if (flippedIndices.length >= 2 || gameCards[index].isFlipped || gameCards[index].isMatched) {
+    const handleCardClick = (clickedIndex: number) => {
+        if (gameCards[clickedIndex].isMatched || selectedIndex === clickedIndex) {
             return;
         }
-
-        const newFlippedIndices = [...flippedIndices, index];
-        const newGameCards = [...gameCards];
-        newGameCards[index].isFlipped = true;
-
-        setGameCards(newGameCards);
-        setFlippedIndices(newFlippedIndices);
-    };
-
-    useEffect(() => {
-        if (flippedIndices.length === 2) {
+        
+        if (selectedIndex === null) {
+            // First card selected
+            setSelectedIndex(clickedIndex);
+        } else {
+            // Second card selected
             setMoves(prev => prev + 1);
-            const [firstIndex, secondIndex] = flippedIndices;
-            const firstCard = gameCards[firstIndex];
-            const secondCard = gameCards[secondIndex];
+            const firstCard = gameCards[selectedIndex];
+            const secondCard = gameCards[clickedIndex];
 
             if (firstCard.pairId === secondCard.pairId) {
                 // Match found
-                const newGameCards = gameCards.map(card =>
+                const newGameCards = gameCards.map(card => 
                     card.pairId === firstCard.pairId ? { ...card, isMatched: true } : card
                 );
                 setGameCards(newGameCards);
-                setFlippedIndices([]);
-                if (newGameCards.every(card => card.isMatched)) {
+                setSelectedIndex(null);
+                 if (newGameCards.every(card => card.isMatched)) {
                     setIsFinished(true);
                 }
             } else {
-                // No match, flip back after a delay
-                setTimeout(() => {
-                    const newGameCards = [...gameCards];
-                    newGameCards[firstIndex].isFlipped = false;
-                    newGameCards[secondIndex].isFlipped = false;
-                    setGameCards(newGameCards);
-                    setFlippedIndices([]);
-                }, 1000);
+                // No match, just select the new card
+                setSelectedIndex(clickedIndex);
             }
         }
-    }, [flippedIndices, gameCards]);
+    };
     
     if (fullDeck.length === 0) {
         return (
@@ -155,36 +144,21 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
 
     return (
         <div className="flex flex-col items-center gap-6">
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4 w-full">
+             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-4 w-full max-w-3xl mx-auto">
                 {gameCards.map((card, index) => (
-                    <div
+                    <Button
                         key={card.id}
-                        className="w-full aspect-square cursor-pointer group"
-                        style={{ perspective: "1000px" }}
+                        variant="outline"
                         onClick={() => handleCardClick(index)}
+                        disabled={card.isMatched}
+                        className={cn(
+                            "h-20 md:h-24 text-base font-semibold p-2 flex items-center justify-center text-center whitespace-normal",
+                            selectedIndex === index && !card.isMatched && "ring-2 ring-primary border-primary",
+                            card.isMatched && "bg-green-100 dark:bg-green-900/50 border-green-500 text-green-700 dark:text-green-300 opacity-60 cursor-not-allowed",
+                        )}
                     >
-                        <div
-                            className={cn(
-                                "relative w-full h-full transition-transform duration-500 ease-in-out",
-                                card.isFlipped || card.isMatched ? "rotate-y-180" : ""
-                            )}
-                            style={{ transformStyle: "preserve-3d" }}
-                        >
-                            {/* Card Back */}
-                            <div className="absolute w-full h-full flex items-center justify-center bg-primary rounded-lg shadow-md" style={{ backfaceVisibility: "hidden" }}>
-                                <span className="text-3xl font-bold text-primary-foreground">?</span>
-                            </div>
-
-                            {/* Card Front */}
-                            <div className={cn(
-                                "absolute w-full h-full flex items-center justify-center text-center p-2 rounded-lg shadow-md",
-                                card.isMatched ? "bg-green-100 dark:bg-green-900/50 border-2 border-green-500" : "bg-card",
-                                "rotate-y-180"
-                            )} style={{ backfaceVisibility: "hidden" }}>
-                                <p className={cn("font-semibold text-sm md:text-base", card.isMatched ? "text-green-700 dark:text-green-300" : "")}>{card.content}</p>
-                            </div>
-                        </div>
-                    </div>
+                        {card.content}
+                    </Button>
                 ))}
             </div>
              <div className="flex justify-center mt-4">
@@ -195,12 +169,3 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         </div>
     );
 }
-
-// Custom CSS in a style tag to avoid CSS file modification
-const style = document.createElement('style');
-style.innerHTML = `
-  .rotate-y-180 {
-    transform: rotateY(180deg);
-  }
-`;
-document.head.appendChild(style);
