@@ -20,6 +20,18 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     return newArray;
 };
 
+type QuestionType = 'word_to_meaning' | 'meaning_to_word';
+
+interface QuizQuestion {
+    prompt: string;
+    questionText: string;
+    questionType: QuestionType;
+    options: string[];
+    correctAnswer: string;
+    originalItem: VocabularyItem;
+}
+
+
 interface QuizPlayerProps {
     selectedFolder: string;
 }
@@ -43,7 +55,6 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
 
 
     const startNewGame = (deckToUse: VocabularyItem[] = fullDeck) => {
-        // We allow games with < 4 cards now, the question generation will handle it.
         if (deckToUse.length === 0) {
             setQuizDeck([]);
             return;
@@ -60,51 +71,69 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
         startNewGame(fullDeck);
     }, [fullDeck]);
 
-    const currentQuestion = useMemo(() => {
+    const currentQuestion: QuizQuestion | null = useMemo(() => {
         if (quizDeck.length === 0 || currentIndex >= quizDeck.length) return null;
         
         const questionItem = quizDeck[currentIndex];
-        const correctAnswer = questionItem.vietnameseTranslation;
         
-        // Decide which pool of words to generate wrong answers from.
-        // If the quiz deck is small (e.g. retrying a few words), use the full deck to get more variety.
-        // Otherwise, use the quiz deck itself.
-        const sourceForWrongAnswers = quizDeck.length < 4 ? fullDeck : quizDeck;
+        // Randomly decide the question type
+        const questionType: QuestionType = Math.random() < 0.5 ? 'word_to_meaning' : 'meaning_to_word';
         
-        // Get up to 3 wrong answers.
-        const wrongAnswers = shuffleArray(
-            sourceForWrongAnswers.filter(item => item.id !== questionItem.id)
-        )
-        .slice(0, 3)
-        .map(item => item.vietnameseTranslation);
+        const isWordToMeaning = questionType === 'word_to_meaning';
 
-        // Ensure we always have 4 options if possible
+        const correctAnswer = isWordToMeaning ? questionItem.vietnameseTranslation : questionItem.word;
+        const answerPool = fullDeck.filter(item => item.id !== questionItem.id);
+
+        // Get unique wrong answers
+        const wrongAnswerCandidates = shuffleArray(answerPool).map(item => isWordToMeaning ? item.vietnameseTranslation : item.word);
+        const uniqueWrongAnswers = [...new Set(wrongAnswerCandidates)].filter(ans => ans !== correctAnswer);
+        
+        const wrongAnswers = uniqueWrongAnswers.slice(0, 3);
+
         let options = shuffleArray([correctAnswer, ...wrongAnswers]);
         
-        // If we still have less than 4 options (e.g. only 1-3 cards in total), duplicate options to fill up.
-        let i = 0;
-        while (options.length > 0 && options.length < 4) {
-            options.push(options[i % options.length]);
-            i++;
+        // Ensure 4 unique options if possible
+        if (options.length < 4) {
+            const moreWrongAnswers = shuffleArray(
+                [...new Set(fullDeck.map(item => isWordToMeaning ? item.vietnameseTranslation : item.word))]
+            ).filter(ans => !options.includes(ans));
+            
+            options.push(...moreWrongAnswers.slice(0, 4 - options.length));
         }
 
+        // Final check for duplicates, although highly unlikely now
+        options = [...new Set(options)];
+        // Fill with random if still not enough (edge case for very small decks)
+        let i = 0;
+        while (options.length < 4 && fullDeck.length > 1) {
+            const randomItem = fullDeck[Math.floor(Math.random() * fullDeck.length)];
+            const randomAnswer = isWordToMeaning ? randomItem.vietnameseTranslation : randomItem.word;
+            if (!options.includes(randomAnswer)) {
+                options.push(randomAnswer);
+            }
+            if (i++ > 10) break; // safety break
+        }
+
+
         return {
-            word: questionItem.word,
+            prompt: isWordToMeaning ? "Nghĩa của từ sau là gì?" : "Từ nào có nghĩa là:",
+            questionText: isWordToMeaning ? questionItem.word : questionItem.vietnameseTranslation,
+            questionType,
+            options: shuffleArray(options),
             correctAnswer,
-            options: shuffleArray(options), // Final shuffle for presentation
+            originalItem: questionItem,
         };
+
     }, [quizDeck, currentIndex, fullDeck]);
 
     const handleAnswerSelect = (answer: string) => {
-        if (selectedAnswer) return; // Already answered
+        if (selectedAnswer || !currentQuestion) return; // Already answered
 
         setSelectedAnswer(answer);
-        if (answer === currentQuestion?.correctAnswer) {
+        if (answer === currentQuestion.correctAnswer) {
             setScore(prev => prev + 1);
         } else {
-            // Add the incorrect item to the list for later review
-            const incorrectItem = quizDeck[currentIndex];
-            // Ensure we don't add duplicates
+            const incorrectItem = currentQuestion.originalItem;
             if (incorrectItem && !incorrectAnswers.find(item => item.id === incorrectItem.id)) {
                 setIncorrectAnswers(prev => [...prev, incorrectItem]);
             }
@@ -121,7 +150,6 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     };
 
     const handleRetryIncorrect = () => {
-        // Only start if there are incorrect answers
         if (incorrectAnswers.length > 0) {
             startNewGame(incorrectAnswers);
         }
@@ -139,8 +167,8 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
         );
     }
     
-    // Check if the current quiz has run out of valid questions
-    if (!currentQuestion && !isFinished) {
+    // This case handles when the deck is too small to even start.
+    if (quizDeck.length === 0 && !isFinished) {
          return (
             <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
                 <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
@@ -187,6 +215,7 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
     }
 
     if (!currentQuestion) {
+        // This handles the case where the memoization is running or something went wrong.
         return null;
     }
 
@@ -198,9 +227,12 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
             </div>
             <Card>
                 <CardHeader>
-                    <CardDescription>Từ sau đây có nghĩa là gì?</CardDescription>
-                    <CardTitle className="text-4xl md:text-5xl font-bold text-center py-10 font-headline">
-                        {currentQuestion.word}
+                    <CardDescription>{currentQuestion.prompt}</CardDescription>
+                    <CardTitle className={cn(
+                        "text-4xl md:text-5xl font-bold text-center py-10",
+                        currentQuestion.questionType === 'word_to_meaning' ? "font-headline" : ""
+                    )}>
+                        {currentQuestion.questionText}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -212,7 +244,7 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
                             <Button
                                 key={index}
                                 variant="outline"
-                                className={cn("h-auto p-4 justify-start text-base whitespace-normal",
+                                className={cn("h-auto p-4 justify-start text-base whitespace-normal text-left",
                                     selectedAnswer && isCorrect && "bg-green-100 border-green-400 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300",
                                     selectedAnswer && isSelected && !isCorrect && "bg-red-100 border-red-400 text-red-800 hover:bg-red-200 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300",
                                 )}
@@ -220,8 +252,8 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
                                 disabled={!!selectedAnswer}
                             >
                                 <div className="flex-grow">{option}</div>
-                                {selectedAnswer && isCorrect && <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400"/>}
-                                {selectedAnswer && isSelected && !isCorrect && <XCircle className="h-5 w-5 text-red-600 dark:text-red-400"/>}
+                                {selectedAnswer && isCorrect && <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 ml-2 shrink-0"/>}
+                                {selectedAnswer && isSelected && !isCorrect && <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 ml-2 shrink-0"/>}
                             </Button>
                        )
                    })}
@@ -237,3 +269,5 @@ export function QuizPlayer({ selectedFolder }: QuizPlayerProps) {
         </div>
     );
 }
+
+    
