@@ -52,21 +52,12 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
             : vocabulary.filter(item => item.folder === selectedFolder);
     }, [vocabulary, selectedFolder]);
 
-    // This effect initializes or resets the game when the source deck changes (e.g., folder switch)
     useEffect(() => {
-        handleRestartAll();
+        // Initialize the unplayed deck when the full deck changes
+        setUnplayedDeck(shuffleArray(fullDeck));
     }, [fullDeck]);
 
     const startNewGame = useCallback((deck: VocabularyItem[]) => {
-        if (deck.length === 0) {
-            setGameCards([]);
-            setSessionDeck([]);
-            // This can happen if the last session used up all cards.
-            // We can consider this "finished" in a way.
-            setIsFinished(true);
-            return;
-        }
-
         const newGamePairs = deck.flatMap(item => [
             { id: `word-${item.id}`, pairId: item.id, type: 'word' as CardType, content: item.word, isMatched: false },
             { id: `meaning-${item.id}`, pairId: item.id, type: 'meaning' as CardType, content: item.vietnameseTranslation, isMatched: false }
@@ -79,6 +70,21 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         setIncorrectPair(null);
     }, []);
 
+    useEffect(() => {
+        // Start the very first game or a new game when the folder changes
+        if (unplayedDeck.length > 0) {
+            const nextSessionItems = unplayedDeck.slice(0, CARDS_PER_GAME);
+            setSessionDeck(nextSessionItems);
+            setUnplayedDeck(prev => prev.slice(CARDS_PER_GAME));
+            startNewGame(nextSessionItems);
+        } else {
+             // Handle case where folder is selected but has no items initially
+            setGameCards([]);
+            setSessionDeck([]);
+        }
+    }, [unplayedDeck, startNewGame]);
+
+
     const handleNextSession = () => {
         const nextSessionItems = unplayedDeck.slice(0, CARDS_PER_GAME);
         setSessionDeck(nextSessionItems);
@@ -87,12 +93,8 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
     };
 
     const handleRestartAll = () => {
-        const shuffledFullDeck = shuffleArray(fullDeck);
-        const nextSessionItems = shuffledFullDeck.slice(0, CARDS_PER_GAME);
-        
-        setUnplayedDeck(shuffledFullDeck.slice(CARDS_PER_GAME));
-        setSessionDeck(nextSessionItems);
-        startNewGame(nextSessionItems);
+        setUnplayedDeck(shuffleArray(fullDeck));
+        // The useEffect above will trigger a new game automatically.
     };
 
     const handleCardClick = (clickedIndex: number) => {
@@ -145,26 +147,17 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
             <div className="max-w-2xl mx-auto">
                  <Card>
                     <CardHeader className="items-center">
-                        <CardTitle className="text-2xl">
-                             {sessionDeck.length > 0 ? "Tuyệt vời!" : "Hoàn thành!"}
-                        </CardTitle>
-                        <CardDescription>
-                            {sessionDeck.length > 0
-                                ? "Bạn đã ghép đúng tất cả các thẻ."
-                                : "Bạn đã ôn tập tất cả các từ trong thư mục này."
-                            }
-                        </CardDescription>
+                        <CardTitle className="text-2xl">Tuyệt vời!</CardTitle>
+                        <CardDescription>Bạn đã ghép đúng tất cả các thẻ.</CardDescription>
                     </CardHeader>
-                     {sessionDeck.length > 0 && (
-                        <CardContent className="text-center">
-                            <p className="text-4xl font-bold">
-                                {moves}
-                            </p>
-                            <p className="text-muted-foreground mt-2">
-                            lượt đoán
-                            </p>
-                        </CardContent>
-                     )}
+                    <CardContent className="text-center">
+                        <p className="text-4xl font-bold">
+                            {moves}
+                        </p>
+                        <p className="text-muted-foreground mt-2">
+                           lượt đoán
+                        </p>
+                    </CardContent>
                     <CardFooter className="flex flex-col gap-2">
                          {unplayedDeck.length > 0 && (
                             <Button onClick={handleNextSession} className="w-full">
@@ -178,6 +171,25 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
                  </Card>
             </div>
         )
+    }
+
+    // This can happen if the deck becomes empty after initialization
+    if (gameCards.length === 0) {
+         return (
+            <div className="max-w-2xl mx-auto">
+                 <Card>
+                    <CardHeader className="items-center">
+                        <CardTitle className="text-2xl">Hoàn thành!</CardTitle>
+                        <CardDescription>Bạn đã ôn tập tất cả các từ trong thư mục này.</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="flex flex-col gap-2">
+                         <Button onClick={handleRestartAll} className="w-full">
+                            <RefreshCw className="mr-2 h-4 w-4" /> Chơi lại từ đầu
+                        </Button>
+                    </CardFooter>
+                 </Card>
+            </div>
+        );
     }
 
     return (
@@ -211,3 +223,4 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         </div>
     );
 }
+
