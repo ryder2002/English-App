@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "@/lib/utils";
-import { RefreshCw, Trophy, ArrowRightCircle } from "lucide-react";
+import { RefreshCw, Trophy, ArrowRightCircle, ClipboardCheck } from "lucide-react";
 import type { VocabularyItem } from "@/lib/types";
 
 // Fisher-Yates shuffle algorithm
@@ -28,6 +28,7 @@ interface GameCard {
   pairId: string; 
   type: CardType;
   content: string;
+  ipa?: string;
   isMatched: boolean;
 }
 
@@ -44,22 +45,21 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
     const [incorrectPair, setIncorrectPair] = useState<[number, number] | null>(null);
 
     const [unplayedDeck, setUnplayedDeck] = useState<VocabularyItem[]>([]);
-    const [sessionDeck, setSessionDeck] = useState<VocabularyItem[]>([]);
 
     const fullDeck = useMemo(() => {
-        return selectedFolder === 'all'
+        const deck = selectedFolder === 'all'
             ? vocabulary
             : vocabulary.filter(item => item.folder === selectedFolder);
+        return deck.filter(item => item.word && item.vietnameseTranslation);
     }, [vocabulary, selectedFolder]);
 
-    useEffect(() => {
-        // Initialize the unplayed deck when the full deck changes
-        setUnplayedDeck(shuffleArray(fullDeck));
-    }, [fullDeck]);
-
     const startNewGame = useCallback((deck: VocabularyItem[]) => {
+        if (deck.length === 0) {
+            setGameCards([]);
+            return;
+        }
         const newGamePairs = deck.flatMap(item => [
-            { id: `word-${item.id}`, pairId: item.id, type: 'word' as CardType, content: item.word, isMatched: false },
+            { id: `word-${item.id}`, pairId: item.id, type: 'word' as CardType, content: item.word, ipa: item.ipa, isMatched: false },
             { id: `meaning-${item.id}`, pairId: item.id, type: 'meaning' as CardType, content: item.vietnameseTranslation, isMatched: false }
         ]);
 
@@ -71,30 +71,24 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
     }, []);
 
     useEffect(() => {
-        // Start the very first game or a new game when the folder changes
-        if (unplayedDeck.length > 0) {
-            const nextSessionItems = unplayedDeck.slice(0, CARDS_PER_GAME);
-            setSessionDeck(nextSessionItems);
-            setUnplayedDeck(prev => prev.slice(CARDS_PER_GAME));
-            startNewGame(nextSessionItems);
-        } else {
-             // Handle case where folder is selected but has no items initially
-            setGameCards([]);
-            setSessionDeck([]);
-        }
-    }, [unplayedDeck, startNewGame]);
+        const shuffledFullDeck = shuffleArray(fullDeck);
+        const nextSessionItems = shuffledFullDeck.slice(0, CARDS_PER_GAME);
+        setUnplayedDeck(shuffledFullDeck.slice(CARDS_PER_GAME));
+        startNewGame(nextSessionItems);
+    }, [fullDeck, startNewGame]);
 
 
     const handleNextSession = () => {
         const nextSessionItems = unplayedDeck.slice(0, CARDS_PER_GAME);
-        setSessionDeck(nextSessionItems);
         setUnplayedDeck(prev => prev.slice(CARDS_PER_GAME));
         startNewGame(nextSessionItems);
     };
 
     const handleRestartAll = () => {
-        setUnplayedDeck(shuffleArray(fullDeck));
-        // The useEffect above will trigger a new game automatically.
+        const shuffledFullDeck = shuffleArray(fullDeck);
+        const nextSessionItems = shuffledFullDeck.slice(0, CARDS_PER_GAME);
+        setUnplayedDeck(shuffledFullDeck.slice(CARDS_PER_GAME));
+        startNewGame(nextSessionItems);
     };
 
     const handleCardClick = (clickedIndex: number) => {
@@ -109,8 +103,7 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
             const firstCard = gameCards[selectedIndex];
             const secondCard = gameCards[clickedIndex];
 
-            if (firstCard.pairId === secondCard.pairId) {
-                // Match found
+            if (firstCard.pairId === secondCard.pairId && firstCard.type !== secondCard.type) {
                 const newGameCards = gameCards.map(card => 
                     card.pairId === firstCard.pairId ? { ...card, isMatched: true } : card
                 );
@@ -120,7 +113,6 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
                     setIsFinished(true);
                 }
             } else {
-                // No match
                 setIncorrectPair([selectedIndex, clickedIndex]);
                 setTimeout(() => {
                     setIncorrectPair(null);
@@ -133,7 +125,7 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
     if (fullDeck.length < 2) {
         return (
              <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-96 bg-card">
-                <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
+                <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-lg font-medium text-muted-foreground">Không đủ từ vựng để chơi.</p>
                 <p className="text-sm text-muted-foreground">
                     Cần có ít nhất 2 từ trong thư mục này để bắt đầu trò chơi ghép thẻ.
@@ -148,24 +140,16 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
                  <Card>
                     <CardHeader className="items-center">
                         <CardTitle className="text-2xl">Tuyệt vời!</CardTitle>
-                        <CardDescription>Bạn đã ghép đúng tất cả các thẻ.</CardDescription>
+                        <CardDescription>Bạn đã ghép đúng tất cả các thẻ trong {moves} lượt.</CardDescription>
                     </CardHeader>
-                    <CardContent className="text-center">
-                        <p className="text-4xl font-bold">
-                            {moves}
-                        </p>
-                        <p className="text-muted-foreground mt-2">
-                           lượt đoán
-                        </p>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-2">
+                    <CardFooter className="flex flex-col gap-2 w-full">
                          {unplayedDeck.length > 0 && (
                             <Button onClick={handleNextSession} className="w-full">
                                 <ArrowRightCircle className="mr-2 h-4 w-4" /> Chơi tiếp ({unplayedDeck.length} từ còn lại)
                             </Button>
                          )}
                          <Button onClick={handleRestartAll} className="w-full" variant={unplayedDeck.length > 0 ? "outline" : "default"}>
-                            <RefreshCw className="mr-2 h-4 w-4" /> Chơi lại từ đầu
+                            <RefreshCw className="mr-2 h-4 w-4" /> Chơi lại từ đầu ({fullDeck.length} từ)
                         </Button>
                     </CardFooter>
                  </Card>
@@ -173,18 +157,18 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
         )
     }
 
-    // This can happen if the deck becomes empty after initialization
     if (gameCards.length === 0) {
          return (
             <div className="max-w-2xl mx-auto">
                  <Card>
                     <CardHeader className="items-center">
+                        <Trophy className="h-12 w-12 text-amber-500 mb-4" />
                         <CardTitle className="text-2xl">Hoàn thành!</CardTitle>
                         <CardDescription>Bạn đã ôn tập tất cả các từ trong thư mục này.</CardDescription>
                     </CardHeader>
-                    <CardFooter className="flex flex-col gap-2">
+                    <CardFooter className="flex flex-col gap-2 w-full">
                          <Button onClick={handleRestartAll} className="w-full">
-                            <RefreshCw className="mr-2 h-4 w-4" /> Chơi lại từ đầu
+                            <RefreshCw className="mr-2 h-4 w-4" /> Chơi lại từ đầu ({fullDeck.length} từ)
                         </Button>
                     </CardFooter>
                  </Card>
@@ -194,6 +178,7 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
 
     return (
         <div className="flex flex-col items-center gap-6">
+             <p className="text-lg text-muted-foreground">Số lượt đoán: <span className="font-bold text-primary">{moves}</span></p>
              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-4 w-full max-w-3xl mx-auto">
                 {gameCards.map((card, index) => {
                     const isIncorrect = incorrectPair?.includes(index) ?? false;
@@ -204,23 +189,27 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
                             onClick={() => handleCardClick(index)}
                             disabled={card.isMatched}
                             className={cn(
-                                "h-20 md:h-24 text-base font-semibold p-2 flex items-center justify-center text-center whitespace-normal transition-all duration-300",
+                                "h-24 md:h-28 text-base p-2 flex items-center justify-center text-center whitespace-normal transition-colors duration-200",
                                 selectedIndex === index && !card.isMatched && "ring-2 ring-primary border-primary",
                                 card.isMatched && "bg-green-100 dark:bg-green-900/50 border-green-500 text-green-700 dark:text-green-300 opacity-60 cursor-not-allowed",
-                                isIncorrect && "bg-red-100 dark:bg-red-900/50 border-red-500 text-red-700 dark:text-red-300 animate-in fade-in"
+                                isIncorrect && "bg-red-100 dark:bg-red-900/50 border-red-500 text-red-700 dark:text-red-300 animate-shake"
                             )}
                         >
-                            {card.content}
+                           <div className="flex flex-col">
+                                <span className={cn("font-semibold", card.type === 'word' && "font-headline")}>{card.content}</span>
+                                {card.type === 'word' && card.ipa && (
+                                    <span className="text-sm font-normal text-muted-foreground mt-1">/{card.ipa}/</span>
+                                )}
+                            </div>
                         </Button>
                     )
                 })}
             </div>
              <div className="flex justify-center mt-4">
-                <Button variant="ghost" onClick={handleRestartAll}>
-                    <RefreshCw className="mr-2 h-4 w-4"/> Chơi lại từ đầu
+                <Button variant="outline" onClick={handleRestartAll}>
+                    <RefreshCw className="mr-2 h-4 w-4"/> Bắt đầu lại
                 </Button>
             </div>
         </div>
     );
 }
-

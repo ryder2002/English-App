@@ -1,12 +1,5 @@
 'use server';
 
-/**
- * @fileOverview This file defines a Genkit flow to quickly generate essential details for a vocabulary word.
- * It leverages the more comprehensive batch generation flow for a single word to ensure consistency.
- *
- * - generateQuickVocabularyDetails - A function that triggers the quick vocabulary details generation flow.
- */
-
 import {z} from 'zod';
 import type { Language } from '@/lib/types';
 import { generateBatchVocabularyDetails } from './generate-batch-vocabulary-details';
@@ -36,21 +29,25 @@ export type GenerateQuickVocabularyDetailsOutput = z.infer<
 
 export async function generateQuickVocabularyDetails(
   input: GenerateQuickVocabularyDetailsInput
-): Promise<GenerateQuickVocabularyDetailsOutput> {
+): Promise<Partial<GenerateQuickVocabularyDetailsOutput>> {
     const { word, sourceLanguage, targetLanguage } = input;
     
-    // Use the batch generation flow for a single word to keep all AI logic consistent.
     const batchResult = await generateBatchVocabularyDetails({
         words: [word],
         sourceLanguage,
         targetLanguage,
-        folder: "temp", // A temporary folder name is required by the batch flow but not used here.
+        folder: "temp", // Folder is a required parameter for the batch flow
     });
 
-    const details = batchResult[0];
+    if (batchResult.invalidWords && batchResult.invalidWords.length > 0) {
+        throw new Error(`The word "${word}" is invalid and no details could be fetched.`);
+    }
+
+    const details = batchResult.processedWords?.[0];
 
     if (!details) {
-        throw new Error(`Failed to generate quick details for the word: ${word}`);
+        console.warn(`Could not generate quick details for the word: ${word}.`);
+        return {};
     }
 
     return {

@@ -110,7 +110,7 @@ export function ManualAddTable() {
           return;
       }
       
-      const newRows = [...rows];
+      let newRows = [...rows];
       newRows[index].translationLoading = true;
       newRows[index].partOfSpeechLoading = true;
       newRows[index].pronunciationLoading = true;
@@ -118,33 +118,43 @@ export function ManualAddTable() {
       
       try {
           const details = await getVocabularyDetailsAction(row.word, row.language, "vietnamese");
-          const updatedRows = [...rows]; // get the latest state of rows
-          if (details) {
-              if (details.translation) {
-                  updatedRows[index].vietnameseTranslation = details.translation;
-              }
-              if (details.partOfSpeech) {
-                  updatedRows[index].partOfSpeech = details.partOfSpeech;
-              }
-              if (details.ipa) {
-                  updatedRows[index].pronunciation = details.ipa;
-              } else if (details.pinyin) {
-                  updatedRows[index].pronunciation = details.pinyin;
-              }
-          }
-          setRows(updatedRows);
-      } catch (error) {
-          console.error("Details fetch error", error);
-          toast({ variant: 'destructive', title: 'Lỗi', description: 'Không thể lấy chi tiết từ.' });
-      } finally {
-        // Use a function with the latest state to avoid race conditions
-        setRows(currentRows => {
-            const finalRows = [...currentRows];
-            finalRows[index].translationLoading = false;
-            finalRows[index].partOfSpeechLoading = false;
-            finalRows[index].pronunciationLoading = false;
-            return finalRows;
+          
+          setRows(currentRows => {
+            const updatedRows = [...currentRows];
+            const targetRow = updatedRows[index];
+
+            if (details && Object.keys(details).length > 0) {
+                targetRow.vietnameseTranslation = details.translation || targetRow.vietnameseTranslation;
+                targetRow.partOfSpeech = details.partOfSpeech || targetRow.partOfSpeech;
+                targetRow.pronunciation = details.ipa || details.pinyin || targetRow.pronunciation;
+            } else {
+                 console.warn(`No details found for "${row.word}"`);
+            }
+            targetRow.translationLoading = false;
+            targetRow.partOfSpeechLoading = false;
+            targetRow.pronunciationLoading = false;
+            return updatedRows;
         });
+
+      } catch (error) {
+            console.error("Details fetch error", error);
+            let errorMessage = 'Không thể lấy chi tiết từ.';
+            if (error instanceof Error) {
+                // Check for the specific invalid word message
+                if (error.message.includes("is invalid")) {
+                    errorMessage = `Từ "${row.word}" không hợp lệ hoặc không tìm thấy.`
+                } else {
+                    errorMessage = 'Lỗi máy chủ, vui lòng thử lại sau.';
+                }
+            }
+            toast({ variant: 'destructive', title: 'Lỗi', description: errorMessage });
+            setRows(currentRows => {
+                const finalRows = [...currentRows];
+                finalRows[index].translationLoading = false;
+                finalRows[index].partOfSpeechLoading = false;
+                finalRows[index].pronunciationLoading = false;
+                return finalRows;
+            });
       }
   };
   

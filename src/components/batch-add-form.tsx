@@ -78,6 +78,7 @@ export function BatchAddForm() {
                     title: "Không có từ nào để thêm.",
                     description: "Vui lòng nhập các từ bạn muốn thêm, mỗi từ một dòng.",
                 });
+                setIsSubmitting(false);
                 return;
             }
             
@@ -99,22 +100,35 @@ export function BatchAddForm() {
                 targetFolder = newFolderName;
             }
 
-
-            const newItems = await batchAddVocabularyAction({
+            const result = await batchAddVocabularyAction({
                 words: wordsArray,
                 sourceLanguage: values.sourceLanguage,
                 targetLanguage: values.targetLanguage,
                 folder: targetFolder,
             });
 
-            await addManyVocabularyItems(newItems);
-
-            toast({
-                title: "Thêm thành công!",
-                description: `${newItems.length} từ đã được thêm vào thư mục "${targetFolder}".`,
-            });
-            form.reset();
-            setNewFolderName("");
+            if (result.invalidWords && result.invalidWords.length > 0) {
+                toast({
+                    variant: "destructive",
+                    title: `Phát hiện ${result.invalidWords.length} từ không hợp lệ`,
+                    description: `Vui lòng sửa các từ sau: ${result.invalidWords.join(", ")}`,
+                    duration: 5000,
+                });
+            } else if (result.processedWords && result.processedWords.length > 0) {
+                await addManyVocabularyItems(result.processedWords);
+                toast({
+                    title: "Thêm thành công!",
+                    description: `${result.processedWords.length} từ đã được thêm vào thư mục "${targetFolder}".`,
+                });
+                form.reset();
+                setNewFolderName("");
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Không có từ nào được thêm",
+                    description: "Không thể xử lý các từ đã nhập. Vui lòng kiểm tra lại.",
+                });
+            }
 
         } catch (error) {
             console.error("Batch add error:", error);

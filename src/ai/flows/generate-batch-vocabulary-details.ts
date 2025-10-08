@@ -1,15 +1,9 @@
 'use server';
 
-/**
- * @fileOverview This file defines a Genkit flow to generate details for a batch of vocabulary words
- * by processing the entire list in a single, optimized AI call.
- *
- * - generateBatchVocabularyDetails - A function that triggers the batch vocabulary details generation flow.
- */
-
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 import type { Language } from '@/lib/types';
+import { validateEnglishWordsFlow } from './validate-english-words';
 
 const GenerateBatchVocabularyDetailsInputSchema = z.object({
   words: z.array(z.string()).describe('A list of vocabulary words to generate details for.'),
@@ -35,7 +29,10 @@ const WordDetailSchema = z.object({
     pinyin: z.string().optional().describe("The Pinyin transcription for the Chinese word."),
 });
 
-const GenerateBatchVocabularyDetailsOutputSchema = z.array(WordDetailSchema);
+const GenerateBatchVocabularyDetailsOutputSchema = z.object({
+    processedWords: z.array(WordDetailSchema),
+    invalidWords: z.array(z.string()),
+});
 type GenerateBatchVocabularyDetailsOutput = z.infer<
   typeof GenerateBatchVocabularyDetailsOutputSchema
 >;
@@ -55,13 +52,13 @@ const generateBatchDetailsPrompt = ai.definePrompt({
         targetLanguage: z.string(),
         folder: z.string(),
      }) },
-    output: { schema: GenerateBatchVocabularyDetailsOutputSchema },
+    output: { schema: z.array(WordDetailSchema) },
     prompt: `You are a highly efficient multilingual expert. Your task is to process a batch of vocabulary words and return a structured JSON array.
 
 For each word in the input list, provide the following details:
 1. 'word': The original word.
 2. 'language': The source language provided ({{{sourceLanguage}}}).
-3. 'partOfSpeech': The grammatical part of speech. Use standard abbreviations (e.g., N, V, Adj, Adv, Prep). For phrases, determine the core part of speech. This field is optional but highly recommended. For Vietnamese words, this can be omitted if not applicable.
+3. 'partOfSpeech': The grammatical part of speech. Use standard abbreviations (e.g., N, V, Adj, Adv, Prep). If the input is a phrasal verb (e.g., "put on", "give up"), use "Phrasal verb". For other phrases, determine the core part of speech. This field is optional but highly recommended. For Vietnamese words, this can be omitted if not applicable.
 4. 'vietnameseTranslation': The most common translation of the word into Vietnamese.
     - If the source language is Vietnamese, this field should be the same as the original word.
     - If the target language is Vietnamese, this is the direct translation.
@@ -88,32 +85,59 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
   async (input) => {
     const { words, sourceLanguage, targetLanguage, folder } = input;
 
-    // Handle self-translation case directly to avoid unnecessary AI calls
     if (sourceLanguage === 'vietnamese' && targetLanguage === 'vietnamese') {
-        return words.map(word => ({
+        const processed = words.map(word => ({
             word: word,
             language: 'vietnamese' as 'vietnamese',
             vietnameseTranslation: word,
             partOfSpeech: 'từ',
             folder: folder,
         }));
+        return { processedWords: processed, invalidWords: [] };
+    }
+
+    let wordsToProcess: string[];
+    let invalidWords: string[] = [];
+
+    if (sourceLanguage === 'english') {
+        const singleWords = words.filter(w => !w.includes(' '));
+        const phrases = words.filter(w => w.includes(' '));
+
+        if (singleWords.length > 0) {
+            const validationResult = await validateEnglishWordsFlow({ words: singleWords });
+            const validWordsSet = new Set(validationResult.validatedWords.map(w => w.toLowerCase()));
+            const validSingleWords = singleWords.filter(w => validWordsSet.has(w.toLowerCase()));
+            const invalidSingleWords = singleWords.filter(w => !validWordsSet.has(w.toLowerCase()));
+            invalidWords.push(...invalidSingleWords);
+            wordsToProcess = [...validSingleWords, ...phrases];
+        } else {
+            wordsToProcess = phrases;
+        }
+    } else {
+        wordsToProcess = words;
+    }
+
+    if (wordsToProcess.length === 0) {
+        return { processedWords: [], invalidWords };
     }
     
-    const { output } = await generateBatchDetailsPrompt(input);
+    const { output } = await generateBatchDetailsPrompt({ ...input, words: wordsToProcess });
 
     if (!output) {
       console.error('Batch generation failed: AI returned no output.');
       throw new Error('Failed to generate vocabulary details for the batch.');
     }
     
-    // Ensure all words from input are present in the output, to prevent silent failures
     const outputWords = new Set(output.map(item => item.word.toLowerCase()));
-    const missingWords = words.filter(inputWord => !outputWords.has(inputWord.toLowerCase()));
+    const missingWords = wordsToProcess.filter(inputWord => !outputWords.has(inputWord.toLowerCase()));
 
     if (missingWords.length > 0) {
         console.warn(`AI did not return details for some words: ${missingWords.join(', ')}`);
     }
 
-    return output;
+    // Combine initially invalid words with words the AI failed to process
+    const finalInvalidWords = [...invalidWords, ...missingWords];
+    
+    return { processedWords: output, invalidWords: finalInvalidWords };
   }
 );

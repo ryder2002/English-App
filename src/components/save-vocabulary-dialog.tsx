@@ -110,30 +110,62 @@ export function SaveVocabularyDialog({
     }
   }, [itemToEdit, initialData, form, open, defaultFolder, folders]);
 
-  const onSubmit = async (values: SaveVocabularyFormValues) => {
+ const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
       let targetFolder = values.folder;
       if (targetFolder === 'new_folder' && newFolderName) {
-          const folderExists = folders.some(f => f.toLowerCase() === newFolderName.toLowerCase());
-          if (!folderExists) {
-              await addFolder(newFolderName);
-          }
-          targetFolder = newFolderName;
+        const folderExists = folders.some(f => f.toLowerCase() === newFolderName.toLowerCase());
+        if (!folderExists) {
+          await addFolder(newFolderName);
+        }
+        targetFolder = newFolderName;
       }
-      
+
       let success = false;
       if (itemToEdit) {
+        const wordChanged = values.word !== itemToEdit.word;
+        const languageChanged = values.language !== itemToEdit.language;
+
         const editData: Partial<VocabularyItem> = {
+          id: itemToEdit.id,
+          word: values.word,
+          language: values.language,
           folder: targetFolder,
-          vietnameseTranslation: values.vietnameseTranslation || itemToEdit.vietnameseTranslation,
+          vietnameseTranslation: values.vietnameseTranslation,
           partOfSpeech: values.partOfSpeech,
+          ipa: itemToEdit.ipa,
+          pinyin: itemToEdit.pinyin,
         };
+
+        if (wordChanged || languageChanged) {
+          try {
+            const details = await getVocabularyDetailsAction(
+              values.word,
+              values.language as Language,
+              "vietnamese"
+            );
+            editData.vietnameseTranslation = values.vietnameseTranslation || details.translation;
+            editData.partOfSpeech = values.partOfSpeech || details.partOfSpeech;
+            editData.ipa = details.ipa;
+            editData.pinyin = details.pinyin;
+          } catch (aiError) {
+            console.error("AI detail fetch failed during edit:", aiError);
+            toast({
+              variant: "destructive",
+              title: "AI hỗ trợ thất bại",
+              description: `Không thể tự động điền thông tin cho từ mới "${values.word}". Vui lòng điền thủ công.`,
+            });
+            editData.ipa = undefined;
+            editData.pinyin = undefined;
+          }
+        }
+
         success = await updateVocabularyItem(itemToEdit.id, editData);
         if (success) {
           toast({
             title: "Thành công!",
-            description: `Từ "${itemToEdit.word}" đã được cập nhật.`,
+            description: `Từ "${values.word}" đã được cập nhật.`,
           });
         }
       } else {
@@ -144,21 +176,21 @@ export function SaveVocabularyDialog({
         );
 
         const finalVietnameseTranslation = values.vietnameseTranslation || (values.language === 'vietnamese' ? values.word : details.translation);
-        
+
         if (!finalVietnameseTranslation) {
-             throw new Error("Không thể tìm thấy nghĩa Tiếng Việt cho từ này.");
+          throw new Error("Không thể tìm thấy nghĩa Tiếng Việt cho từ này.");
         }
-      
+
         const vocabularyData = {
           word: values.word,
           language: values.language as Language,
           folder: targetFolder,
           vietnameseTranslation: finalVietnameseTranslation,
           partOfSpeech: values.partOfSpeech || details.partOfSpeech,
-          ipa: initialData?.ipa || details.ipa, // Use initialData if available
-          pinyin: initialData?.pinyin || details.pinyin, // Use initialData if available
+          ipa: initialData?.ipa || details.ipa,
+          pinyin: initialData?.pinyin || details.pinyin,
         };
-        
+
         success = await addVocabularyItem(vocabularyData);
         if (success) {
           toast({
@@ -174,15 +206,20 @@ export function SaveVocabularyDialog({
       }
     } catch (error) {
       console.error(error);
+       let errorMessage = "Có lỗi khi lưu từ của bạn. Vui lòng thử lại.";
+       if (error instanceof Error && error.message.includes("is invalid")) {
+           errorMessage = `Từ "${(error as any).word || values.word}" không hợp lệ hoặc không tìm thấy.`;
+       }
       toast({
         variant: "destructive",
         title: "Ôi! Đã có lỗi xảy ra.",
-        description: "Có lỗi khi lưu từ của bạn. Vui lòng thử lại.",
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const dialogTitle = itemToEdit ? "Chỉnh sửa từ" : "Thêm từ mới";
   const buttonText = itemToEdit ? "Lưu thay đổi" : "Thêm từ";
@@ -198,7 +235,7 @@ export function SaveVocabularyDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Chỉnh sửa nghĩa hoặc thư mục cho từ của bạn."
+              ? "Chỉnh sửa thông tin cho từ vựng của bạn."
               : "Nhập một từ và AI của chúng tôi sẽ xử lý phần còn lại."}
           </DialogDescription>
         </DialogHeader>
@@ -211,7 +248,7 @@ export function SaveVocabularyDialog({
                 <FormItem>
                   <FormLabel>Từ</FormLabel>
                   <FormControl>
-                    <Input placeholder="ví dụ: hello, 你好" {...field} disabled={isSubmitting || isEditing || isNewWordFromDictionary} />
+                    <Input placeholder="ví dụ: hello, 你好" {...field} disabled={isSubmitting || isNewWordFromDictionary} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -226,7 +263,7 @@ export function SaveVocabularyDialog({
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={isSubmitting || isEditing || isNewWordFromDictionary}
+                    disabled={isSubmitting || isNewWordFromDictionary}
                   >
                     <FormControl>
                       <SelectTrigger>
