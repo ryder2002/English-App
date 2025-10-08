@@ -38,14 +38,14 @@ export default function ChatbotPage() {
                 setMessages(JSON.parse(savedMessages));
             } else {
                  setMessages([
-                    { role: 'assistant', content: 'Xin chào! Tớ là trợ lý AI của Công Nhất, rất vui được đồng hành cùng bạn trong việc học ngôn ngữ, hãy hãy hỏi tớ bất kì cái gì nếu cậu gặp khó trong việc học nhé!' }
+                    { role: 'assistant', content: 'Chào bạn✌️! Tớ là AI Language Assistant, được phát triển bởi Công Nhất.\n Tớ có thể giúp đỡ cậu trong việc học ngoại ngữ, Tiếng Anh và Tiếng Trung, có gì khó khăn trong việc học đừng ngần ngại hãy hỏi tớ nhé, tớ sẽ giúp cậu giải quyết mọi vấn đề "cách phát âm, ngữ pháp, từ vựng..."!' }
                 ]);
             }
         } catch (error) {
             console.error("Failed to load chat from session storage", error);
             // Start with a default message if loading fails
             setMessages([
-                { role: 'assistant', content: 'Xin chào! Tớ là trợ lý AI của Công Nhất, rất vui được đồng hành cùng bạn trong việc học ngôn ngữ, hãy hãy hỏi tớ bất kì cái gì nếu cậu gặp khó trong việc học nhé!' }
+                { role: 'assistant', content: 'Chào bạn✌️! Tớ là AI Language Assistant, được phát triển bởi Công Nhất.\n Tớ có thể giúp đỡ cậu trong việc học ngoại ngữ, Tiếng Anh và Tiếng Trung, có gì khó khăn trong việc học đừng ngần ngại hãy hỏi tớ nhé, tớ sẽ giúp cậu giải quyết mọi vấn đề "cách phát âm, ngữ pháp, từ vựng..."!' }
             ]);
         }
         setIsLoaded(true);

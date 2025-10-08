@@ -28,6 +28,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
+import { type GenerateBatchVocabularyDetailsOutput } from "@/ai/flows/generate-batch-vocabulary-details";
 
 const languageEnum = z.enum(["english", "chinese", "vietnamese"]);
 
@@ -100,7 +101,7 @@ export function BatchAddForm() {
                 targetFolder = newFolderName;
             }
 
-            const result = await batchAddVocabularyAction({
+            const result: GenerateBatchVocabularyDetailsOutput = await batchAddVocabularyAction({
                 words: wordsArray,
                 sourceLanguage: values.sourceLanguage,
                 targetLanguage: values.targetLanguage,

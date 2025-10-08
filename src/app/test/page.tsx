@@ -22,11 +22,11 @@ const DirectionSelector = ({ value, onValueChange }: { value: QuizDirection, onV
     <RadioGroup value={value} onValueChange={onValueChange} className="flex items-center space-x-4 mb-4 justify-center">
         <div className="flex items-center space-x-2">
             <RadioGroupItem value="en-vi" id={`r1-${value}`} />
-            <Label htmlFor={`r1-${value}`}>Anh -> Việt</Label>
+            <Label htmlFor={`r1-${value}`}>Anh - Việt</Label>
         </div>
         <div className="flex items-center space-x-2">
             <RadioGroupItem value="vi-en" id={`r2-${value}`} />
-            <Label htmlFor={`r2-${value}`}>Việt -> Anh</Label>
+            <Label htmlFor={`r2-${value}`}>Việt - Anh</Label>
         </div>
         <div className="flex items-center space-x-2">
             <RadioGroupItem value="random" id={`r3-${value}`} />

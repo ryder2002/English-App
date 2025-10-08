@@ -15,7 +15,7 @@ const GenerateBatchVocabularyDetailsInputSchema = z.object({
     .describe('The language to translate the words into.'),
     folder: z.string().describe("The folder to add the vocabulary to.")
 });
-type GenerateBatchVocabularyDetailsInput = z.infer<
+export type GenerateBatchVocabularyDetailsInput = z.infer<
   typeof GenerateBatchVocabularyDetailsInputSchema
 >;
 
@@ -33,7 +33,7 @@ const GenerateBatchVocabularyDetailsOutputSchema = z.object({
     processedWords: z.array(WordDetailSchema),
     invalidWords: z.array(z.string()),
 });
-type GenerateBatchVocabularyDetailsOutput = z.infer<
+export type GenerateBatchVocabularyDetailsOutput = z.infer<
   typeof GenerateBatchVocabularyDetailsOutputSchema
 >;
 

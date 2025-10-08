@@ -9,6 +9,7 @@ import {
 } from "@/ai/flows/generate-quick-vocabulary-details";
 import {
   generateBatchVocabularyDetails,
+  type GenerateBatchVocabularyDetailsOutput,
 } from "@/ai/flows/generate-batch-vocabulary-details";
 import {
   interactWithLanguageChatbot,
@@ -39,15 +40,7 @@ type GenerateBatchVocabularyDetailsInput = {
     targetLanguage: Language;
     folder: string;
 }
-type GenerateBatchVocabularyDetailsOutput = {
-    word: string;
-    language: Language;
-    vietnameseTranslation: string;
-    partOfSpeech?: string;
-    folder: string;
-    ipa?: string;
-    pinyin?: string;
-}[];
+
 
 type Message = {
     role: 'user' | 'assistant';
@@ -74,7 +67,7 @@ export async function getVocabularyDetailsAction(
     const details = await generateQuickVocabularyDetails(input);
 
     return {
-        translation: details.translation,
+        translation: details.translation || '',
         partOfSpeech: details.partOfSpeech,
         ipa: details.ipa,
         pinyin: details.pinyin,

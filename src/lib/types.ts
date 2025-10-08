@@ -12,3 +12,6 @@ export interface VocabularyItem {
   createdAt: string; // ISO 8601 date string
   audioSrc?: string; // This field is no longer populated by the server. TTS is client-side.
 }
+
+export type TranslationDirection = "en-vi" | "vi-en";
+export type QuizDirection = TranslationDirection | "random";
