@@ -137,17 +137,10 @@ export function ManualAddTable() {
         });
 
       } catch (error) {
-            console.error("Details fetch error", error);
-            let errorMessage = 'Không thể lấy chi tiết từ.';
-            if (error instanceof Error) {
-                // Check for the specific invalid word message
-                if (error.message.includes("is invalid")) {
-                    errorMessage = `Từ "${row.word}" không hợp lệ hoặc không tìm thấy.`
-                } else {
-                    errorMessage = 'Lỗi máy chủ, vui lòng thử lại sau.';
-                }
-            }
+            console.error("Details fetch error for word:", row.word, error);
+            const errorMessage = `Từ "${row.word}" không hợp lệ hoặc không tìm thấy. Vui lòng kiểm tra lại chính tả.`;
             toast({ variant: 'destructive', title: 'Lỗi', description: errorMessage });
+            
             setRows(currentRows => {
                 const finalRows = [...currentRows];
                 finalRows[index].translationLoading = false;
