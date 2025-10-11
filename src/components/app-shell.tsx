@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { SidebarNav } from "./sidebar-nav";
 import { LogOut } from "lucide-react";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context-postgres";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { CNLogo } from "./cn-logo";

@@ -15,13 +15,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Languages, Loader2 } from "lucide-react";
+import { Languages, Loader2, Info } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
+import { Alert, AlertDescription } from "./ui/alert";
 import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context-postgres";
 import { CNLogo } from "./cn-logo";
 
 
@@ -35,7 +34,7 @@ type LoginFormValues = z.infer<typeof formSchema>;
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
+  const { login } = useAuth();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
@@ -48,18 +47,16 @@ export function LoginForm() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      await login(values.email, values.password);
       toast({
         title: "Đăng nhập thành công!",
         description: "Chào mừng bạn quay trở lại.",
       });
-      router.push("/");
     } catch (error: any) {
       console.error(error);
-      const errorCode = error.code;
-      let errorMessage = "Đã có lỗi xảy ra. Vui lòng thử lại.";
-       if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
-        errorMessage = 'Email hoặc mật khẩu không chính xác.';
+      let errorMessage = "Email hoặc mật khẩu không chính xác.";
+      if (error.message) {
+        errorMessage = error.message;
       }
       toast({
         variant: "destructive",
@@ -72,7 +69,20 @@ export function LoginForm() {
   };
 
   return (
-      <Card className="w-full max-w-sm relative">
+    <div className="w-full max-w-sm space-y-4">
+      {/* Database Update Notification */}
+      <Alert className="border-blue-200 bg-blue-50 text-blue-800">
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-sm">
+          <strong>Hệ thống vừa cập nhật cơ sở dữ liệu</strong>
+          <br />
+          Hãy đăng nhập bằng <strong>email cũ</strong> và mật khẩu: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs font-mono">temp123456</code>
+          <br />
+          Sau đó vào <strong>Settings</strong> để đổi lại mật khẩu mới.
+        </AlertDescription>
+      </Alert>
+
+      <Card className="w-full relative">
           <CardHeader className="text-center items-center">
               <div className="mb-2">
                 <CNLogo />
@@ -137,5 +147,6 @@ export function LoginForm() {
               </Link>
           </CardFooter>
         </Card>
+    </div>
   );
 }

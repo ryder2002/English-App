@@ -13,5 +13,12 @@ export interface VocabularyItem {
   audioSrc?: string; // This field is no longer populated by the server. TTS is client-side.
 }
 
+export interface Folder {
+  id: string;
+  name: string;
+  userId: number;
+  createdAt: string; // ISO 8601 date string
+}
+
 export type TranslationDirection = "en-vi" | "vi-en";
 export type QuizDirection = TranslationDirection | "random";

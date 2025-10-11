@@ -19,8 +19,6 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { CNLogo } from "./cn-logo";
 
 
@@ -44,22 +42,37 @@ export function ForgotPasswordForm() {
   const onSubmit = async (values: ForgotPasswordFormValues) => {
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, values.email);
-      toast({
-        title: "Đã gửi email!",
-        description: "Vui lòng kiểm tra hộp thư của bạn để đặt lại mật khẩu.",
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: values.email,
+        }),
       });
-      form.reset();
-    } catch (error: any) {
-      console.error(error);
-      let errorMessage = "Đã có lỗi xảy ra. Vui lòng thử lại.";
-       if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Không tìm thấy tài khoản nào với địa chỉ email này.';
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Đã gửi email!",
+          description: data.message,
+        });
+        form.reset();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Gửi email thất bại",
+          description: data.error || "Có lỗi xảy ra khi gửi email.",
+        });
       }
+    } catch (error) {
+      console.error("Forgot password error:", error);
       toast({
         variant: "destructive",
-        title: "Gửi email thất bại",
-        description: errorMessage,
+        title: "Lỗi",
+        description: "Có lỗi xảy ra. Vui lòng thử lại.",
       });
     } finally {
       setIsLoading(false);

@@ -19,9 +19,7 @@ import { Languages, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context-postgres";
 import { CNLogo } from "./cn-logo";
 
 
@@ -35,7 +33,7 @@ type SignupFormValues = z.infer<typeof formSchema>;
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
+  const { register } = useAuth();
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),
@@ -48,18 +46,18 @@ export function SignupForm() {
   const onSubmit = async (values: SignupFormValues) => {
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      await register(values.email, values.password);
       toast({
-        title: "Tạo tài khoản thành công-!",
+        title: "Tạo tài khoản thành công!",
         description: "Chào mừng bạn đến với CN.",
       });
-      router.push("/");
     } catch (error: any) {
       console.error(error);
-      const errorCode = error.code;
       let errorMessage = "Đã có lỗi xảy ra. Vui lòng thử lại.";
-      if (errorCode === 'auth/email-already-in-use') {
+      if (error.message === 'User already exists') {
         errorMessage = 'Địa chỉ email này đã được sử dụng.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       toast({
         variant: "destructive",

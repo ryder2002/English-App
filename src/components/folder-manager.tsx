@@ -21,7 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context-postgres";
 
 
 const formSchema = z.object({

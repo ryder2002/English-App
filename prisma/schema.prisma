@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  password         String
+  name             String?
+  firebaseUid      String?   @unique @map("firebase_uid") // For migration mapping
+  resetToken       String?   @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  vocabulary Vocabulary[]
+  folders    Folder[]
+
+  @@map("users")
+}
+
+model Folder {
+  id        Int      @id @default(autoincrement())
+  name      String
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([name, userId])
+  @@map("folders")
+}
+
+model Vocabulary {
+  id                    Int      @id @default(autoincrement())
+  word                  String
+  language              Language
+  vietnameseTranslation String   @map("vietnamese_translation")
+  folder                String
+  partOfSpeech          String?  @map("part_of_speech")
+  ipa                   String?
+  pinyin                String?
+  audioSrc              String?  @map("audio_src")
+  userId                Int      @map("user_id")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([folder])
+  @@index([language])
+  @@map("vocabulary")
+}
+
+enum Language {
+  english
+  chinese
+  vietnamese
+}

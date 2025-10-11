@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { VocabularyProvider } from "@/contexts/vocabulary-context";
 import "./globals.css";
 import { Inter } from "next/font/google";
-import { AuthProvider } from "@/contexts/auth-context";
+import { AuthProvider } from "@/contexts/auth-context-postgres";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
