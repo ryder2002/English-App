@@ -198,7 +198,7 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
                            <div className="flex flex-col">
                                 <span className={cn("font-semibold", card.type === 'word' && "font-headline")}>{card.content}</span>
                                 {card.type === 'word' && card.ipa && (
-                                    <span className="text-sm font-normal text-muted-foreground mt-1">/{card.ipa}/</span>
+                                    <span className="text-sm font-normal text-muted-foreground mt-1">{card.ipa}</span>
                                 )}
                             </div>
                         </Button>

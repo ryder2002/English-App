@@ -9,16 +9,18 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Folders: Users can create, read, update, and delete their own folders.
+    // Folders: Users can read all folders, but only create, update, and delete their own.
     match /folders/{folderId} {
-      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if true;
       allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
     }
 
-    // Vocabulary: Users can create, read, update, and delete their own vocabulary items.
+    // Vocabulary: Users can read all vocabulary, but only create, update, and delete their own.
     match /vocabulary/{vocabId} {
-      allow read, update, delete: if isOwner(resource.data.userId);
+      allow read: if true;
       allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
     }
   }
 }

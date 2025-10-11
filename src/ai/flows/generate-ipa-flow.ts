@@ -15,7 +15,7 @@ const GenerateIpaInputSchema = z.object({
 type GenerateIpaInput = z.infer<typeof GenerateIpaInputSchema>;
 
 const GenerateIpaOutputSchema = z.object({
-  ipa: z.string().optional().describe("The IPA transcription for the English word, enclosed in slashes."),
+  ipa: z.string().optional().describe("The IPA transcription for the English word."),
 });
 type GenerateIpaOutput = z.infer<typeof GenerateIpaOutputSchema>;
 
@@ -28,9 +28,9 @@ const generateIpaPrompt = ai.definePrompt({
   input: {schema: GenerateIpaInputSchema},
   output: {schema: GenerateIpaOutputSchema},
   prompt: `You are a linguistic expert specializing in phonetics.
-Provide ONLY the International Phonetic Alphabet (IPA) transcription for the given English word, enclosed in slashes.
+Provide ONLY the International Phonetic Alphabet (IPA) transcription for the given English word.
 
-Example for 'hello': /həˈloʊ/
+Example for 'hello': həˈloʊ
 
 Word: {{{word}}}
 
@@ -46,8 +46,13 @@ const generateIpaFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await generateIpaPrompt(input);
+    if (!output || !output.ipa) {
+      return { ipa: undefined };
+    }
+    // Ensure the IPA is always wrapped in a single pair of slashes.
+    const trimmedIpa = output.ipa.replace(/^\/+|\/+$/g, '');
     return {
-        ipa: output?.ipa,
+        ipa: `/${trimmedIpa}/`,
     };
   }
 );
