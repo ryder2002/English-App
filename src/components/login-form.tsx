@@ -17,10 +17,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Languages, Loader2, Info } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Alert, AlertDescription } from "./ui/alert";
 import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context-postgres";
+import { useAuth } from "@/contexts/auth-context";
 import { CNLogo } from "./cn-logo";
 
 
@@ -34,7 +35,14 @@ type LoginFormValues = z.infer<typeof formSchema>;
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { login } = useAuth();
+  const router = useRouter();
+  const authContext = useAuth();
+
+  if (!authContext) {
+    return null;
+  }
+
+  const { login } = authContext;
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(formSchema),
@@ -52,6 +60,8 @@ export function LoginForm() {
         title: "Đăng nhập thành công!",
         description: "Chào mừng bạn quay trở lại.",
       });
+      // Chuyển hướng về trang chủ
+      router.push("/");
     } catch (error: any) {
       console.error(error);
       let errorMessage = "Email hoặc mật khẩu không chính xác.";
@@ -76,9 +86,9 @@ export function LoginForm() {
         <AlertDescription className="text-sm">
           <strong>Hệ thống vừa cập nhật cơ sở dữ liệu</strong>
           <br />
-          Hãy đăng nhập bằng <strong>email cũ</strong> và mật khẩu: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs font-mono">temp123456</code>
+          Hãy đăng nhập bằng <strong>email cũ</strong> và mật khẩu tạm thời: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs font-mono">temp123456</code>
           <br />
-          Sau đó vào <strong>Settings</strong> để đổi lại mật khẩu mới.
+          Sau đó vào <strong>Settings</strong> để đổi lại mật khẩu mới, hoặc ấn vào quên mật khẩu?.
         </AlertDescription>
       </Alert>
 

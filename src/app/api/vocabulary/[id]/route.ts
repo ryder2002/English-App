@@ -4,9 +4,11 @@ import { verifyJWT } from '@/lib/services/auth-service'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Verify authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
@@ -21,7 +23,7 @@ export async function PUT(
 
     const body = await request.json()
     const { updates } = body
-    const vocabularyId = parseInt(params.id)
+    const vocabularyId = parseInt(id)
 
     // Update vocabulary item
     const updatedItem = await prisma.vocabulary.update({
@@ -50,9 +52,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Verify authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
@@ -65,7 +69,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const vocabularyId = parseInt(params.id)
+    const vocabularyId = parseInt(id)
 
     // Delete vocabulary item
     await prisma.vocabulary.delete({

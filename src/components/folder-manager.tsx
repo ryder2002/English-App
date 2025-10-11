@@ -21,7 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context-postgres";
+import { useAuth } from "@/contexts/auth-context";
 
 
 const formSchema = z.object({
@@ -32,7 +32,13 @@ type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
   const { folders, addFolder, updateFolder, removeFolder, vocabulary } = useVocabulary();
-  const { user } = useAuth();
+  const authContext = useAuth();
+  
+  if (!authContext) {
+    return null;
+  }
+  
+  const { user } = authContext;
   const [editingFolder, setEditingFolder] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

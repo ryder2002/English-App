@@ -14,14 +14,20 @@ import {
 } from "@/components/ui/sidebar";
 import { SidebarNav } from "./sidebar-nav";
 import { LogOut } from "lucide-react";
-import { useAuth } from "@/contexts/auth-context-postgres";
+import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { CNLogo } from "./cn-logo";
 import { useSidebar } from "./ui/sidebar";
 
 function MobileSheetContent() {
-    const { user, signOut } = useAuth();
+    const authContext = useAuth();
+    
+    if (!authContext) {
+        return null;
+    }
+    
+    const { user, signOut } = authContext;
     const getInitials = (email: string | null | undefined) => {
         if (!email) return "U";
         return email.charAt(0).toUpperCase();
@@ -60,9 +66,14 @@ function MobileSheetContent() {
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, signOut } = useAuth();
+  const authContext = useAuth();
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
+  if (!authContext) {
+    return <>{children}</>;
+  }
+
+  const { user, signOut } = authContext;
 
   // If there's no user, we are likely on the login/signup page.
   // The AuthProvider will handle redirection for protected routes.

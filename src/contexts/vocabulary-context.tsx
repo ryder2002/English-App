@@ -17,7 +17,7 @@ import {
     deleteFolder as dbDeleteFolder
 } from "@/lib/services/folder-service-client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "./auth-context-postgres";
+import { useAuth } from "./auth-context";
 
 interface VocabularyContextType {
   vocabulary: VocabularyItem[];
@@ -36,7 +36,7 @@ interface VocabularyContextType {
 const VocabularyContext = createContext<VocabularyContextType | undefined>(undefined);
 
 export function VocabularyProvider({ children }: { children: ReactNode }) {
-  const auth = useAuth();
+  const authContext = useAuth();
   const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
   const [folderObjects, setFolderObjects] = useState<Folder[]>([]);
@@ -44,9 +44,11 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   // Early return if auth context is not available
-  if (!auth) {
+  if (!authContext) {
     return <div>Loading auth...</div>;
   }
+
+  const auth = authContext;
 
   const { user } = auth;
 

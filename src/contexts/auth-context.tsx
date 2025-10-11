@@ -1,21 +1,27 @@
 
 "use client";
 
-import { auth } from "@/lib/firebase";
-import { User, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+
+interface User {
+  id: number;
+  email: string;
+  name?: string | null;
+}
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const publicPaths = ["/login", "/signup", "/forgot-password"];
+const publicPaths = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -24,29 +30,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const pathname = usePathname();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setIsLoading(false);
-            
-            // If user is not logged in AND the current path is NOT a public one, redirect to login.
-            if (!currentUser && !publicPaths.includes(pathname)) {
-                router.push("/login");
+        const initAuth = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    // Verify token with backend
+                    const response = await fetch('/api/auth/me', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        setUser(userData.user);
+                    } else {
+                        // Token invalid, remove it
+                        localStorage.removeItem('token');
+                        if (!publicPaths.includes(pathname)) {
+                            router.push("/login");
+                        }
+                    }
+                } else {
+                    // No token, redirect to login if on protected route
+                    if (!publicPaths.includes(pathname)) {
+                        router.push("/login");
+                    }
+                }
+            } catch (error) {
+                console.error('Auth initialization error:', error);
+                localStorage.removeItem('token');
+                if (!publicPaths.includes(pathname)) {
+                    router.push("/login");
+                }
+            } finally {
+                setIsLoading(false);
             }
-        });
+        };
 
-        return () => unsubscribe();
+        initAuth();
     }, [router, pathname]);
     
+    const login = async (email: string, password: string) => {
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                setUser(data.user);
+            } else {
+                const error = await response.json();
+                throw new Error(error.error || 'Login failed');
+            }
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const register = async (email: string, password: string) => {
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                setUser(data.user);
+            } else {
+                const error = await response.json();
+                throw new Error(error.error || 'Registration failed');
+            }
+        } catch (error) {
+            throw error;
+        }
+    };
+    
     const signOut = async () => {
-        await firebaseSignOut(auth);
+        localStorage.removeItem('token');
         setUser(null);
         router.push("/login");
     };
 
-    const value = { user, isLoading, signOut };
+    const value = { user, isLoading, signOut, login, register };
     
-    // While loading, show a skeleton screen. This prevents rendering children
-    // that might depend on the user object before it's available.
+    // While loading, show a skeleton screen
     if (isLoading) {
         return (
              <div className="flex items-center justify-center h-screen bg-background">
@@ -59,9 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
     }
     
-    // If not loading and no user, but we are on a protected route,
-    // the useEffect above will handle redirection. If we are on a public page,
-    // children (the login/signup/forgot-password page) should be rendered.
     return (
         <AuthContext.Provider value={value}>
             {children}

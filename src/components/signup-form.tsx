@@ -19,7 +19,7 @@ import { Languages, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context-postgres";
+import { useAuth } from "@/contexts/auth-context";
 import { CNLogo } from "./cn-logo";
 
 
@@ -33,7 +33,13 @@ type SignupFormValues = z.infer<typeof formSchema>;
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { register } = useAuth();
+  const authContext = useAuth();
+
+  if (!authContext) {
+    return null;
+  }
+
+  const { register } = authContext;
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(formSchema),

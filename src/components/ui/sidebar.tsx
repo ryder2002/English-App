@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useAuth } from "@/contexts/auth-context-postgres"
+import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback } from "./avatar"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"

@@ -7,8 +7,7 @@ const prisma = new PrismaClient()
 export interface User {
   id: number
   email: string
-  name?: string
-  createdAt: Date
+  name?: string | null
 }
 
 export interface AuthResult {
@@ -56,7 +55,14 @@ export class AuthService {
       { expiresIn: this.JWT_EXPIRES_IN }
     )
 
-    return { user, token }
+    return { 
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name || undefined
+      }, 
+      token 
+    }
   }
 
   // Login user
@@ -87,8 +93,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
-        createdAt: user.createdAt
+        name: user.name || undefined
       },
       token
     }
@@ -104,12 +109,17 @@ export class AuthService {
         select: {
           id: true,
           email: true,
-          name: true,
-          createdAt: true
+          name: true
         }
       })
 
-      return user
+      if (!user) return null;
+
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name || undefined
+      }
     } catch (error) {
       return null
     }
@@ -122,12 +132,17 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true,
-        createdAt: true
+        name: true
       }
     })
 
-    return user
+    if (!user) return null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined
+    }
   }
 
   // Update user
@@ -138,12 +153,15 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true,
-        createdAt: true
+        name: true
       }
     })
 
-    return user
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined
+    }
   }
 
   // Change password

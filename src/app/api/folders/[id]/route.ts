@@ -4,9 +4,11 @@ import { verifyJWT } from '@/lib/services/auth-service'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Verify authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
@@ -21,7 +23,7 @@ export async function PUT(
 
     const body = await request.json()
     const { name } = body
-    const folderId = parseInt(params.id)
+    const folderId = parseInt(id)
 
     // Update folder
     const updatedFolder = await prisma.folder.update({
@@ -41,9 +43,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Verify authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
@@ -56,7 +60,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const folderId = parseInt(params.id)
+    const folderId = parseInt(id)
 
     // First get the folder to get its name
     const folder = await prisma.folder.findFirst({

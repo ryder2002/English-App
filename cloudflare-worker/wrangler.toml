@@ -1,0 +1,12 @@
+name = "english-app-email-worker"
+compatibility_date = "2023-10-01"
+main = "email-worker.js"
+
+[vars]
+# Public variables (non-sensitive)
+
+[env.production.vars]
+# Production environment variables
+
+# Secrets (set via wrangler secret put)
+# EMAIL_WORKER_TOKEN - Set this via: wrangler secret put EMAIL_WORKER_TOKEN
