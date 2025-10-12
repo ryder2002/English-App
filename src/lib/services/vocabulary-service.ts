@@ -1,178 +1,150 @@
-import { db } from "@/lib/firebase";
-import type { VocabularyItem } from "@/lib/types";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  writeBatch,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { prisma } from "@/lib/prisma";
+import type { VocabularyItem, Language } from "@/lib/types";
 
-const VOCABULARY_COLLECTION = "vocabulary";
-
-export const getVocabulary = async (userId: string): Promise<VocabularyItem[]> => {
-  if (!userId) return [];
-  // The composite query with `orderBy` requires a manual index in Firestore.
-  // To avoid this manual step for the user, we will sort the data on the client.
-  const q = query(
-    collection(db, VOCABULARY_COLLECTION),
-    where("userId", "==", userId)
-  );
-  const querySnapshot = await getDocs(q);
-  const vocabulary: VocabularyItem[] = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    // Convert Firestore Timestamp to ISO string
-    const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
-    vocabulary.push({ id: doc.id, ...data, createdAt } as VocabularyItem);
+export const getVocabulary = async (userId: number): Promise<VocabularyItem[]> => {
+  const vocabulary = await prisma.vocabulary.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' }
   });
-  // Sort by creation date descending on the client side
-  return vocabulary.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-};
 
-// Helper function to remove undefined or null fields from an object
-const cleanData = (data: { [key: string]: any }) => {
-  const cleanedData = { ...data };
-  Object.keys(cleanedData).forEach((key) => {
-    if (cleanedData[key] === undefined || cleanedData[key] === null) {
-      delete cleanedData[key];
-    }
-  });
-  return cleanedData;
+  // Convert to match the existing VocabularyItem interface
+  return vocabulary.map((item: any) => ({
+    id: item.id.toString(),
+    word: item.word,
+    language: item.language as Language,
+    vietnameseTranslation: item.vietnameseTranslation,
+    folder: item.folder,
+    partOfSpeech: item.partOfSpeech || undefined,
+    ipa: item.ipa || undefined,
+    pinyin: item.pinyin || undefined,
+    createdAt: item.createdAt.toISOString(),
+    audioSrc: item.audioSrc || undefined
+  }));
 };
-
 
 export const addVocabularyItem = async (
   item: Omit<VocabularyItem, "id" | "createdAt">,
-  userId: string
+  userId: number
 ): Promise<VocabularyItem> => {
-  const now = new Date();
-  const newDocData = cleanData({
-    ...item,
-    userId,
-    createdAt: serverTimestamp(),
+  const newItem = await prisma.vocabulary.create({
+    data: {
+      word: item.word,
+      language: item.language,
+      vietnameseTranslation: item.vietnameseTranslation,
+      folder: item.folder,
+      partOfSpeech: item.partOfSpeech || null,
+      ipa: item.ipa || null,
+      pinyin: item.pinyin || null,
+      audioSrc: item.audioSrc || null,
+      userId
+    }
   });
-  
-  const docRef = await addDoc(collection(db, VOCABULARY_COLLECTION), newDocData);
+
   return {
-    id: docRef.id,
-    ...item,
-    userId,
-    createdAt: now.toISOString(),
-  } as VocabularyItem;
+    id: newItem.id.toString(),
+    word: newItem.word,
+    language: newItem.language as Language,
+    vietnameseTranslation: newItem.vietnameseTranslation,
+    folder: newItem.folder,
+    partOfSpeech: newItem.partOfSpeech || undefined,
+    ipa: newItem.ipa || undefined,
+    pinyin: newItem.pinyin || undefined,
+    createdAt: newItem.createdAt.toISOString(),
+    audioSrc: newItem.audioSrc || undefined
+  };
 };
 
-
 export const addManyVocabularyItems = async (
-  items: Omit<VocabularyItem, "id" | "createdAt" | "userId">[],
-  userId: string
+  items: Omit<VocabularyItem, "id" | "createdAt">[],
+  userId: number
 ): Promise<VocabularyItem[]> => {
-  const batch = writeBatch(db);
-  const newItems: VocabularyItem[] = [];
-  const now = new Date();
+  const createdItems = await prisma.$transaction(
+    items.map(item => 
+      prisma.vocabulary.create({
+        data: {
+          word: item.word,
+          language: item.language,
+          vietnameseTranslation: item.vietnameseTranslation,
+          folder: item.folder,
+          partOfSpeech: item.partOfSpeech || null,
+          ipa: item.ipa || null,
+          pinyin: item.pinyin || null,
+          audioSrc: item.audioSrc || null,
+          userId
+        }
+      })
+    )
+  );
 
-  items.forEach((item) => {
-    const docRef = doc(collection(db, VOCABULARY_COLLECTION));
-    const newDocData = cleanData({
-      ...item,
-      userId,
-      createdAt: serverTimestamp(),
-    });
-    batch.set(docRef, newDocData);
-    newItems.push({
-      id: docRef.id,
-      ...item,
-      userId,
-      createdAt: now.toISOString(),
-    } as VocabularyItem);
-  });
-
-  await batch.commit();
-  return newItems;
+  return createdItems.map((item: any) => ({
+    id: item.id.toString(),
+    word: item.word,
+    language: item.language as Language,
+    vietnameseTranslation: item.vietnameseTranslation,
+    folder: item.folder,
+    partOfSpeech: item.partOfSpeech || undefined,
+    ipa: item.ipa || undefined,
+    pinyin: item.pinyin || undefined,
+    createdAt: item.createdAt.toISOString(),
+    audioSrc: item.audioSrc || undefined
+  }));
 };
 
 export const updateVocabularyItem = async (
   id: string,
-  updates: Partial<Omit<VocabularyItem, "id">>
+  updates: Partial<Omit<VocabularyItem, "id" | "createdAt">>
 ): Promise<void> => {
-  const itemDoc = doc(db, VOCABULARY_COLLECTION, id);
-  const cleanUpdates = cleanData(updates);
-  await updateDoc(itemDoc, cleanUpdates);
+  await prisma.vocabulary.update({
+    where: { id: parseInt(id) },
+    data: {
+      word: updates.word,
+      language: updates.language,
+      vietnameseTranslation: updates.vietnameseTranslation,
+      folder: updates.folder,
+      partOfSpeech: updates.partOfSpeech || null,
+      ipa: updates.ipa || null,
+      pinyin: updates.pinyin || null,
+      audioSrc: updates.audioSrc || null
+    }
+  });
 };
 
 export const deleteVocabularyItem = async (id: string): Promise<void> => {
-  await deleteDoc(doc(db, VOCABULARY_COLLECTION, id));
+  await prisma.vocabulary.delete({
+    where: { id: parseInt(id) }
+  });
 };
 
 export const deleteVocabularyByFolder = async (
   folderName: string,
-  userId: string
+  userId: number
 ): Promise<void> => {
-  if (!userId) return;
-  const q = query(
-    collection(db, VOCABULARY_COLLECTION),
-    where("userId", "==", userId),
-    where("folder", "==", folderName)
-  );
-  const querySnapshot = await getDocs(q);
-
-  if (querySnapshot.empty) {
-    return;
-  }
-
-  const batch = writeBatch(db);
-  querySnapshot.forEach((doc) => {
-    batch.delete(doc.ref);
+  await prisma.vocabulary.deleteMany({
+    where: {
+      userId,
+      folder: folderName
+    }
   });
-
-  await batch.commit();
 };
 
 export const updateVocabularyFolder = async (
   oldFolderName: string,
   newFolderName: string,
-  userId: string
+  userId: number
 ): Promise<void> => {
-  if (!userId) return;
-  const q = query(
-    collection(db, VOCABULARY_COLLECTION),
-    where("userId", "==", userId),
-    where("folder", "==", oldFolderName)
-  );
-  const querySnapshot = await getDocs(q);
-
-  if (querySnapshot.empty) {
-    return;
-  }
-
-  const batch = writeBatch(db);
-  querySnapshot.forEach((doc) => {
-    batch.update(doc.ref, { folder: newFolderName });
+  await prisma.vocabulary.updateMany({
+    where: {
+      userId,
+      folder: oldFolderName
+    },
+    data: {
+      folder: newFolderName
+    }
   });
-
-  await batch.commit();
 };
 
-export const clearVocabulary = async (userId: string): Promise<void> => {
-    if (!userId) return;
-    const q = query(
-        collection(db, VOCABULARY_COLLECTION),
-        where("userId", "==", userId)
-    );
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) return;
-
-    const batch = writeBatch(db);
-    querySnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-    });
-    await batch.commit();
-}
+export const clearVocabulary = async (userId: number): Promise<void> => {
+  await prisma.vocabulary.deleteMany({
+    where: { userId }
+  });
+};

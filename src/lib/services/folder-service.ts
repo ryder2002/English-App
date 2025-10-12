@@ -1,90 +1,79 @@
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  query,
-  where,
-  writeBatch,
-  serverTimestamp
-} from "firebase/firestore";
+import { prisma } from "@/lib/prisma";
 
-const FOLDERS_COLLECTION = "folders";
+export const getFolders = async (userId: number): Promise<string[]> => {
+  const folders = await prisma.folder.findMany({
+    where: { userId },
+    orderBy: { name: 'asc' },
+    select: { name: true }
+  });
 
-export const getFolders = async (userId: string): Promise<string[]> => {
-  if (!userId) return [];
-  const q = query(
-    collection(db, FOLDERS_COLLECTION),
-    where("userId", "==", userId)
-  );
-  const querySnapshot = await getDocs(q);
-  const folders: string[] = querySnapshot.docs.map((doc) => doc.data().name);
-  return folders.sort();
+  return folders.map((folder: any) => folder.name);
 };
 
-export const addFolder = async (folderName: string, userId: string): Promise<void> => {
-  if (!userId) {
-    throw new Error("User ID is required to add a folder.");
+export const addFolder = async (folderName: string, userId: number): Promise<void> => {
+  try {
+    await prisma.folder.create({
+      data: {
+        name: folderName,
+        userId
+      }
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      throw new Error('Folder already exists');
+    }
+    throw error;
   }
-  await addDoc(collection(db, FOLDERS_COLLECTION), {
-    name: folderName,
-    userId,
-    createdAt: serverTimestamp(),
-  });
 };
 
 export const updateFolder = async (
   oldName: string,
   newName: string,
-  userId: string
+  userId: number
 ): Promise<void> => {
-  if (!userId) return;
-  const q = query(
-    collection(db, FOLDERS_COLLECTION),
-    where("userId", "==", userId),
-    where("name", "==", oldName)
-  );
-  const querySnapshot = await getDocs(q);
-  if (querySnapshot.empty) {
-    throw new Error("Folder not found to update.");
-  }
-  const folderDoc = doc(db, FOLDERS_COLLECTION, querySnapshot.docs[0].id);
-  await updateDoc(folderDoc, { name: newName });
-};
-
-export const deleteFolder = async (
-  folderName: string,
-  userId: string
-): Promise<void> => {
-  if (!userId) return;
-  const q = query(
-    collection(db, FOLDERS_COLLECTION),
-    where("userId", "==", userId),
-    where("name", "==", folderName)
-  );
-  const querySnapshot = await getDocs(q);
-  if (querySnapshot.empty) {
-    throw new Error("Folder not found to delete.");
-  }
-  await deleteDoc(doc(db, FOLDERS_COLLECTION, querySnapshot.docs[0].id));
-};
-
-
-export const clearFolders = async (userId: string): Promise<void> => {
-  if (!userId) return;
-  const q = query(
-    collection(db, FOLDERS_COLLECTION),
-    where("userId", "==", userId)
-  );
-  const querySnapshot = await getDocs(q);
-  if (querySnapshot.empty) return;
-
-  const batch = writeBatch(db);
-  querySnapshot.forEach((doc) => {
-    batch.delete(doc.ref);
+  // Update folder name
+  await prisma.folder.updateMany({
+    where: {
+      userId,
+      name: oldName
+    },
+    data: {
+      name: newName
+    }
   });
-  await batch.commit();
+
+  // Update all vocabulary items in this folder
+  await prisma.vocabulary.updateMany({
+    where: {
+      userId,
+      folder: oldName
+    },
+    data: {
+      folder: newName
+    }
+  });
+};
+
+export const deleteFolder = async (folderName: string, userId: number): Promise<void> => {
+  // Delete all vocabulary items in this folder first
+  await prisma.vocabulary.deleteMany({
+    where: {
+      userId,
+      folder: folderName
+    }
+  });
+
+  // Then delete the folder
+  await prisma.folder.deleteMany({
+    where: {
+      userId,
+      name: folderName
+    }
+  });
+};
+
+export const clearFolders = async (userId: number): Promise<void> => {
+  await prisma.folder.deleteMany({
+    where: { userId }
+  });
 };
