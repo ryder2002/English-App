@@ -1,23 +1,42 @@
 import { prisma } from "@/lib/prisma";
+import type { Folder } from "@/lib/types";
 
-export const getFolders = async (userId: number): Promise<string[]> => {
+export const getFolders = async (userId: number): Promise<Folder[]> => {
   const folders = await prisma.folder.findMany({
     where: { userId },
-    orderBy: { name: 'asc' },
-    select: { name: true }
+    orderBy: { name: 'asc' }
   });
 
-  return folders.map((folder: any) => folder.name);
+  return folders.map((folder: any) => ({
+    id: folder.id.toString(),
+    name: folder.name,
+    userId: folder.userId,
+    parentId: folder.parentId ? folder.parentId.toString() : null,
+    createdAt: folder.createdAt.toISOString()
+  }));
 };
 
-export const addFolder = async (folderName: string, userId: number): Promise<void> => {
+export const addFolder = async (
+  folderName: string, 
+  userId: number, 
+  parentId?: number | null
+): Promise<Folder> => {
   try {
-    await prisma.folder.create({
+    const newFolder = await prisma.folder.create({
       data: {
         name: folderName,
-        userId
+        userId,
+        parentId: parentId || null
       }
     });
+
+    return {
+      id: newFolder.id.toString(),
+      name: newFolder.name,
+      userId: newFolder.userId,
+      parentId: newFolder.parentId ? newFolder.parentId.toString() : null,
+      createdAt: newFolder.createdAt.toISOString()
+    };
   } catch (error: any) {
     if (error.code === 'P2002') {
       throw new Error('Folder already exists');
@@ -55,15 +74,35 @@ export const updateFolder = async (
 };
 
 export const deleteFolder = async (folderName: string, userId: number): Promise<void> => {
-  // Delete all vocabulary items in this folder first
+  // First, find all subfolders recursively
+  const findAllSubfolders = async (parentName: string): Promise<string[]> => {
+    const folder = await prisma.folder.findFirst({
+      where: { name: parentName, userId },
+      include: { children: true }
+    });
+
+    if (!folder) return [parentName];
+
+    const subfolderNames = [parentName];
+    for (const child of folder.children) {
+      const childSubfolders = await findAllSubfolders(child.name);
+      subfolderNames.push(...childSubfolders);
+    }
+
+    return subfolderNames;
+  };
+
+  const allFolderNames = await findAllSubfolders(folderName);
+
+  // Delete all vocabulary items in these folders
   await prisma.vocabulary.deleteMany({
     where: {
       userId,
-      folder: folderName
+      folder: { in: allFolderNames }
     }
   });
 
-  // Then delete the folder
+  // Delete all folders (children will be deleted due to CASCADE)
   await prisma.folder.deleteMany({
     where: {
       userId,

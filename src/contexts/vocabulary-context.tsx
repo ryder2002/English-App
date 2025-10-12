@@ -27,10 +27,11 @@ interface VocabularyContextType {
   addManyVocabularyItems: (items: Omit<VocabularyItem, 'id' | 'createdAt' | 'userId'>[]) => Promise<void>;
   removeVocabularyItem: (id: string) => Promise<void>;
   updateVocabularyItem: (id: string, updates: Partial<Omit<VocabularyItem, 'id'>>) => Promise<boolean>;
-  addFolder: (folderName: string) => Promise<boolean>;
-  removeFolder: (folderName: string) => Promise<void>;
-  updateFolder: (oldName: string, newName: string) => Promise<boolean>;
+  addFolder: (folderName: string, parentId?: string | null) => Promise<boolean>;
+  removeFolder: (folderId: string) => Promise<void>;
+  updateFolder: (folderId: string, newName: string) => Promise<boolean>;
   isLoadingInitialData: boolean;
+  buildFolderTree: () => Folder[];
 }
 
 const VocabularyContext = createContext<VocabularyContextType | undefined>(undefined);
@@ -148,15 +149,23 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     }
   }, [auth, user, toast, vocabulary]);
 
-  const addFolder = useCallback(async (folderName: string): Promise<boolean> => {
+  const addFolder = useCallback(async (folderName: string, parentId?: string | null): Promise<boolean> => {
     if (!auth || !user) return false;
-    if (folders.includes(folderName)) {
-        toast({ variant: "destructive", title: "Thư mục đã tồn tại" });
+    
+    // Check if folder with same name exists under same parent
+    const duplicateExists = folderObjects.some(
+      f => f.name === folderName && f.parentId === (parentId || null)
+    );
+    
+    if (duplicateExists) {
+        toast({ variant: "destructive", title: "Thư mục đã tồn tại trong thư mục cha này" });
         return false;
     }
+    
     try {
-        const newFolder = await dbAddFolder(folderName);
+        const newFolder = await dbAddFolder(folderName, parentId);
         if (newFolder) {
+          setFolderObjects(prev => [...prev, newFolder]);
           setFolders(prev => [...prev, folderName].sort());
           toast({ title: "Đã thêm thư mục", description: `Thư mục "${folderName}" đã được tạo.`});
           return true;
@@ -167,37 +176,74 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể thêm thư mục." });
         return false;
     }
-  }, [auth, user, toast, folders]);
+  }, [auth, user, toast, folderObjects, dbAddFolder]);
   
-  const removeFolder = useCallback(async (folderName: string) => {
+  const removeFolder = useCallback(async (folderId: string) => {
     if (!auth || !user) return;
+    
+    const folderToDelete = folderObjects.find(f => f.id === folderId);
+    if (!folderToDelete) return;
+    
+    const originalFolderObjects = folderObjects;
     const originalFolders = folders;
     const originalVocabulary = vocabulary;
-    setFolders(prev => prev.filter(f => f !== folderName));
-    setVocabulary(prev => prev.filter(item => item.folder !== folderName));
+    
+    // Collect all folders to be deleted (including subfolders)
+    const collectFolderIds = (parentId: string): string[] => {
+      const children = folderObjects.filter(f => f.parentId === parentId);
+      let ids = [parentId];
+      children.forEach(child => {
+        ids = ids.concat(collectFolderIds(child.id));
+      });
+      return ids;
+    };
+    
+    const folderIdsToDelete = collectFolderIds(folderId);
+    const folderNamesToDelete = folderObjects
+      .filter(f => folderIdsToDelete.includes(f.id))
+      .map(f => f.name);
+    
+    setFolderObjects(prev => prev.filter(f => !folderIdsToDelete.includes(f.id)));
+    setFolders(prev => prev.filter(f => !folderNamesToDelete.includes(f)));
+    setVocabulary(prev => prev.filter(item => !folderNamesToDelete.includes(item.folder)));
+    
     try {
-        await dbDeleteFolder(folderName);
-         toast({
-              variant: "default",
-              title: "Đã xóa thư mục",
-              description: `Thư mục "${folderName}" và nội dung của nó đã được xóa.`,
-          });
+        await dbDeleteFolder(folderId);
+        toast({
+          variant: "default",
+          title: "Đã xóa thư mục",
+          description: `Thư mục "${folderToDelete.name}" và các thư mục con đã được xóa.`,
+        });
     } catch (error) {
         console.error("Error deleting folder:", error);
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể xóa thư mục." });
+        setFolderObjects(originalFolderObjects);
         setFolders(originalFolders);
         setVocabulary(originalVocabulary);
     }
-  }, [auth, user, toast, folders, vocabulary]);
+  }, [auth, user, toast, folderObjects, folders, vocabulary, dbDeleteFolder]);
 
-  const updateFolder = useCallback(async (oldName: string, newName: string): Promise<boolean> => {
+  const updateFolder = useCallback(async (folderId: string, newName: string): Promise<boolean> => {
     if (!auth || !user) return false;
-     if (folders.includes(newName)) {
-        toast({ variant: "destructive", title: "Tên thư mục đã được sử dụng." });
-        return false;
+    
+    const folderToUpdate = folderObjects.find(f => f.id === folderId);
+    if (!folderToUpdate) return false;
+    
+    const oldName = folderToUpdate.name;
+    
+    // Check if new name already exists under same parent
+    const duplicateExists = folderObjects.some(
+      f => f.name === newName && f.parentId === folderToUpdate.parentId && f.id !== folderId
+    );
+    
+    if (duplicateExists) {
+      toast({ variant: "destructive", title: "Tên thư mục đã được sử dụng trong thư mục cha này." });
+      return false;
     }
+    
     try {
-        await dbUpdateFolder(oldName, newName);
+        await dbUpdateFolder(folderId, newName);
+        setFolderObjects(prev => prev.map(f => f.id === folderId ? {...f, name: newName} : f));
         setFolders(prev => prev.map(f => (f === oldName ? newName : f)).sort());
         setVocabulary(prev => prev.map(v => v.folder === oldName ? {...v, folder: newName} : v));
         toast({ title: "Đã cập nhật thư mục" });
@@ -207,7 +253,32 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
         toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật thư mục." });
         return false;
     }
-  }, [auth, user, toast, folders]);
+  }, [auth, user, toast, folderObjects, dbUpdateFolder]);
+
+  const buildFolderTree = useCallback((): Folder[] => {
+    const folderMap = new Map<string, Folder>();
+    const rootFolders: Folder[] = [];
+    
+    // Create a map of all folders with children arrays
+    folderObjects.forEach(folder => {
+      folderMap.set(folder.id, { ...folder, children: [] });
+    });
+    
+    // Build the tree structure
+    folderObjects.forEach(folder => {
+      const folderNode = folderMap.get(folder.id)!;
+      if (folder.parentId) {
+        const parent = folderMap.get(folder.parentId);
+        if (parent) {
+          parent.children!.push(folderNode);
+        }
+      } else {
+        rootFolders.push(folderNode);
+      }
+    });
+    
+    return rootFolders;
+  }, [folderObjects]);
 
   const contextValue = {
     vocabulary,
@@ -220,7 +291,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
     isLoadingInitialData,
     addFolder,
     removeFolder,
-    updateFolder
+    updateFolder,
+    buildFolderTree
   };
 
   return (

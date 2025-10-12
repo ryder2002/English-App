@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
-const withPWA = require("@ducanh2912/next-pwa").default({
+import withPWA from "@ducanh2912/next-pwa";
+
+const pwaConfig = withPWA({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
   scope: "/",
   sw: "sw.js",
 });
-
 
 const nextConfig = {
   async headers() {
@@ -25,4 +26,4 @@ const nextConfig = {
   }
 };
 
-module.exports = withPWA(nextConfig);
+export default pwaConfig(nextConfig);

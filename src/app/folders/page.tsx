@@ -1,4 +1,4 @@
-import { FolderManager } from "@/components/folder-manager";
+import { FolderManagerWithHierarchy } from "@/components/folder-manager-hierarchy";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export default function FoldersPage() {
                     Quản lý Thư mục
                 </h1>
             </div>
-            <FolderManager />
+            <FolderManagerWithHierarchy />
         </div>
     );
 }

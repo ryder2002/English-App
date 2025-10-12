@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get folders for user
+    // Get folders for user with hierarchy
     const folders = await prisma.folder.findMany({
       where: { userId: payload.userId },
       orderBy: { createdAt: 'desc' }
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       id: folder.id.toString(),
       name: folder.name,
       userId: folder.userId,
+      parentId: folder.parentId ? folder.parentId.toString() : null,
       createdAt: folder.createdAt.toISOString()
     }))
 
@@ -51,13 +52,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name } = body
+    const { name, parentId } = body
 
     // Create new folder
     const newFolder = await prisma.folder.create({
       data: {
         name,
-        userId: payload.userId
+        userId: payload.userId,
+        parentId: parentId ? parseInt(parentId) : null
       }
     })
 
@@ -65,6 +67,7 @@ export async function POST(request: NextRequest) {
       id: newFolder.id.toString(),
       name: newFolder.name,
       userId: newFolder.userId,
+      parentId: newFolder.parentId ? newFolder.parentId.toString() : null,
       createdAt: newFolder.createdAt.toISOString()
     }
 

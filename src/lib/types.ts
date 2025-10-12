@@ -17,7 +17,9 @@ export interface Folder {
   id: string;
   name: string;
   userId: number;
+  parentId: string | null;
   createdAt: string; // ISO 8601 date string
+  children?: Folder[]; // For hierarchical display
 }
 
 export type TranslationDirection = "en-vi" | "vi-en";

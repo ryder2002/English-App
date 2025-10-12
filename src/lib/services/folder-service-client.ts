@@ -35,12 +35,12 @@ export const getFolders = async (): Promise<Folder[]> => {
   }
 };
 
-export const createFolder = async (name: string): Promise<Folder | null> => {
+export const createFolder = async (name: string, parentId?: string | null): Promise<Folder | null> => {
   try {
     const response = await fetch(`${API_BASE}/folders`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name, parentId })
     });
 
     if (!response.ok) {

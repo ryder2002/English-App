@@ -34,7 +34,15 @@ export async function PUT(
       data: { name }
     })
 
-    return NextResponse.json({ folder: updatedFolder })
+    const formattedFolder = {
+      id: updatedFolder.id.toString(),
+      name: updatedFolder.name,
+      userId: updatedFolder.userId,
+      parentId: updatedFolder.parentId ? updatedFolder.parentId.toString() : null,
+      createdAt: updatedFolder.createdAt.toISOString()
+    }
+
+    return NextResponse.json({ folder: formattedFolder })
   } catch (error) {
     console.error('Error updating folder:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -62,7 +70,7 @@ export async function DELETE(
 
     const folderId = parseInt(id)
 
-    // First get the folder to get its name
+    // First get the folder
     const folder = await prisma.folder.findFirst({
       where: {
         id: folderId,
@@ -74,15 +82,40 @@ export async function DELETE(
       return NextResponse.json({ error: 'Folder not found' }, { status: 404 })
     }
 
-    // Delete vocabulary items in this folder first
+    // Recursively collect all folder IDs to delete
+    const collectFolderIds = async (parentId: number): Promise<number[]> => {
+      const children = await prisma.folder.findMany({
+        where: { parentId, userId: payload.userId }
+      })
+      
+      let ids = [parentId]
+      for (const child of children) {
+        const childIds = await collectFolderIds(child.id)
+        ids = ids.concat(childIds)
+      }
+      return ids
+    }
+
+    const allFolderIds = await collectFolderIds(folder.id)
+
+    // Get all folder names for vocabulary deletion
+    const allFolders = await prisma.folder.findMany({
+      where: { 
+        id: { in: allFolderIds },
+        userId: payload.userId
+      }
+    })
+    const folderNames = allFolders.map(f => f.name)
+
+    // Delete vocabulary items in these folders
     await prisma.vocabulary.deleteMany({
       where: {
         userId: payload.userId,
-        folder: folder.name
+        folder: { in: folderNames }
       }
     })
 
-    // Then delete the folder
+    // Delete folders (cascade will handle children)
     await prisma.folder.delete({
       where: {
         id: folderId

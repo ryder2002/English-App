@@ -32,12 +32,15 @@ model Folder {
   id        Int      @id @default(autoincrement())
   name      String
   userId    Int      @map("user_id")
+  parentId  Int?     @map("parent_id")
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderHierarchy")
 
-  @@unique([name, userId])
+  @@unique([name, userId, parentId])
   @@map("folders")
 }
 
