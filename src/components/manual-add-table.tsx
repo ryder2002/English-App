@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -83,7 +82,7 @@ export function ManualAddTable() {
       
       // Synonym is just additional context, not a replacement for translation
       // We still want AI to generate Vietnamese meaning
-      if (parsed.synonym) {
+      if (parsed.synonyms && parsed.synonyms.length > 0) {
         newRows[index].hasCustomDefinition = true; // Mark that we have synonym context
       } else {
         if (value === '') {
