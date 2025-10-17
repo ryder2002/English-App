@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import type { Language } from "@/lib/types";
 import { Textarea } from "./ui/textarea";
+import { parseWordWithDefinition } from "@/lib/parse-word-with-definition";
 
 type SheetRow = {
   id: number;
@@ -36,6 +37,7 @@ type SheetRow = {
   vietnameseTranslation: string;
   translationLoading: boolean;
   folder: string;
+  hasCustomDefinition?: boolean; // Track if user provided custom definition
 };
 
 let nextId = 1;
@@ -73,7 +75,27 @@ export function ManualAddTable() {
     value: any
   ) => {
     const newRows = [...rows];
-    (newRows[index] as any)[field] = value;
+    
+    // Special handling for word field - parse for synonyms
+    if (field === 'word') {
+      const parsed = parseWordWithDefinition(value);
+      newRows[index].word = parsed.word;
+      
+      // Synonym is just additional context, not a replacement for translation
+      // We still want AI to generate Vietnamese meaning
+      if (parsed.synonym) {
+        newRows[index].hasCustomDefinition = true; // Mark that we have synonym context
+      } else {
+        if (value === '') {
+          newRows[index].vietnameseTranslation = '';
+          newRows[index].partOfSpeech = '';
+          newRows[index].pronunciation = '';
+        }
+        newRows[index].hasCustomDefinition = false;
+      }
+    } else {
+      (newRows[index] as any)[field] = value;
+    }
 
     // When language changes, clear related fields
     if (field === 'language') {
@@ -82,16 +104,11 @@ export function ManualAddTable() {
         if (value === 'vietnamese') {
             newRows[index].vietnameseTranslation = newRows[index].word;
         } else {
-             // If word exists, clear translation to trigger refetch
-             if(newRows[index].word) newRows[index].vietnameseTranslation = '';
+             // Clear translation to trigger refetch
+             if(newRows[index].word) {
+               newRows[index].vietnameseTranslation = '';
+             }
         }
-    }
-    
-    // If the word is cleared, clear all related fields
-    if (field === 'word' && value === '') {
-        newRows[index].vietnameseTranslation = '';
-        newRows[index].partOfSpeech = '';
-        newRows[index].pronunciation = '';
     }
 
     setRows(newRows);
@@ -99,13 +116,16 @@ export function ManualAddTable() {
 
   const fetchDetails = async (index: number) => {
       const row = rows[index];
+      
+      // Skip fetching if word is empty or language is Vietnamese
       if (!row.word || row.language === 'vietnamese') {
-          // If word is empty or language is Vietnamese, just turn off loaders.
           const newRows = [...rows];
           newRows[index].translationLoading = false;
           newRows[index].partOfSpeechLoading = false;
           newRows[index].pronunciationLoading = false;
-          if (row.language === 'vietnamese') newRows[index].vietnameseTranslation = row.word;
+          if (row.language === 'vietnamese') {
+            newRows[index].vietnameseTranslation = row.word;
+          }
           setRows(newRows);
           return;
       }

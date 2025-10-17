@@ -155,7 +155,8 @@ export function BatchAddForm() {
             <CardHeader>
                 <CardTitle>Nhập danh sách từ</CardTitle>
                 <CardDescription>
-                    Nhập mỗi từ trên một dòng. Hệ thống sẽ tự động tìm nạp định nghĩa, bản dịch và phát âm cho bạn.
+                    Nhập mỗi từ trên một dòng. Bạn có thể thêm từ đồng nghĩa bằng cách sử dụng =, -, : hoặc | để AI hiểu rõ hơn.<br/>
+                    Ví dụ: <code className="text-primary">hello = hi</code> (AI sẽ tạo nghĩa tiếng Việt là "xin chào")
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -169,9 +170,10 @@ export function BatchAddForm() {
                         <FormLabel>Danh sách từ vựng</FormLabel>
                         <FormControl>
                             <Textarea
-                                placeholder="hello
+                                placeholder="hello = hi
 world
 你好
+put on : wear
 ..."
                                 {...field}
                                 rows={8}

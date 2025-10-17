@@ -27,7 +27,8 @@ export default function AddVocabularyPage() {
                      <Alert className="max-w-2xl mx-auto mb-6">
                         <Info className="h-4 w-4" />
                         <AlertDescription>
-                            Nhập danh sách từ, AI sẽ tự động tạo các phần còn lại (dịch nghĩa, phát âm, âm thanh).
+                            <strong>Mẹo:</strong> Thêm từ đồng nghĩa với các ký tự <code className="bg-muted px-1 rounded">=</code>, <code className="bg-muted px-1 rounded">-</code>, <code className="bg-muted px-1 rounded">:</code>, hoặc <code className="bg-muted px-1 rounded">|</code><br/>
+                            Ví dụ: <code className="text-primary bg-muted px-1 rounded">hello = hi</code> → AI sẽ tạo nghĩa tiếng Việt: "xin chào"
                         </AlertDescription>
                     </Alert>
                     <BatchAddForm />
@@ -36,7 +37,8 @@ export default function AddVocabularyPage() {
                     <Alert className="max-w-3xl mx-auto mb-6">
                         <Info className="h-4 w-4" />
                         <AlertDescription>
-                           Tự điền các cột như một bảng tính. AI sẽ hỗ trợ tạo tự động phần phát âm và nghĩa khi bạn nhập xong từ.
+                           <strong>Mẹo:</strong> Nhập từ với đồng nghĩa (ví dụ: <code className="text-primary bg-muted px-1 rounded">hello = hi</code>) để AI hiểu rõ hơn ngữ cảnh.<br/>
+                           AI vẫn sẽ tự động tạo nghĩa tiếng Việt, phát âm và từ loại cho bạn.
                         </AlertDescription>
                     </Alert>
                     <ManualAddTable />
