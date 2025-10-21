@@ -15,15 +15,19 @@ model User {
   email            String    @unique
   password         String
   name             String?
-  firebaseUid      String?   @unique @map("firebase_uid") // For migration mapping
+  role             Role      @default(user)
+  firebaseUid      String?   @unique @map("firebase_uid")
   resetToken       String?   @map("reset_token")
   resetTokenExpiry DateTime? @map("reset_token_expiry")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  vocabulary Vocabulary[]
-  folders    Folder[]
+  vocabulary     Vocabulary[]
+  folders        Folder[]
+  classesJoined  ClassMember[]
+  classesOwned   Clazz[]        @relation("ClassTeacher")
+  quizResults    QuizResult[]
 
   @@map("users")
 }
@@ -39,6 +43,7 @@ model Folder {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children Folder[] @relation("FolderHierarchy")
+  quizzes    Quiz[]
 
   @@unique([name, userId, parentId])
   @@map("folders")
@@ -67,8 +72,78 @@ model Vocabulary {
   @@map("vocabulary")
 }
 
+model Clazz {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  classCode   String   @unique @map("class_code")
+  teacherId   Int      @map("teacher_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  teacher  User          @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  members  ClassMember[]
+  quizzes  Quiz[]
+
+  @@map("classes")
+}
+
+model ClassMember {
+  id        Int      @id @default(autoincrement())
+  clazzId   Int      @map("class_id")
+  userId    Int      @map("user_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  clazz     Clazz     @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clazzId, userId])
+  @@map("class_members")
+}
+
+model Quiz {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  quizCode    String   @unique @map("test_code")
+  clazzId     Int      @map("class_id")
+  folderId    Int      @map("folder_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  clazz      Clazz        @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  folder     Folder       @relation(fields: [folderId], references: [id])
+  results    QuizResult[]
+
+  @@map("tests")
+}
+
+model QuizResult {
+  id        Int      @id @default(autoincrement())
+  quizId    Int      @map("test_id")
+  userId    Int      @map("user_id")
+  score     Float
+  maxScore  Float    @map("max_score")
+  startedAt DateTime @map("started_at")
+  endedAt   DateTime @map("ended_at")
+
+  // Relations
+  quiz      Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("test_results")
+}
+
 enum Language {
   english
   chinese
   vietnamese
+}
+
+enum Role {
+  admin
+  user
 }

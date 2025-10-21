@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
@@ -9,13 +8,14 @@ interface User {
   id: number;
   email: string;
   name?: string | null;
+  role?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<string>;
   register: (email: string, password: string) => Promise<void>;
 }
 
@@ -38,31 +38,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const response = await fetch('/api/auth/me', {
                         headers: {
                             'Authorization': `Bearer ${token}`
-                        }
+                        },
+                        credentials: 'include'
                     });
                     
                     if (response.ok) {
                         const userData = await response.json();
                         setUser(userData.user);
+                        
+                        // Check role and redirect if needed, but only on initial load or role change
+                        const currentRole = userData.user?.role;
+                        const isAdminRoute = pathname?.startsWith('/admin');
+                        
+                        // Only redirect if not already at the target path
+                        if (currentRole === 'admin' && !isAdminRoute && pathname !== '/admin') {
+                            router.replace('/admin');
+                        } else if (currentRole !== 'admin' && isAdminRoute && pathname !== '/') {
+                            router.replace('/');
+                        }
                     } else {
                         // Token invalid, remove it
                         localStorage.removeItem('token');
-                        if (!publicPaths.includes(pathname)) {
-                            router.push("/login");
-                        }
                     }
-                } else {
-                    // No token, redirect to login if on protected route
-                    if (!publicPaths.includes(pathname)) {
-                        router.push("/login");
-                    }
-                }
+                } 
             } catch (error) {
                 console.error('Auth initialization error:', error);
                 localStorage.removeItem('token');
-                if (!publicPaths.includes(pathname)) {
-                    router.push("/login");
-                }
             } finally {
                 setIsLoading(false);
             }
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         initAuth();
     }, [router, pathname]);
     
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string): Promise<string> => {
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -79,12 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ email, password }),
+                credentials: 'include'
             });
 
             if (response.ok) {
                 const data = await response.json();
-                localStorage.setItem('token', data.token);
-                setUser(data.user);
+                // KHÔNG set lại cookie token ở client!
+                // if (data?.token) localStorage.setItem('token', data.token);
+
+                // Force reload để cookie httpOnly được gửi lên server
+                window.location.href = data.redirectTo || (data.user?.role === 'admin' ? '/admin' : '/');
+                return data.redirectTo;
             } else {
                 const error = await response.json();
                 throw new Error(error.error || 'Login failed');

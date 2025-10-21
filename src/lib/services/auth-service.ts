@@ -8,6 +8,7 @@ export interface User {
   id: number
   email: string
   name?: string | null
+  role?: string
 }
 
 export interface AuthResult {
@@ -44,13 +45,14 @@ export class AuthService {
         id: true,
         email: true,
         name: true,
+        role: true,
         createdAt: true
       }
     })
 
-    // Generate JWT token
+    // Generate JWT token (include role in payload)
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: user.role || null },
       this.JWT_SECRET,
       { expiresIn: this.JWT_EXPIRES_IN }
     )
@@ -59,7 +61,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name || undefined
+        name: user.name || undefined,
+        role: user.role || undefined
       }, 
       token 
     }
@@ -82,9 +85,9 @@ export class AuthService {
       throw new Error('Invalid credentials')
     }
 
-    // Generate JWT token
+    // Generate JWT token (include role)
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: user.role || null },
       this.JWT_SECRET,
       { expiresIn: this.JWT_EXPIRES_IN }
     )
@@ -93,7 +96,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name || undefined
+        name: user.name || undefined,
+        role: user.role || undefined
       },
       token
     }
@@ -102,14 +106,15 @@ export class AuthService {
   // Verify JWT token
   static async verifyToken(token: string): Promise<User | null> {
     try {
-      const payload = jwt.verify(token, this.JWT_SECRET) as { userId: number; email: string }
+      const payload = jwt.verify(token, this.JWT_SECRET) as { userId: number; email: string; role?: string }
       
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },
         select: {
           id: true,
           email: true,
-          name: true
+          name: true,
+          role: true
         }
       })
 
@@ -118,7 +123,8 @@ export class AuthService {
       return {
         id: user.id,
         email: user.email,
-        name: user.name || undefined
+        name: user.name || undefined,
+        role: user.role || undefined
       }
     } catch (error) {
       return null
@@ -132,7 +138,8 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true
+        name: true,
+        role: true
       }
     })
 
@@ -141,7 +148,8 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      name: user.name || undefined
+      name: user.name || undefined,
+      role: user.role || undefined
     }
   }
 
@@ -153,14 +161,16 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true
+        name: true,
+        role: true
       }
     })
 
     return {
       id: user.id,
       email: user.email,
-      name: user.name || undefined
+      name: user.name || undefined,
+      role: user.role || undefined
     }
   }
 
@@ -196,13 +206,24 @@ export class AuthService {
 }
 
 // Standalone function for verifying JWT tokens
-export function verifyJWT(token: string): { userId: number; email: string } | null {
+export function verifyJWT(token: string): { userId: number; email: string; role: string | null } | null {
   try {
     const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret'
-    const payload = jwt.verify(token, JWT_SECRET) as any
+    const decoded = jwt.verify(token, JWT_SECRET)
+    
+    // Type guard to ensure payload has required properties
+    if (typeof decoded !== 'object' || !decoded || 
+        !('userId' in decoded) || !('email' in decoded)) {
+      return null
+    }
+
+    const payload = decoded as { userId: number; email: string; role?: string }
+
+    // Always return a defined role value (null if not present)
     return {
       userId: payload.userId,
-      email: payload.email
+      email: payload.email,
+      role: payload.role || null  // Ensure role is never undefined
     }
   } catch (error) {
     return null

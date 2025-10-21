@@ -1,27 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyJWT } from '@/lib/services/auth-service'
+import { AuthService } from '@/lib/services/auth-service'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader?.startsWith('Bearer ')) {
+    const authHeader = request.headers.get('authorization');
+    const tokenFromHeader = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const tokenFromCookie = request.cookies.get('token')?.value || null;
+    const token = tokenFromHeader || tokenFromCookie;
+
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.substring(7)
-    const payload = verifyJWT(token)
-    
+    const payload = await AuthService.verifyToken(token)
+
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Return user data
     return NextResponse.json({
       user: {
-        id: payload.userId,
-        email: payload.email
+        id: payload.id,
+        email: payload.email,
+        name: payload.name,
+        role: payload.role
       }
     })
 

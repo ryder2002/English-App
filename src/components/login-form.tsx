@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -55,13 +54,34 @@ export function LoginForm() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
-      await login(values.email, values.password);
+      const redirectTo = await login(values.email, values.password);
       toast({
         title: "Đăng nhập thành công!",
         description: "Chào mừng bạn quay trở lại.",
       });
-      // Chuyển hướng về trang chủ
-      router.push("/");
+
+      // If we got a redirect target from login, navigate there (use full navigation to ensure middleware runs)
+      if (redirectTo) {
+        // small delay so browser applies Set-Cookie from response before navigating
+        setTimeout(() => {
+          try { window.location.replace(redirectTo); } catch (e) { window.location.href = redirectTo; }
+        }, 150);
+        return;
+      }
+
+      // Fallback: read role cookie and redirect if admin (handles cases where AuthProvider didn't return)
+      if (typeof document !== 'undefined') {
+        const match = document.cookie.match(/(^|;)\s*role=([^;]+)/);
+        const role = match ? decodeURIComponent(match[2]) : null;
+        if (role === 'admin') {
+          setTimeout(() => { window.location.replace('/admin'); }, 150);
+          return;
+        }
+      }
+
+      // Final fallback to homepage
+      setTimeout(() => { window.location.replace('/'); }, 150);
+
     } catch (error: any) {
       console.error(error);
       let errorMessage = "Email hoặc mật khẩu không chính xác.";
