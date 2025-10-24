@@ -1,6 +1,5 @@
 
 import type { Metadata } from "next";
-import { AppShell } from "@/components/app-shell";
 import { Toaster } from "@/components/ui/toaster";
 import { VocabularyProvider } from "@/contexts/vocabulary-context";
 import "./globals.css";
@@ -44,9 +43,7 @@ export default function RootLayout({
         <AuthProvider>
           <SettingsProvider>
             <VocabularyProvider>
-              <SidebarProvider>
-                <AppShell>{children}</AppShell>
-              </SidebarProvider>
+              <SidebarProvider>{children}</SidebarProvider>
               <Toaster />
             </VocabularyProvider>
           </SettingsProvider>

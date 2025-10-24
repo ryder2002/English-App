@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyJWT } from '@/lib/services/auth-service'
 
+function getTokenFromRequest(request: NextRequest) {
+  const cookie = request.cookies.get('token')?.value
+  return cookie || null
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const token = getTokenFromRequest(request)
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const token = authHeader.substring(7)
     const payload = verifyJWT(token)
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
@@ -46,12 +49,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const token = getTokenFromRequest(request)
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const token = authHeader.substring(7)
     const payload = verifyJWT(token)
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })

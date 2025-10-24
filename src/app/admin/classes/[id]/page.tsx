@@ -1,15 +1,26 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, notFound } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+
+interface ClassMember { id: number; email: string; }
+interface ClassDetail {
+  id: number;
+  name: string;
+  description: string;
+  classCode: string;
+  teacher: { email: string; };
+  members: ClassMember[];
+}
 
 export default function ClassDetailPage() {
   const params = useParams();
   const id = params?.id as string | undefined;
   const router = useRouter();
-  const [clazz, setClazz] = useState<any | null>(null);
+  const [clazz, setClazz] = useState<ClassDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -20,11 +31,7 @@ export default function ClassDetailPage() {
 
     const fetchData = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const res = await fetch(`/api/admin/classes/${id}`, { headers, credentials: 'include' });
+        const res = await fetch(`/api/admin/classes/${id}`, { credentials: 'include' });
         if (!res.ok) {
           console.error('Failed to fetch class', res.status);
           setClazz(null);
@@ -42,24 +49,37 @@ export default function ClassDetailPage() {
   }, [id]);
 
   if (isLoading) return <div>Đang tải...</div>;
-  if (!id) return <div>Không tìm thấy ID lớp</div>;
-  if (!clazz) return <div>Không tìm thấy lớp</div>;
+  if (!clazz) {
+    notFound();
+  }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">{clazz.name}</h1>
-        <div>
-          <Button variant="ghost" onClick={() => router.push(`/admin/classes/${id}/edit`)}>Sửa</Button>
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="outline" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className='flex-1'>
+          <h1 className="text-2xl font-bold">{clazz.name}</h1>
+          <p className="text-sm text-muted-foreground">{clazz.description}</p>
         </div>
+        <Button onClick={() => router.push(`/admin/classes/${id}/edit`)}>Sửa</Button>
       </div>
 
       <Card>
-        <CardContent>
-          <div className="mb-2"><strong>Mã:</strong> {clazz.classCode}</div>
-          <div className="mb-2"><strong>Giáo viên:</strong> {clazz.teacher?.email}</div>
-          <div className="mb-2"><strong>Số thành viên:</strong> {Array.isArray(clazz.members) ? clazz.members.length : 0}</div>
-          <div className="mb-2"><strong>Mô tả:</strong> {clazz.description}</div>
+        <CardContent className="p-6 grid gap-4 md:grid-cols-2">
+          <div className="space-y-1">
+            <div className="text-sm text-muted-foreground">Mã lớp</div>
+            <div className="font-mono bg-muted px-2 py-1 rounded-md inline-block">{clazz.classCode}</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-sm text-muted-foreground">Giáo viên</div>
+            <div>{clazz.teacher?.email}</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-sm text-muted-foreground">Số thành viên</div>
+            <div>{Array.isArray(clazz.members) ? clazz.members.length : 0}</div>
+          </div>
         </CardContent>
       </Card>
     </div>

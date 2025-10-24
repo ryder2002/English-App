@@ -1,5 +1,6 @@
 'use client';
 
+import { AppShell } from "@/components/app-shell";
 import { ChatbotUI, type Message } from "@/components/chatbot-ui";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -90,24 +91,26 @@ export default function ChatbotPage() {
 
 
     return (
-        <div className="h-[calc(100vh-5rem)] md:h-screen flex flex-col">
-           <div className="container mx-auto p-4 md:p-6 lg:p-8 flex-shrink-0">
-             <div className="flex justify-center">
-                <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
-                        Trợ lý Ngôn ngữ AI
-                    </h1>
+        <AppShell>
+          <div className="h-[calc(100vh-5rem)] md:h-screen flex flex-col">
+             <div className="container mx-auto p-4 md:p-6 lg:p-8 flex-shrink-0">
+               <div className="flex justify-center">
+                  <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
+                          Trợ lý Ngôn ngữ AI
+                      </h1>
+               </div>
              </div>
-           </div>
-            <div className="flex-grow container mx-auto px-4 md:px-6 lg:pb-8 flex min-h-0">
-                {isLoaded && (
-                    <ChatbotUI 
-                        messages={messages}
-                        isLoading={isLoading}
-                        form={form}
-                        onSubmit={onSubmit}
-                    />
-                )}
-            </div>
-        </div>
+              <div className="flex-grow container mx-auto px-4 md:px-6 lg:pb-8 flex min-h-0">
+                  {isLoaded && (
+                      <ChatbotUI 
+                          messages={messages}
+                          isLoading={isLoading}
+                          form={form}
+                          onSubmit={onSubmit}
+                      />
+                  )}
+              </div>
+          </div>
+        </AppShell>
     );
 }

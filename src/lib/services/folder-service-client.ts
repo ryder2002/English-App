@@ -4,21 +4,17 @@ const API_BASE = '/api';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-  };
+  return { 'Content-Type': 'application/json' };
 };
 
 export const getFolders = async (): Promise<Folder[]> => {
   try {
     const headers = getAuthHeaders();
-    console.log('Getting folders with headers:', headers);
     
     const response = await fetch(`${API_BASE}/folders`, {
       method: 'GET',
-      headers
+      headers,
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -27,7 +23,6 @@ export const getFolders = async (): Promise<Folder[]> => {
     }
 
     const data = await response.json();
-    console.log('Folders response:', data);
     return data.folders || [];
   } catch (error) {
     console.error('Error fetching folders:', error);
@@ -40,7 +35,8 @@ export const createFolder = async (name: string, parentId?: string | null): Prom
     const response = await fetch(`${API_BASE}/folders`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ name, parentId })
+      body: JSON.stringify({ name, parentId }),
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -60,7 +56,8 @@ export const updateFolder = async (id: string, name: string): Promise<boolean> =
     const response = await fetch(`${API_BASE}/folders/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name }),
+      credentials: 'include'
     });
 
     return response.ok;
@@ -74,7 +71,8 @@ export const deleteFolder = async (id: string): Promise<boolean> => {
   try {
     const response = await fetch(`${API_BASE}/folders/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      credentials: 'include'
     });
 
     return response.ok;

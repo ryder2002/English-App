@@ -1,19 +1,61 @@
-import React from 'react';
+"use client";
+
+import { UserCircle, Users, Layers, BookOpen, FileText } from "lucide-react";
 import Link from 'next/link';
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  const navLinks = [
+    { href: "/admin", label: "Tổng quan", icon: Layers },
+    { href: "/admin/classes", label: "Lớp học", icon: BookOpen },
+    { href: "/admin/folders", label: "Thư mục", icon: Layers },
+    { href: "/admin/add-vocabulary", label: "Thêm từ vựng", icon: FileText },
+    { href: "/admin/tests", label: "Kiểm tra", icon: Users },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow px-6 py-4 flex items-center justify-between">
-        <div className="font-bold text-xl text-blue-700">Admin Dashboard</div>
-        <div className="space-x-4">
-          <Link href="/admin">Dashboard</Link>
-          <Link href="/admin/classes">Lớp học</Link>
-          <Link href="/admin/tests">Bài kiểm tra</Link>
-          <Link href="/admin/folders">Thư mục/Từ vựng</Link>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r shadow-sm flex flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-2 px-6 py-6 border-b">
+            <UserCircle className="w-8 h-8 text-blue-600" />
+            <span className="font-bold text-xl text-blue-700">Admin Panel</span>
+          </div>
+          <nav className="mt-6 space-y-2 px-4">
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg",
+                    isActive
+                      ? "text-blue-700 bg-blue-100 font-semibold"
+                      : "text-gray-700 hover:bg-blue-50"
+                  )}
+                >
+                  <link.icon className="w-5 h-5" /> {link.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-      </nav>
-      <main className="p-6 max-w-6xl mx-auto">{children}</main>
+        <div className="px-6 py-4 border-t">
+          <span className="text-xs text-gray-400">
+            © {new Date().getFullYear()} EnglishApp Admin
+          </span>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 p-6 lg:p-8">
+        {children}
+      </main>
     </div>
   );
 }

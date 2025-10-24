@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -45,7 +44,8 @@ const formSchema = z.object({
 type BatchAddFormValues = z.infer<typeof formSchema>;
 
 export function BatchAddForm() {
-    const { addManyVocabularyItems, folders, addFolder } = useVocabulary();
+    const { folderObjects, addFolder, addVocabularyItem } = useVocabulary();
+    const folders: string[] = folderObjects.map((f: { name: string }) => f.name);
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newFolderName, setNewFolderName] = useState("");
@@ -116,7 +116,14 @@ export function BatchAddForm() {
                     duration: 5000,
                 });
             } else if (result.processedWords && result.processedWords.length > 0) {
-                await addManyVocabularyItems(result.processedWords);
+                // Nếu có addManyVocabularyItems thì dùng, nếu không thì dùng addVocabularyItem từng từ
+                if (typeof addManyVocabularyItems === 'function') {
+                  await addManyVocabularyItems(result.processedWords);
+                } else {
+                  for (const word of result.processedWords) {
+                    await addVocabularyItem(word);
+                  }
+                }
                 toast({
                     title: "Thêm thành công!",
                     description: `${result.processedWords.length} từ đã được thêm vào thư mục "${targetFolder}".`,
@@ -256,14 +263,24 @@ put on : wear
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {folders.map((folder) => (
+                                  {folders.length === 0 ? (
+                                    folderObjects.length === 0 ? (
+                                      <SelectItem value="__loading__" disabled>Đang tải thư mục...</SelectItem>
+                                    ) : (
+                                      <SelectItem value="__none__" disabled>Không có thư mục nào</SelectItem>
+                                    )
+                                  ) : (
+                                    <>
+                                      {folders.map((folder) => (
                                         <SelectItem key={folder} value={folder}>
-                                            {folder}
+                                          {folder}
                                         </SelectItem>
-                                    ))}
-                                    <SelectItem value="new_folder">
+                                      ))}
+                                      <SelectItem value="new_folder">
                                         + Tạo thư mục mới...
-                                    </SelectItem>
+                                      </SelectItem>
+                                    </>
+                                  )}
                                 </SelectContent>
                             </Select>
                             <FormMessage />

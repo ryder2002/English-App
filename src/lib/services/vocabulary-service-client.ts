@@ -4,21 +4,17 @@ const API_BASE = '/api';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-  };
+  return { 'Content-Type': 'application/json' };
 };
 
 export const getVocabulary = async (): Promise<VocabularyItem[]> => {
   try {
     const headers = getAuthHeaders();
-    console.log('Getting vocabulary with headers:', headers);
     
     const response = await fetch(`${API_BASE}/vocabulary`, {
       method: 'GET',
-      headers
+      headers,
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -27,7 +23,6 @@ export const getVocabulary = async (): Promise<VocabularyItem[]> => {
     }
 
     const data = await response.json();
-    console.log('Vocabulary response:', data);
     return data.vocabulary || [];
   } catch (error) {
     console.error('Error fetching vocabulary:', error);
@@ -42,7 +37,8 @@ export const addVocabularyItem = async (
     const response = await fetch(`${API_BASE}/vocabulary`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ item })
+      body: JSON.stringify({ item }),
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -85,7 +81,8 @@ export const updateVocabularyItem = async (
     const response = await fetch(`${API_BASE}/vocabulary/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ updates })
+      body: JSON.stringify({ updates }),
+      credentials: 'include'
     });
 
     return response.ok;
@@ -99,7 +96,8 @@ export const deleteVocabularyItem = async (id: string): Promise<boolean> => {
   try {
     const response = await fetch(`${API_BASE}/vocabulary/${id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      credentials: 'include'
     });
 
     return response.ok;
@@ -115,7 +113,8 @@ export const deleteVocabularyByFolder = async (
   try {
     const response = await fetch(`${API_BASE}/vocabulary/folder/${encodeURIComponent(folderName)}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      credentials: 'include'
     });
 
     return response.ok;
@@ -133,7 +132,8 @@ export const updateVocabularyFolder = async (
     const response = await fetch(`${API_BASE}/vocabulary/folder`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ oldFolderName, newFolderName })
+      body: JSON.stringify({ oldFolderName, newFolderName }),
+      credentials: 'include'
     });
 
     return response.ok;
@@ -147,7 +147,8 @@ export const clearVocabulary = async (): Promise<boolean> => {
   try {
     const response = await fetch(`${API_BASE}/vocabulary/clear`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
+      credentials: 'include'
     });
 
     return response.ok;

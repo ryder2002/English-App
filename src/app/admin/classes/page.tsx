@@ -14,7 +14,15 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronLeft, ChevronRight, MoreHorizontal, Search
+} from 'lucide-react';
 import { useSWRConfig } from 'swr';
 
 export default function AdminClassesPage() {
@@ -49,11 +57,9 @@ export default function AdminClassesPage() {
   const handleDelete = async (id: number) => {
     if (!confirm('Bạn có chắc muốn xóa lớp này?')) return;
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const res = await fetch(`/api/admin/classes/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: token ? `Bearer ${token}` : '' },
-        credentials: 'include'
+        credentials: 'include',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to delete');
@@ -117,13 +123,23 @@ export default function AdminClassesPage() {
                       <TableCell>{c.classCode}</TableCell>
                       <TableCell>{c.teacher?.email}</TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/admin/classes/${c.id}`}>
-                          <Button variant="ghost">Chi tiết</Button>
-                        </Link>
-                        <Link href={`/admin/classes/${c.id}/edit`}>
-                          <Button variant="outline">Sửa</Button>
-                        </Link>
-                        <Button variant="destructive" onClick={() => handleDelete(c.id)}>Xóa</Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Mở menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/classes/${c.id}`}>Chi tiết</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/classes/${c.id}/edit`}>Sửa</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(c.id)} className="text-destructive focus:text-destructive">Xóa</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}

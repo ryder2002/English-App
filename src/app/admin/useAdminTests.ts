@@ -3,11 +3,7 @@
 import useSWR from 'swr';
 
 const fetcher = async (url: string) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const res = await fetch(url, {
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
     credentials: 'include'
   });
   if (!res.ok) throw new Error('Error fetching admin tests');
