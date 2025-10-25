@@ -9,14 +9,22 @@ function ensureAdminOrThrow(req: NextRequest) {
   return token;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+// Next.js 15 App Router: Handler signature must match spec
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
   try {
     const token = ensureAdminOrThrow(request);
     const user = await AuthService.verifyToken(token);
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const id = Number(params.id);
-    const clazz = await prisma.clazz.findUnique({ where: { id }, include: { teacher: true, members: { include: { user: true } }, quizzes: true } });
+    const id = Number(context.params.id);
+    const clazz = await prisma.clazz.findUnique({
+      where: { id },
+      include: {
+        teacher: true,
+        members: { include: { user: true } },
+        quizzes: true
+      }
+    });
     if (!clazz) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(clazz);
   } catch (error: any) {
@@ -24,13 +32,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {
     const token = ensureAdminOrThrow(request);
     const user = await AuthService.verifyToken(token);
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const id = Number(params.id);
+    const id = Number(context.params.id);
     const body = await request.json();
     const { name, description } = body;
     if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -42,13 +50,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   try {
     const token = ensureAdminOrThrow(request);
     const user = await AuthService.verifyToken(token);
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const id = Number(params.id);
+    const id = Number(context.params.id);
     await prisma.clazz.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
