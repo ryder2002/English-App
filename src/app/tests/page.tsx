@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,14 +45,8 @@ const DirectionSelector = ({ value, onValueChange }) => (
 );
 
 export default function UserTestsPage() {
-  const router = useRouter();
-  const { data: tests = [], isLoading, error } = useSWR('/api/tests', fetcher);
-  const { folders = [] } = useVocabulary() || {};
-  const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [quizCode, setQuizCode] = useState('');
-  const [codeError, setCodeError] = useState('');
+  const { folderObjects = [], buildFolderTree } = useVocabulary() || {};
+  const folderTree = buildFolderTree();
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [mcDirection, setMcDirection] = useState("en-vi");
   const [spDirection, setSpDirection] = useState("en-vi");
@@ -60,63 +54,29 @@ export default function UserTestsPage() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  const handleJoinTest = () => {
-    setCodeError('');
-    if (!quizCode.trim()) {
-      setCodeError('Vui lòng nhập mã đề.');
-      return;
-    }
-    // Chuyển hướng sang trang kiểm tra theo mã (dành cho đề admin phát)
-    router.push(`/tests/${quizCode.trim()}`);
-  };
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (tests || []).filter((t: any) => {
-      if (!q) return true;
-      return (
-        String(t.title).toLowerCase().includes(q) ||
-        String(t.quizCode).toLowerCase().includes(q) ||
-        String(t.clazz?.name || '').toLowerCase().includes(q)
-      );
-    });
-  }, [tests, query]);
-
-  const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const current = Math.min(page, totalPages);
-  const goPrev = () => setPage((p) => Math.max(1, p - 1));
-  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
-  const start = (current - 1) * pageSize;
-  const pageItems = filtered.slice(start, start + pageSize);
-
   return (
     <AppShell>
       <div className="container mx-auto p-4 md:p-6 lg:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">Kiểm tra</h1>
-            <p className="text-sm text-muted-foreground">Chọn chế độ kiểm tra hoặc nhập mã đề để vào bài kiểm tra được phát.</p>
-            <div className="flex items-center gap-2 mt-2">
-              <Input
-                placeholder="Nhập mã đề kiểm tra..."
-                value={quizCode}
-                onChange={e => setQuizCode(e.target.value)}
-                className="max-w-xs"
-              />
-              <Button onClick={handleJoinTest}>Vào bài kiểm tra</Button>
-            </div>
-            {codeError && <div className="text-destructive text-sm mt-1">{codeError}</div>}
-          </div>
-          <div className="w-full sm:w-auto sm:min-w-[250px] mt-4 md:mt-0">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+          <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
+            Kiểm tra
+          </h1>
+          <div className="w-full sm:w-auto sm:min-w-[250px]">
             <Select value={selectedFolder} onValueChange={setSelectedFolder}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Chọn một thư mục để kiểm tra" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả từ vựng</SelectItem>
-                {(folders || []).map(folder => (
-                  <SelectItem key={folder} value={folder}>{folder}</SelectItem>
+                {folderTree.map(folder => (
+                  <React.Fragment key={folder.id}>
+                    <SelectItem value={folder.name}>{folder.name}</SelectItem>
+                    {folder.children && folder.children.map(child => (
+                      <SelectItem key={child.id} value={child.name}>
+                        &nbsp;&nbsp;└ {child.name}
+                      </SelectItem>
+                    ))}
+                  </React.Fragment>
                 ))}
               </SelectContent>
             </Select>
