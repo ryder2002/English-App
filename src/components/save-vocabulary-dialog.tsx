@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -54,6 +53,8 @@ interface SaveVocabularyDialogProps {
   itemToEdit?: VocabularyItem | null;
   defaultFolder?: string;
   initialData?: Partial<VocabularyItem>;
+  folders?: string[]; // nhận folders qua props, mặc định là mảng rỗng
+  addFolder?: (name: string) => Promise<void>; // nhận addFolder qua props nếu có
 }
 
 export function SaveVocabularyDialog({
@@ -62,8 +63,20 @@ export function SaveVocabularyDialog({
   itemToEdit,
   defaultFolder,
   initialData,
-}: SaveVocabularyDialogProps) {
-  const { addVocabularyItem, updateVocabularyItem, folders, addFolder } = useVocabulary();
+  folders = [], // nhận folders qua props, mặc định là mảng rỗng
+  addFolder: addFolderProp, // nhận addFolder qua props nếu có
+}: SaveVocabularyDialogProps & { folders?: string[], addFolder?: (name: string) => Promise<void> }) {
+  // Nếu không truyền vào thì lấy từ context
+  const context = useVocabulary();
+  const addVocabularyItem = context?.addVocabularyItem;
+  const updateVocabularyItem = context?.updateVocabularyItem;
+  const addFolder = addFolderProp || context?.addFolder;
+  // Sửa logic lấy danh sách thư mục để tránh lỗi khi context.folders là undefined hoặc null
+  const foldersList = Array.isArray(folders) && folders.length > 0
+    ? folders
+    : Array.isArray(context?.folders)
+      ? context.folders
+      : [];
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -95,7 +108,7 @@ export function SaveVocabularyDialog({
           language: initialData.language || "english",
           vietnameseTranslation: initialData.vietnameseTranslation || "",
           partOfSpeech: initialData.partOfSpeech || "",
-          folder: defaultFolder || initialData.folder || (folders.length > 0 ? folders[0] : ""),
+          folder: defaultFolder || initialData.folder || (foldersList.length > 0 ? foldersList[0] : ""),
         });
       } else {
         form.reset({
@@ -103,19 +116,29 @@ export function SaveVocabularyDialog({
           language: "english",
           vietnameseTranslation: "",
           partOfSpeech: "",
-          folder: defaultFolder || (folders.length > 0 ? folders[0] : ""),
+          folder: defaultFolder || (foldersList.length > 0 ? foldersList[0] : ""),
         });
       }
       setNewFolderName("");
     }
-  }, [itemToEdit, initialData, form, open, defaultFolder, folders]);
+  }, [itemToEdit, initialData, form, open, defaultFolder, foldersList]);
+
+  // Sửa lỗi lặp setState: Chỉ gọi setNewFolderName khi dialog đang mở, đã chọn new_folder và input đang hiện
+  const selectedFolder = form.watch("folder");
+
+  useEffect(() => {
+    if (!open || selectedFolder !== "new_folder") {
+      if (newFolderName !== "") setNewFolderName("");
+    }
+  }, [open, selectedFolder]);
 
  const onSubmit = async (values: SaveVocabularyFormValues) => {
     setIsSubmitting(true);
     try {
       let targetFolder = values.folder;
+      // Sửa lại logic kiểm tra folderExists để dùng đúng danh sách foldersList, tránh lặp vô hạn khi thêm thư mục mới
       if (targetFolder === 'new_folder' && newFolderName) {
-        const folderExists = folders.some(f => f.toLowerCase() === newFolderName.toLowerCase());
+        const folderExists = foldersList.some((f: string) => f.toLowerCase() === newFolderName.toLowerCase());
         if (!folderExists) {
           await addFolder(newFolderName);
         }
@@ -161,7 +184,8 @@ export function SaveVocabularyDialog({
           }
         }
 
-        success = await updateVocabularyItem(itemToEdit.id, editData);
+        const updateResult = await updateVocabularyItem(itemToEdit.id, editData);
+        success = typeof updateResult === "boolean" ? updateResult : true;
         if (success) {
           toast({
             title: "Thành công!",
@@ -191,7 +215,8 @@ export function SaveVocabularyDialog({
           pinyin: initialData?.pinyin || details.pinyin,
         };
 
-        success = await addVocabularyItem(vocabularyData);
+        const addResult = await addVocabularyItem(vocabularyData);
+        success = addResult !== null;
         if (success) {
           toast({
             title: "Thành công!",
@@ -220,10 +245,10 @@ export function SaveVocabularyDialog({
     }
   };
 
-
   const dialogTitle = itemToEdit ? "Chỉnh sửa từ" : "Thêm từ mới";
   const buttonText = itemToEdit ? "Lưu thay đổi" : "Thêm từ";
-  const selectedFolder = form.watch("folder");
+  // Đảm bảo chỉ khai báo selectedFolder một lần duy nhất ở đầu component
+  // const selectedFolder = form.watch("folder"); // Remove this duplicate declaration
 
   const isNewWordFromDictionary = !!initialData && !itemToEdit;
   const isEditing = !!itemToEdit;
@@ -323,11 +348,11 @@ export function SaveVocabularyDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {folders.map((folder) => (
+                        {foldersList.map((folder: string) => (
                         <SelectItem key={folder} value={folder}>
                           {folder}
                         </SelectItem>
-                      ))}
+                        ))}
                        <SelectItem value="new_folder">
                           + Tạo thư mục mới...
                         </SelectItem>
@@ -337,14 +362,17 @@ export function SaveVocabularyDialog({
                 </FormItem>
               )}
             />
-             {selectedFolder === "new_folder" && (
+             {selectedFolder === "new_folder" && open && (
               <FormItem>
                 <FormLabel>Tên thư mục mới</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="ví dụ: Chủ đề Gia đình"
                     value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value !== newFolderName) setNewFolderName(value);
+                    }}
                     disabled={isSubmitting}
                   />
                 </FormControl>
@@ -361,4 +389,12 @@ export function SaveVocabularyDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+export interface VocabularyContextType {
+  addVocabularyItem: (item: VocabularyItem) => Promise<boolean>;
+  updateVocabularyItem: (id: string, item: Partial<VocabularyItem>) => Promise<boolean>;
+  addFolder: (folderName: string) => Promise<void>;
+  folders: string[];
+  // other properties...
 }

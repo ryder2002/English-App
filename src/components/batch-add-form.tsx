@@ -116,13 +116,9 @@ export function BatchAddForm() {
                     duration: 5000,
                 });
             } else if (result.processedWords && result.processedWords.length > 0) {
-                // Nếu có addManyVocabularyItems thì dùng, nếu không thì dùng addVocabularyItem từng từ
-                if (typeof addManyVocabularyItems === 'function') {
-                  await addManyVocabularyItems(result.processedWords);
-                } else {
-                  for (const word of result.processedWords) {
-                    await addVocabularyItem(word);
-                  }
+                // Thêm từng từ bằng addVocabularyItem
+                for (const word of result.processedWords) {
+                  await addVocabularyItem(word);
                 }
                 toast({
                     title: "Thêm thành công!",

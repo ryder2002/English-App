@@ -100,18 +100,6 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-sm space-y-4">
-      {/* Database Update Notification */}
-      <Alert className="border-blue-200 bg-blue-50 text-blue-800">
-        <Info className="h-4 w-4" />
-        <AlertDescription className="text-sm">
-          <strong>Hệ thống vừa cập nhật cơ sở dữ liệu</strong>
-          <br />
-          Hãy đăng nhập bằng <strong>email cũ</strong> và mật khẩu tạm thời: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs font-mono">temp123456</code>
-          <br />
-          Sau đó vào <strong>Settings</strong> để đổi lại mật khẩu mới, hoặc ấn vào quên mật khẩu?.
-        </AlertDescription>
-      </Alert>
-
       <Card className="w-full relative">
           <CardHeader className="text-center items-center">
               <div className="mb-2">

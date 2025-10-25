@@ -83,22 +83,24 @@ export default function AdminTestsPage() {
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
-          <Select value={selectedClass} onValueChange={setSelectedClass} className="min-w-[140px]">
-            <SelectTrigger><SelectValue placeholder="Chọn lớp" /></SelectTrigger>
-            <SelectContent>
-              {(!classes || classes.length === 0) ? (
-                <SelectItem value="__loading__" disabled>Đang tải lớp...</SelectItem>
-              ) : (
-                <>
-                  <SelectItem value="all">Tất cả lớp</SelectItem>
-                  {classes.map((c: any) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
-                </>
-              )}
-            </SelectContent>
-          </Select>
-          <Select value={selectedFolder} onValueChange={setSelectedFolder} className="min-w-[140px]">
+          <div className="min-w-[140px]">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger><SelectValue placeholder="Chọn lớp" /></SelectTrigger>
+              <SelectContent>
+                {(!classes || classes.length === 0) ? (
+                  <SelectItem value="__loading__" disabled>Đang tải lớp...</SelectItem>
+                ) : (
+                  <>
+                    <SelectItem value="all">Tất cả lớp</SelectItem>
+                    {classes.map((c: any) => (
+                      <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <Select value={selectedFolder} onValueChange={setSelectedFolder}>
             <SelectTrigger><SelectValue placeholder="Chọn thư mục" /></SelectTrigger>
             <SelectContent>
               {(!folderObjects || folderObjects.length === 0) ? (
