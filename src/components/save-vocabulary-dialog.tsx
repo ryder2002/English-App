@@ -74,8 +74,8 @@ export function SaveVocabularyDialog({
   // Sửa logic lấy danh sách thư mục để tránh lỗi khi context.folders là undefined hoặc null
   const foldersList = Array.isArray(folders) && folders.length > 0
     ? folders
-    : Array.isArray(context?.folders)
-      ? context.folders
+    : Array.isArray(context?.folderObjects)
+      ? context.folderObjects.map(f => f.name)
       : [];
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);

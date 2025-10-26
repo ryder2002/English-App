@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -35,7 +34,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/settings-context";
 
 export function VocabularyList() {
-  const { vocabulary, removeVocabularyItem, isLoadingInitialData, folders } = useVocabulary();
+  const { vocabulary, removeVocabularyItem, isLoadingInitialData, folderObjects } = useVocabulary();
+  const folders = folderObjects.map(f => f.name);
   const isMobile = useIsMobile();
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -305,4 +305,3 @@ export function VocabularyList() {
   );
 }
 
-    

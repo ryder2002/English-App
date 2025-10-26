@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useVocabulary } from "@/contexts/vocabulary-context";
@@ -31,7 +30,8 @@ const formSchema = z.object({
 type FolderFormValues = z.infer<typeof formSchema>;
 
 export function FolderManager() {
-  const { folders, addFolder, updateFolder, removeFolder, vocabulary } = useVocabulary();
+  const { folderObjects, addFolder, updateFolder, removeFolder, vocabulary } = useVocabulary();
+  const folders = folderObjects.map(f => f.name);
   const authContext = useAuth();
   
   if (!authContext) {
@@ -67,11 +67,9 @@ export function FolderManager() {
   const onEditSubmit = async (oldName: string, values: FolderFormValues) => {
     if (!user) return;
     setIsSubmitting(true);
-    const success = await updateFolder(oldName, values.folderName);
-    if (success) {
-      setEditingFolder(null);
-      editForm.reset();
-    }
+    await updateFolder(oldName, values.folderName);
+    setEditingFolder(null);
+    editForm.reset();
     setIsSubmitting(false);
   };
 

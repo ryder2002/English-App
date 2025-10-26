@@ -41,6 +41,7 @@ export function ResetPasswordForm() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (!searchParams) return;
     const tokenParam = searchParams.get("token");
     if (!tokenParam) {
       toast({

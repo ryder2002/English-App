@@ -42,7 +42,8 @@ type SheetRow = {
 let nextId = 1;
 
 export function ManualAddTable() {
-  const { addManyVocabularyItems, folders } = useVocabulary();
+  const { addVocabularyItem, folderObjects } = useVocabulary();
+  const folders = folderObjects.map(f => f.name);
   const { toast } = useToast();
   const [rows, setRows] = useState<SheetRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -212,8 +213,8 @@ export function ManualAddTable() {
             ipa: row.language === 'english' ? row.pronunciation : undefined,
             pinyin: row.language === 'chinese' ? row.pronunciation : undefined,
         }));
-        
-        await addManyVocabularyItems(itemsToSave);
+        // Lưu từng từ bằng Promise.all
+        await Promise.all(itemsToSave.map(item => addVocabularyItem(item)));
 
         toast({
             title: "Lưu thành công!",

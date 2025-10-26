@@ -203,11 +203,9 @@ export function FolderManagerWithHierarchy() {
   
   const onEditSubmit = async (folderId: string, values: FolderFormValues) => {
     setIsSubmitting(true);
-    const success = await updateFolder(folderId, values.folderName);
-    if (success) {
-      setEditingFolderId(null);
-      editForm.reset();
-    }
+    await updateFolder(folderId, values.folderName);
+    setEditingFolderId(null);
+    editForm.reset();
     setIsSubmitting(false);
   };
 

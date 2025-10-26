@@ -36,7 +36,8 @@ const DirectionSelector = ({ value, onValueChange }: { value: QuizDirection, onV
 );
 
 export default function TestPage() {
-    const { folders } = useVocabulary();
+    const { folderObjects } = useVocabulary();
+    const folders = folderObjects.map(f => f.name);
     const [selectedFolder, setSelectedFolder] = useState<string>("all");
     const [mcDirection, setMcDirection] = useState<QuizDirection>("en-vi");
     const [spDirection, setSpDirection] = useState<QuizDirection>("en-vi");
