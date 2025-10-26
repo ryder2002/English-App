@@ -6,8 +6,17 @@ import { SaveVocabularyDialog } from "@/components/save-vocabulary-dialog";
 import { Button } from "@/components/ui/button";
 import { VocabularyList } from "@/components/vocabulary-list";
 import { useState } from "react";
+import { redirect } from "next/navigation";
 
 export default function VocabularyPage() {
+  // TODO: Thay bằng logic kiểm tra đăng nhập thực tế
+  const isLoggedIn = false; // Giả lập chưa đăng nhập
+
+  if (!isLoggedIn) {
+    redirect("/login");
+    return null;
+  }
+
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
   return (
