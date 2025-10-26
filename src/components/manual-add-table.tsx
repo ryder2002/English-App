@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -45,15 +45,7 @@ export function ManualAddTable() {
   const { addVocabularyItem, folderObjects } = useVocabulary();
   const folders = folderObjects.map(f => f.name);
   const { toast } = useToast();
-  const [rows, setRows] = useState<SheetRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    // Initialize with one blank row, setting a default folder if available.
-    if (rows.length === 0) {
-        setRows([createBlankRow(folders.length > 0 ? folders[0] : "")]);
-    }
-  }, [folders]);
 
   const createBlankRow = (defaultFolder: string): SheetRow => ({
     id: nextId++,
@@ -67,6 +59,38 @@ export function ManualAddTable() {
     translationLoading: false,
     folder: defaultFolder,
   });
+
+  const [rows, setRows] = useState<SheetRow[]>(() => [
+    createBlankRow(folderObjects.length > 0 ? folderObjects[0].name : "")
+  ]);
+
+  useEffect(() => {
+    // Update the default folder in the initial blank row once folders are loaded.
+    if (rows.length === 1 && rows[0].word === '' && folders.length > 0 && rows[0].folder === '') {
+      setRows(currentRows => {
+        const updatedRows = [...currentRows];
+        updatedRows[0].folder = folders[0];
+        return updatedRows;
+      });
+    }
+  }, [folders]);
+
+  const prevRowsRef = useRef<SheetRow[]>(rows);
+
+  useEffect(() => {
+    // Compare the current rows with the previous rows to detect language changes
+    rows.forEach((currentRow, index) => {
+      const prevRow = prevRowsRef.current[index];
+      
+      // If a language was selected for a row that has a word, fetch details
+      if (prevRow && currentRow.language !== prevRow.language && currentRow.word) {
+        fetchDetails(index);
+      }
+    });
+
+    // Update the ref for the next render
+    prevRowsRef.current = rows;
+  }, [rows]);
 
 
   const handleInputChange = (
@@ -277,14 +301,7 @@ export function ManualAddTable() {
                 <TableCell>
                   <Select
                     value={row.language}
-                    onValueChange={(value) => {
-                      // We need to trigger the blur logic after the state has updated.
-                      handleInputChange(index, "language", value);
-                      const currentRow = rows[index];
-                      if (currentRow.word) {
-                         setTimeout(() => handleWordBlur(index), 0);
-                      }
-                    }}
+                    onValueChange={(value) => handleInputChange(index, "language", value)}
                     disabled={isSaving}
                   >
                     <SelectTrigger className="text-base">

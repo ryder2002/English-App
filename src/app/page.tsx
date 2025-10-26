@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 
 export default function VocabularyPage() {
   // TODO: Thay bằng logic kiểm tra đăng nhập thực tế
-  const isLoggedIn = false; // Giả lập chưa đăng nhập
+  const isLoggedIn = true; // Để test, sau này thay bằng logic thực tế
 
   if (!isLoggedIn) {
     redirect("/login");

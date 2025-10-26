@@ -64,7 +64,7 @@ export function BatchAddForm() {
         if (folders.length > 0 && !form.getValues('folder')) {
             form.setValue('folder', folders[0]);
         }
-    }, [folders, form]);
+    }, [folders, form.setValue, form.getValues]);
 
 
     const selectedFolder = form.watch("folder");

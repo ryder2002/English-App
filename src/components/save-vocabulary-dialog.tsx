@@ -33,7 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import type { Language, VocabularyItem } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 const formSchema = z.object({
   word: z.string().min(1, { message: "Từ không được để trống." }),
@@ -63,20 +63,16 @@ export function SaveVocabularyDialog({
   itemToEdit,
   defaultFolder,
   initialData,
-  folders = [], // nhận folders qua props, mặc định là mảng rỗng
-  addFolder: addFolderProp, // nhận addFolder qua props nếu có
-}: SaveVocabularyDialogProps & { folders?: string[], addFolder?: (name: string) => Promise<void> }) {
-  // Nếu không truyền vào thì lấy từ context
-  const context = useVocabulary();
-  const addVocabularyItem = context?.addVocabularyItem;
-  const updateVocabularyItem = context?.updateVocabularyItem;
-  const addFolder = addFolderProp || context?.addFolder;
-  // Sửa logic lấy danh sách thư mục để tránh lỗi khi context.folders là undefined hoặc null
-  const foldersList = Array.isArray(folders) && folders.length > 0
-    ? folders
-    : Array.isArray(context?.folderObjects)
-      ? context.folderObjects.map(f => f.name)
-      : [];
+}: SaveVocabularyDialogProps) {
+  const { 
+    addVocabularyItem, 
+    updateVocabularyItem, 
+    addFolder, 
+    folderObjects 
+  } = useVocabulary();
+
+  const foldersList = useMemo(() => folderObjects.map(f => f.name), [folderObjects]);
+
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -92,10 +88,12 @@ export function SaveVocabularyDialog({
     },
   });
 
+  const { reset } = form;
+
   useEffect(() => {
     if (open) {
       if (itemToEdit) {
-        form.reset({
+        reset({
           word: itemToEdit.word,
           language: itemToEdit.language as "english" | "chinese" | "vietnamese",
           vietnameseTranslation: itemToEdit.vietnameseTranslation,
@@ -103,7 +101,7 @@ export function SaveVocabularyDialog({
           folder: itemToEdit.folder,
         });
       } else if (initialData) {
-        form.reset({
+        reset({
           word: initialData.word || "",
           language: initialData.language || "english",
           vietnameseTranslation: initialData.vietnameseTranslation || "",
@@ -111,7 +109,7 @@ export function SaveVocabularyDialog({
           folder: defaultFolder || initialData.folder || (foldersList.length > 0 ? foldersList[0] : ""),
         });
       } else {
-        form.reset({
+        reset({
           word: "",
           language: "english",
           vietnameseTranslation: "",
@@ -121,7 +119,7 @@ export function SaveVocabularyDialog({
       }
       setNewFolderName("");
     }
-  }, [itemToEdit, initialData, form, open, defaultFolder, foldersList]);
+  }, [itemToEdit, initialData, open, defaultFolder, foldersList, reset]);
 
   // Sửa lỗi lặp setState: Chỉ gọi setNewFolderName khi dialog đang mở, đã chọn new_folder và input đang hiện
   const selectedFolder = form.watch("folder");
