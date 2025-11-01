@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./ui/sidebar";
 import Link from "next/link";
-import { BookText, Layers, Search, Bot, Folder, PlusSquare, ClipboardCheck, Settings } from "lucide-react";
+import { BookText, Layers, Search, Bot, Folder, PlusSquare, ClipboardCheck, Settings, Users } from "lucide-react";
 import { useSidebar } from "./ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ const navItems = [
 	{ href: "/add-vocabulary", label: "Thêm từ vựng", icon: PlusSquare },
 	{ href: "/flashcards", label: "Flashcards", icon: Layers },
 	{ href: "/tests", label: "Kiểm tra", icon: ClipboardCheck }, // Đã sửa route
+	{ href: "/classes", label: "Lớp học", icon: Users }, // Thêm navigation cho lớp học
 	{ href: "/dictionary", label: "Từ điển", icon: Search },
 	{ href: "/chatbot", label: "Trợ lý AI", icon: Bot },
 	{ href: "/settings", label: "Cài đặt", icon: Settings },

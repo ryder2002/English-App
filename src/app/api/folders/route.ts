@@ -19,9 +19,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get folders for user with hierarchy
+    // IMPORTANT: Only return folders owned by the logged-in user
+    // Admin folders should NOT appear in user's folder list
+    // Admin folders are only accessible to admin and used in quizzes
+    const userId = payload.userId;
+    
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true }
+    });
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Get folders ONLY for this specific user
+    // This ensures users see only their own folders
     const folders = await prisma.folder.findMany({
-      where: { userId: payload.userId },
+      where: { userId: userId }, // Strict filter by user ID
       orderBy: { createdAt: 'desc' }
     })
 
@@ -33,7 +49,23 @@ export async function GET(request: NextRequest) {
       createdAt: folder.createdAt.toISOString()
     }))
 
-    return NextResponse.json({ folders: formattedFolders })
+    // CRITICAL: Double-check that all returned folders belong to this user
+    // Filter out any folders that don't match userId (safety check)
+    const filteredFolders = formattedFolders.filter(folder => {
+      const matches = folder.userId === userId;
+      if (!matches) {
+        console.error(`[Folders API ERROR] Folder ${folder.id} has userId ${folder.userId} but requested by user ${userId}!`);
+      }
+      return matches;
+    });
+
+    // Debug logging
+    console.log(`[Folders API] User ${userId} (role: ${user.role}) requested folders. Found ${formattedFolders.length} folders, returning ${filteredFolders.length} after filtering.`);
+    if (filteredFolders.length > 0) {
+      console.log(`[Folders API] First folder userId: ${filteredFolders[0].userId}, name: ${filteredFolders[0].name}`);
+    }
+
+    return NextResponse.json({ folders: filteredFolders })
   } catch (error) {
     console.error('Error fetching folders:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

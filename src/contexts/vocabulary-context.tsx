@@ -31,7 +31,7 @@ interface VocabularyContextType {
   refreshData: () => Promise<void>;
 }
 
-const VocabularyContext = createContext<VocabularyContextType | undefined>(undefined);
+export const VocabularyContext = createContext<VocabularyContextType | undefined>(undefined);
 
 export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth() ?? {}; // Use optional chaining for safety
@@ -49,14 +49,41 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
       return;
     }
     
+    // CRITICAL: For admin, we should use separate admin APIs if needed
+    // But for now, /api/folders and /api/vocabulary already filter by userId
+    // So admin and users will get their own data based on their userId
+    
     setIsLoadingInitialData(true);
     try {
       const [vocabData, folderData] = await Promise.all([
         getVocabulary(),
         getFolders(),
       ]);
-      setVocabulary(vocabData);
-      setFolderObjects(folderData);
+      
+      // CRITICAL: Double-check that data belongs to current user (safety check)
+      // API already filters by userId, but we can't verify here because VocabularyItem
+      // interface doesn't include userId. We trust the API filter is correct.
+      // Additional safety: filter by folder ownership in components
+      const userOwnedVocabulary = vocabData;
+      
+      const userOwnedFolders = folderData.filter(folder => {
+        // Verify folder belongs to current user
+        if (folder.userId !== user.id) {
+          console.error(`[VocabularyContext ERROR] Folder ${folder.id} has userId ${folder.userId} but current user is ${user.id}!`);
+          return false;
+        }
+        return true;
+      });
+      
+      setVocabulary(userOwnedVocabulary);
+      setFolderObjects(userOwnedFolders);
+      
+      // Debug logging
+      if (user.role === 'admin') {
+        console.log(`[VocabularyContext] Admin ${user.id} loaded ${userOwnedVocabulary.length} vocabulary items and ${userOwnedFolders.length} folders`);
+      } else {
+        console.log(`[VocabularyContext] User ${user.id} loaded ${userOwnedVocabulary.length} vocabulary items and ${userOwnedFolders.length} folders`);
+      }
     } catch (error) {
       console.error("Failed to fetch vocabulary data:", error);
       toast({

@@ -37,6 +37,15 @@ export function VocabularyList() {
   const { vocabulary, removeVocabularyItem, isLoadingInitialData, folderObjects } = useVocabulary();
   const folders = folderObjects.map(f => f.name);
   const isMobile = useIsMobile();
+  
+  // CRITICAL: Only show vocabulary that belongs to folders owned by the user
+  // Filter out vocabulary that references folders not owned by the user
+  // This prevents admin folders from appearing in user's vocabulary list
+  const userOwnedVocabulary = vocabulary.filter(item => {
+    const folderName = item.folder || "";
+    // Allow vocabulary with empty folder or folder name in user's folderObjects
+    return !folderName || folders.includes(folderName);
+  });
   const [itemToEdit, setItemToEdit] = useState<VocabularyItem | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -120,7 +129,7 @@ export function VocabularyList() {
 
 
   const groupedVocabulary = useMemo(() => {
-    return vocabulary.reduce((acc, item) => {
+    return userOwnedVocabulary.reduce((acc, item) => {
       const folderName = item.folder || "Chưa phân loại";
       if (!acc[folderName]) {
         acc[folderName] = [];
@@ -128,7 +137,7 @@ export function VocabularyList() {
       acc[folderName].push(item);
       return acc;
     }, {} as Record<string, VocabularyItem[]>);
-  }, [vocabulary]);
+  }, [userOwnedVocabulary]);
 
   if (isLoadingInitialData) {
     return (
@@ -143,7 +152,7 @@ export function VocabularyList() {
     )
   }
 
-  if (vocabulary.length === 0) {
+  if (userOwnedVocabulary.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg bg-card">
         <p className="text-muted-foreground">Danh sách từ vựng của bạn trống.</p>

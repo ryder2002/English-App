@@ -21,15 +21,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ChevronLeft, ChevronRight, MoreHorizontal, Search
+  ChevronLeft, ChevronRight, MoreHorizontal, Search, Edit, Trash2
 } from 'lucide-react';
 import { useSWRConfig } from 'swr';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAdminClasses } from '@/app/admin/useAdminClasses';
 import { useVocabulary } from '@/contexts/vocabulary-context';
 
 export default function AdminTestsPage() {
-  const { tests, isLoading } = useAdminTests();
+  const { tests, isLoading, mutate } = useAdminTests();
   const { classes } = useAdminClasses();
   const { folderObjects } = useVocabulary();
   const [query, setQuery] = useState('');
@@ -37,6 +39,8 @@ export default function AdminTestsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const { toast } = useToast();
+  const router = useRouter();
 
   const filtered = useMemo(() => {
     let filteredTests = tests || [];
@@ -65,6 +69,40 @@ export default function AdminTestsPage() {
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
   const start = (current - 1) * pageSize;
   const pageItems = filtered.slice(start, start + pageSize);
+
+  const handleDelete = async (testId: number, testTitle: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa bài kiểm tra "${testTitle}"? Hành động này không thể hoàn tác.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/tests/${testId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to delete test');
+      }
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã xóa bài kiểm tra',
+      });
+
+      // Refresh the list
+      if (mutate) {
+        mutate();
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message || 'Không thể xóa bài kiểm tra',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div>
@@ -157,7 +195,19 @@ export default function AdminTestsPage() {
                             <DropdownMenuItem asChild>
                               <Link href={`/admin/tests/${t.id}`}>Chi tiết</Link>
                             </DropdownMenuItem>
-                            {/* Add Edit/Delete when available */}
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/tests/${t.id}/edit`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Sửa
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(t.id, t.title)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Xóa
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

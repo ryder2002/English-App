@@ -104,14 +104,16 @@ model ClassMember {
 }
 
 model Quiz {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   title       String
   description String?
-  quizCode    String   @unique @map("test_code")
-  clazzId     Int      @map("class_id")
-  folderId    Int      @map("folder_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  quizCode    String    @unique @map("test_code")
+  clazzId     Int       @map("class_id")
+  folderId    Int       @map("folder_id")
+  status      QuizStatus @default(pending) @map("status")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  endedAt     DateTime? @map("ended_at")
 
   // Relations
   clazz      Clazz        @relation(fields: [clazzId], references: [id], onDelete: Cascade)
@@ -127,14 +129,33 @@ model QuizResult {
   userId    Int      @map("user_id")
   score     Float
   maxScore  Float    @map("max_score")
-  startedAt DateTime @map("started_at")
-  endedAt   DateTime @map("ended_at")
+  startedAt DateTime @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+  status    QuizResultStatus @default(in_progress) @map("status")
 
   // Relations
-  quiz      Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz      Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers   QuizAnswerDetail[]
 
   @@map("test_results")
+}
+
+model QuizAnswerDetail {
+  id           Int      @id @default(autoincrement())
+  resultId     Int      @map("result_id")
+  vocabularyId Int?     @map("vocabulary_id")
+  questionText String   @map("question_text")
+  questionType String   @map("question_type") // 'word_to_meaning' | 'meaning_to_word'
+  selectedAnswer String @map("selected_answer")
+  correctAnswer String @map("correct_answer")
+  isCorrect    Boolean  @map("is_correct")
+  answeredAt   DateTime @default(now()) @map("answered_at")
+
+  // Relations
+  result      QuizResult  @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_answer_details")
 }
 
 enum Language {
@@ -146,4 +167,16 @@ enum Language {
 enum Role {
   admin
   user
+}
+
+enum QuizStatus {
+  pending
+  active
+  ended
+}
+
+enum QuizResultStatus {
+  in_progress
+  completed
+  submitted
 }

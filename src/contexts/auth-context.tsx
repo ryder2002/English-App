@@ -59,27 +59,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []); // Run only once on mount
 
     // Separate effect for handling redirection logic after user state is determined.
-    // Đã tắt toàn bộ logic redirect tự động để tránh lỗi 401 Unauthorized khi gọi Vocabulary API
-    // useEffect(() => {
-    //     if (isLoading) {
-    //         return; // Don't do anything while loading
-    //     }
+    useEffect(() => {
+        if (isLoading) {
+            return; // Don't do anything while loading
+        }
 
-    //     const isAdminRoute = pathname.startsWith('/admin');
-    //     const isPublicRoute = publicPaths.includes(pathname);
+        const isAdminRoute = pathname.startsWith('/admin');
+        const isPublicRoute = publicPaths.includes(pathname);
 
-    //     if (user) { // User is logged in
-    //         if (user.role === 'admin' && !isAdminRoute && pathname !== '/admin') {
-    //             router.replace('/admin'); // Admin on non-admin page -> redirect to admin
-    //         } else if (user.role !== 'admin' && isAdminRoute) {
-    //             router.replace('/'); // Non-admin on admin page -> redirect to home
-    //         }
-    //     } else { // User is not logged in
-    //         if (!isPublicRoute) {
-    //             router.replace('/login'); // Not logged in and not on a public page -> redirect to login
-    //         }
-    //     }
-    // }, [user, isLoading, pathname, router]);
+        if (user) { // User is logged in
+            if (user.role === 'admin' && !isAdminRoute && pathname === '/') {
+                router.replace('/admin'); // Admin on home page -> redirect to admin
+            } else if (user.role !== 'admin' && isAdminRoute) {
+                router.replace('/'); // Non-admin on admin page -> redirect to home
+            }
+        } else { // User is not logged in
+            if (!isPublicRoute) {
+                router.replace('/login'); // Not logged in and not on a public page -> redirect to login
+            }
+        }
+    }, [user, isLoading, pathname, router]);
     
     const login = async (email: string, password: string): Promise<string> => {
         try {
@@ -131,7 +130,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
     
-    const signOut = async () => { // Removed localStorage.removeItem('token')
+    const signOut = async () => {
+        try {
+            // Call logout API to clear cookies on server
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include',
+            });
+        } catch (error) {
+            console.error('Logout API error:', error);
+        }
         setUser(null);
         router.push("/login");
     };

@@ -1,90 +1,81 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useVocabulary } from "@/contexts/vocabulary-context";
 import { VocabularyFolderList } from "@/components/vocabulary-folder-list";
-import { SaveVocabularyDialog } from "@/components/save-vocabulary-dialog";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FolderManagerWithHierarchy } from "@/components/folder-manager-hierarchy";
+import { useRouter } from "next/navigation";
 
 export default function AdminFoldersPage() {
-  const { folderObjects, addFolder, isLoadingInitialData } = useVocabulary();
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
+  const { folderObjects } = useVocabulary();
+  const router = useRouter();
+  const [selectedFolderName, setSelectedFolderName] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("folders");
 
   useEffect(() => {
-    if (!selectedFolderId && folderObjects.length > 0) {
-      setSelectedFolderId(folderObjects[0].id);
+    if (folderObjects.length > 0 && !selectedFolderName) {
+      setSelectedFolderName(folderObjects[0].name);
     }
-  }, [folderObjects, selectedFolderId]);
+  }, [folderObjects, selectedFolderName]);
 
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
-    const newFolder = await addFolder(newFolderName.trim());
-    if (newFolder) {
-      setNewFolderName("");
-      setSelectedFolderId(newFolder.id);
-    }
-  };
+  // Intercept clicks on folder links
+  useEffect(() => {
+    const handleFolderClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href^="/folders/"]');
+      if (link) {
+        e.preventDefault();
+        e.stopPropagation();
+        const href = link.getAttribute('href');
+        if (href) {
+          const folderName = decodeURIComponent(href.replace('/folders/', ''));
+          setSelectedFolderName(folderName);
+          setActiveTab('vocabulary');
+        }
+      }
+    };
 
-  const selectedFolder = folderObjects.find(f => f.id === selectedFolderId);
+    document.addEventListener('click', handleFolderClick, true);
+    return () => {
+      document.removeEventListener('click', handleFolderClick, true);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex">
-      {/* Sidebar folders */}
-      <aside className="w-72 bg-white border-r shadow-sm flex flex-col">
-        <div className="flex items-center justify-between px-6 py-6 border-b">
-          <h2 className="font-bold text-lg text-blue-700">Thư mục</h2>
-          <Button size="sm" variant="outline" onClick={() => setIsSaveDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Tạo mới
-          </Button>
-        </div>
-        <nav className="flex-1 overflow-y-auto px-4 py-4">
-          {isLoadingInitialData ? (
-            <div className="text-sm text-muted-foreground">Đang tải...</div>
-          ) : folderObjects.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Chưa có thư mục nào.</div>
+    <div>
+      <div className="flex items-center justify-center mb-6">
+        <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
+          Quản lý Thư mục
+        </h1>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-6">
+          <TabsTrigger value="folders">Quản lý Thư mục</TabsTrigger>
+          <TabsTrigger value="vocabulary" disabled={!selectedFolderName}>
+            Từ vựng
+            {selectedFolderName && ` (${selectedFolderName})`}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="folders">
+          <FolderManagerWithHierarchy />
+        </TabsContent>
+
+        <TabsContent value="vocabulary">
+          {selectedFolderName ? (
+            <VocabularyFolderList folderName={selectedFolderName} />
           ) : (
-            <ul className="space-y-1">
-              {folderObjects.map((f) => (
-                <li key={f.id}>
-                  <button
-                    className={cn(
-                      "w-full text-left px-4 py-2 rounded-lg transition font-medium",
-                      selectedFolderId === f.id
-                        ? "bg-blue-100 text-blue-700 shadow"
-                        : "hover:bg-blue-50 text-gray-700"
-                    )}
-                    onClick={() => setSelectedFolderId(f.id)}
-                  >
-                    {f.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg bg-card mt-6">
+              <p className="text-muted-foreground">Vui lòng chọn một thư mục để xem từ vựng.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Click vào tên thư mục trong tab "Quản lý Thư mục" để xem từ vựng
+              </p>
+            </div>
           )}
-        </nav>
-      </aside>
-      {/* Main content */}
-      <main className="flex-1 p-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-blue-800 mb-4">Quản lý Thư mục & Từ vựng</h1>
-          <p className="text-sm text-muted-foreground mb-8">Tổ chức từ vựng của bạn vào các thư mục để dễ quản lý và học tập.</p>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            {selectedFolder ? (
-              <VocabularyFolderList folderName={selectedFolder.name} />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground border-2 border-dashed rounded-xl">
-                <span className="mb-2">Chọn một thư mục để xem chi tiết.</span>
-                <span className="text-xs">Chưa có thư mục nào được chọn.</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-      <SaveVocabularyDialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

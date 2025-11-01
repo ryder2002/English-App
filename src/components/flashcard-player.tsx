@@ -25,7 +25,7 @@ interface FlashcardPlayerProps {
 }
 
 export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
-  const { vocabulary } = useVocabulary();
+  const { vocabulary, folderObjects } = useVocabulary();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const { toast } = useToast();
@@ -36,11 +36,23 @@ export function FlashcardPlayer({ selectedFolder }: FlashcardPlayerProps) {
   const [emblaApi, setEmblaApi] = useState<CarouselApi | null>(null);
 
   const deck = useMemo(() => {
-    if (selectedFolder === 'all') {
-        return vocabulary;
+    // CRITICAL: Only use vocabulary that belongs to user's own folders
+    // This ensures admin vocabulary never appears in user's flashcards
+    const userFolderNames = folderObjects.map(f => f.name);
+    
+    let filteredVocab = vocabulary.filter(item => {
+      const folderName = item.folder || "";
+      // Only include vocabulary with empty folder or folder owned by user
+      return !folderName || userFolderNames.includes(folderName);
+    });
+    
+    // Further filter by selectedFolder if not 'all'
+    if (selectedFolder !== 'all') {
+      filteredVocab = filteredVocab.filter(item => item.folder === selectedFolder);
     }
-    return vocabulary.filter(item => item.folder === selectedFolder);
-  }, [vocabulary, selectedFolder]);
+    
+    return filteredVocab;
+  }, [vocabulary, selectedFolder, folderObjects]);
 
   useEffect(() => {
     return () => {

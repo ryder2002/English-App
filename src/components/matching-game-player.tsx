@@ -37,7 +37,7 @@ interface MatchingGamePlayerProps {
 }
 
 export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) {
-    const { vocabulary } = useVocabulary();
+    const { vocabulary, folderObjects } = useVocabulary();
     const [gameCards, setGameCards] = useState<GameCard[]>([]);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const [isFinished, setIsFinished] = useState(false);
@@ -47,11 +47,23 @@ export function MatchingGamePlayer({ selectedFolder }: MatchingGamePlayerProps) 
     const [unplayedDeck, setUnplayedDeck] = useState<VocabularyItem[]>([]);
 
     const fullDeck = useMemo(() => {
-        const deck = selectedFolder === 'all'
-            ? vocabulary
-            : vocabulary.filter(item => item.folder === selectedFolder);
-        return deck.filter(item => item.word && item.vietnameseTranslation);
-    }, [vocabulary, selectedFolder]);
+        // CRITICAL: Only use vocabulary that belongs to user's own folders
+        // This ensures admin vocabulary never appears in user's matching game
+        const userFolderNames = folderObjects.map(f => f.name);
+        
+        let filteredVocab = vocabulary.filter(item => {
+            const folderName = item.folder || "";
+            // Only include vocabulary with empty folder or folder owned by user
+            return !folderName || userFolderNames.includes(folderName);
+        });
+        
+        // Further filter by selectedFolder if not 'all'
+        if (selectedFolder !== 'all') {
+            filteredVocab = filteredVocab.filter(item => item.folder === selectedFolder);
+        }
+        
+        return filteredVocab.filter(item => item.word && item.vietnameseTranslation);
+    }, [vocabulary, selectedFolder, folderObjects]);
 
     const startNewGame = useCallback((deck: VocabularyItem[]) => {
         if (deck.length === 0) {

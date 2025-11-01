@@ -19,14 +19,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Get vocabulary for user
+    // IMPORTANT: Only return vocabulary owned by the logged-in user
+    // Admin vocabulary should NOT appear in user's /tests page
+    // Admin vocabulary is only accessible through quizzes in classes
+    const userId = payload.userId;
+    
+    // Verify user exists and get role for additional check
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true }
+    });
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Get vocabulary ONLY for this specific user
+    // This ensures users see only their own vocabulary in /tests
+    // Admin vocabulary is separate and only accessible via quizzes
     const vocabulary = await prisma.vocabulary.findMany({
-      where: { userId: payload.userId },
+      where: { 
+        userId: userId // Strict filter by user ID - only return vocabulary owned by this user
+      },
       orderBy: { createdAt: 'desc' }
     })
 
+    // CRITICAL: Double-check that all returned vocabulary belongs to this user
+    // Filter out any vocabulary that doesn't match userId (safety check)
+    const filteredVocabulary = vocabulary.filter(item => {
+      const matches = item.userId === userId;
+      if (!matches) {
+        console.error(`[Vocabulary API ERROR] Vocabulary item ${item.id} has userId ${item.userId} but requested by user ${userId}!`);
+      }
+      return matches;
+    });
+
+    // Debug logging (remove in production)
+    console.log(`[Vocabulary API] User ${userId} (role: ${user.role}) requested vocabulary. Found ${vocabulary.length} items, returning ${filteredVocabulary.length} after filtering.`);
+
     // Convert to match the existing VocabularyItem interface
-    const formattedVocabulary = vocabulary.map((item: any) => ({
+    const formattedVocabulary = filteredVocabulary.map((item: any) => ({
       id: item.id.toString(),
       word: item.word,
       language: item.language,

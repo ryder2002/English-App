@@ -1,12 +1,16 @@
 "use client";
 
-import { UserCircle, Users, Layers, BookOpen, FileText } from "lucide-react";
+import { UserCircle, Users, Layers, BookOpen, FileText, LogOut } from "lucide-react";
 import Link from 'next/link';
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
+import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
 
   const navLinks = [
     { href: "/admin", label: "Tổng quan", icon: Layers },
@@ -15,6 +19,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/add-vocabulary", label: "Thêm từ vựng", icon: FileText },
     { href: "/admin/tests", label: "Kiểm tra", icon: Users },
   ];
+
+  const handleLogout = async () => {
+    if (auth?.signOut) {
+      await auth.signOut();
+    }
+    router.push('/login');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex">
@@ -45,10 +56,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             })}
           </nav>
         </div>
-        <div className="px-6 py-4 border-t">
-          <span className="text-xs text-gray-400">
-            © {new Date().getFullYear()} EnglishApp Admin
-          </span>
+        <div className="px-4 py-4 border-t space-y-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-gray-700 hover:bg-red-50 hover:text-red-600"
+            onClick={handleLogout}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Đăng xuất
+          </Button>
+          <div className="px-2">
+            <span className="text-xs text-gray-400">
+              © {new Date().getFullYear()} EnglishApp Admin
+            </span>
+          </div>
         </div>
       </aside>
 

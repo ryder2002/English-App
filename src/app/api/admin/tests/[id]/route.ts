@@ -37,11 +37,30 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const quizId = Number(id);
+    
+    // Get quiz and verify ownership
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: { clazz: true },
+    });
+
+    if (!quiz) {
+      return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+    }
+
+    if (quiz.clazz.teacherId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { title, description, clazzId, folderId } = body;
     if (!title || !clazzId || !folderId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-    const updated = await prisma.quiz.update({ where: { id: quizId }, data: { title, description, clazzId, folderId } });
+    const updated = await prisma.quiz.update({ 
+      where: { id: quizId }, 
+      data: { title, description, clazzId, folderId },
+      include: { clazz: true, folder: true }
+    });
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error' }, { status: 400 });
@@ -56,6 +75,21 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const quizId = Number(id);
+    
+    // Get quiz and verify ownership
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: { clazz: true },
+    });
+
+    if (!quiz) {
+      return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+    }
+
+    if (quiz.clazz.teacherId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     await prisma.quiz.delete({ where: { id: quizId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {

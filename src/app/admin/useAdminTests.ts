@@ -11,10 +11,11 @@ const fetcher = async (url: string) => {
 };
 
 export function useAdminTests() {
-  const { data, error, isLoading } = useSWR('/api/admin/tests', fetcher);
+  const { data, error, isLoading, mutate } = useSWR('/api/admin/tests', fetcher);
   return {
     tests: data,
     isLoading,
     isError: error,
+    mutate,
   };
 }

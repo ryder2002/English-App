@@ -15,7 +15,16 @@ export async function GET(request: NextRequest) {
     const user = await AuthService.verifyToken(token);
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const tests = await prisma.quiz.findMany({ include: { clazz: true, folder: true }, orderBy: { createdAt: 'desc' } });
+    // Only get quizzes where this admin is the teacher of the class
+    const tests = await prisma.quiz.findMany({ 
+      where: {
+        clazz: {
+          teacherId: user.id,
+        },
+      },
+      include: { clazz: true, folder: true }, 
+      orderBy: { createdAt: 'desc' } 
+    });
     return NextResponse.json(tests);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error' }, { status: 401 });

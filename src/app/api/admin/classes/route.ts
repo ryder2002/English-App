@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
     const user = await AuthService.verifyToken(token);
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    // Only get classes where this admin is the teacher
     const classes = await prisma.clazz.findMany({
+      where: { teacherId: user.id },
       include: { teacher: { select: { id: true, email: true } }, members: true },
       orderBy: { createdAt: 'desc' }
     });

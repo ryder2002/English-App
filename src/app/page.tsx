@@ -5,19 +5,34 @@ import { PlusCircle } from "lucide-react";
 import { SaveVocabularyDialog } from "@/components/save-vocabulary-dialog";
 import { Button } from "@/components/ui/button";
 import { VocabularyList } from "@/components/vocabulary-list";
-import { useState } from "react";
-import { redirect } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function VocabularyPage() {
-  // TODO: Thay bằng logic kiểm tra đăng nhập thực tế
-  const isLoggedIn = true; // Để test, sau này thay bằng logic thực tế
+  const auth = useAuth();
+  const router = useRouter();
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
-  if (!isLoggedIn) {
-    redirect("/login");
-    return null;
+  useEffect(() => {
+    if (!auth?.isLoading && !auth?.user) {
+      router.replace("/login");
+    }
+  }, [auth, router]);
+
+  if (auth?.isLoading) {
+    return (
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <Skeleton className="h-10 w-64 mb-6" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
   }
 
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  if (!auth?.user) {
+    return null; // Will redirect to login
+  }
 
   return (
     <AppShell>

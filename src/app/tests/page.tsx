@@ -14,6 +14,7 @@ import { MultipleChoicePlayer } from "@/components/multiple-choice-player";
 import { MatchingGamePlayer } from "@/components/matching-game-player";
 import { SpellingPracticePlayer } from "@/components/spelling-practice-player";
 import { useVocabulary } from "@/contexts/vocabulary-context";
+import { useAuth } from "@/contexts/auth-context";
 
 // Add this type definition if not imported from elsewhere
 type QuizDirection = "en-vi" | "vi-en" | "random";
@@ -53,6 +54,8 @@ const DirectionSelector = ({ value, onValueChange }: DirectionSelectorProps) => 
 );
 
 export default function UserTestsPage() {
+  const auth = useAuth();
+  const router = useRouter();
   const { folderObjects = [], buildFolderTree } = useVocabulary() || {};
   const folderTree = buildFolderTree();
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
@@ -60,15 +63,31 @@ export default function UserTestsPage() {
   const [spDirection, setSpDirection] = useState("en-vi");
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { 
+    setMounted(true);
+    // Redirect admin to admin panel if they try to access user tests
+    if (auth?.user && auth.user.role === 'admin') {
+      router.replace('/admin/tests');
+    }
+  }, [auth, router]);
+  
+  // Don't render if admin (will redirect)
+  if (auth?.user?.role === 'admin') {
+    return null;
+  }
 
   return (
     <AppShell>
       <div className="container mx-auto p-4 md:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-          <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
-            Kiểm tra
-          </h1>
+          <div>
+            <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
+              Kiểm tra
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Tự kiểm tra với từ vựng của bạn. Để làm bài kiểm tra trong lớp học, vui lòng vào <Link href="/classes" className="text-primary underline">Lớp học</Link>.
+            </p>
+          </div>
           <div className="w-full sm:w-auto sm:min-w-[250px]">
             <Select value={selectedFolder} onValueChange={setSelectedFolder}>
               <SelectTrigger className="w-full">
