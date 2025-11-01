@@ -31,6 +31,7 @@ export default function EditTestPage() {
   const [description, setDescription] = useState('');
   const [clazzId, setClazzId] = useState<string>('');
   const [folderId, setFolderId] = useState<string>('');
+  const [timePerQuestion, setTimePerQuestion] = useState<string>('0');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,6 +59,7 @@ export default function EditTestPage() {
       setDescription(data.description || '');
       setClazzId(String(data.clazzId || ''));
       setFolderId(String(data.folderId || ''));
+      setTimePerQuestion(String((data as any).timePerQuestion || 0));
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -94,6 +96,7 @@ export default function EditTestPage() {
           description: description.trim() || null,
           clazzId: Number(clazzId),
           folderId: Number(folderId),
+          timePerQuestion: timePerQuestion ? Number(timePerQuestion) : 0,
         }),
       });
 
@@ -206,6 +209,21 @@ export default function EditTestPage() {
                   )}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timePerQuestion">Thời gian chuyển câu (giây) *</Label>
+              <Input
+                id="timePerQuestion"
+                type="number"
+                min="0"
+                value={timePerQuestion}
+                onChange={(e) => setTimePerQuestion(e.target.value)}
+                placeholder="0 = không tự động chuyển"
+              />
+              <p className="text-xs text-muted-foreground">
+                Nhập 0 để tắt tự động chuyển câu. Ví dụ: 5 = tự động chuyển sau 5 giây
+              </p>
             </div>
 
             <div className="flex justify-end gap-3">

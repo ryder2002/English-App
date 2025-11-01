@@ -92,12 +92,22 @@ export default function ChatbotPage() {
 
     return (
         <AppShell>
-          <div className="h-[calc(100vh-5rem)] md:h-screen flex flex-col">
+          <div className="h-[calc(100vh-5rem)] md:h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
              <div className="container mx-auto p-4 md:p-6 lg:p-8 flex-shrink-0">
-               <div className="flex justify-center">
-                  <h1 className="text-3xl font-bold font-headline tracking-tight text-gradient">
-                          Trợ lý Ngôn ngữ AI
+               <div className="mb-4 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft p-4 border border-gray-200/50 dark:border-gray-700/50">
+                 <div className="flex items-center justify-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-md shadow-glow animate-pulse-slow">
+                      <span className="text-2xl">🤖</span>
+                    </div>
+                    <div>
+                      <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent">
+                        Trợ lý Ngôn ngữ AI
                       </h1>
+                      <p className="text-xs text-muted-foreground mt-1 text-center">
+                        Hỗ trợ học tiếng Anh và tiếng Trung
+                      </p>
+                    </div>
+                 </div>
                </div>
              </div>
               <div className="flex-grow container mx-auto px-4 md:px-6 lg:pb-8 flex min-h-0">

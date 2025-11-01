@@ -17,6 +17,7 @@ export default function NewTestPage() {
   const [description, setDescription] = useState('');
   const [clazzId, setClazzId] = useState<string | null>(null);
   const [folderId, setFolderId] = useState<string | null>(null);
+  const [timePerQuestion, setTimePerQuestion] = useState<string>('0');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +37,8 @@ export default function NewTestPage() {
           title,
           description,
           clazzId: clazzId ? Number(clazzId) : null,
-          folderId: folderId ? Number(folderId) : null
+          folderId: folderId ? Number(folderId) : null,
+          timePerQuestion: timePerQuestion ? Number(timePerQuestion) : 0
         })
       });
       const data = await res.json();
@@ -89,6 +91,20 @@ export default function NewTestPage() {
                 )}
               </SelectContent>
             </Select>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Thời gian chuyển câu (giây)</label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0 = không tự động chuyển"
+                value={timePerQuestion}
+                onChange={(e) => setTimePerQuestion(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Nhập 0 để tắt tự động chuyển câu. Ví dụ: 5 = tự động chuyển sau 5 giây
+              </p>
+            </div>
 
             {error && <div className="text-destructive">{error}</div>}
             <div className="flex justify-end gap-2">

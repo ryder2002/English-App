@@ -104,16 +104,18 @@ model ClassMember {
 }
 
 model Quiz {
-  id          Int       @id @default(autoincrement())
-  title       String
-  description String?
-  quizCode    String    @unique @map("test_code")
-  clazzId     Int       @map("class_id")
-  folderId    Int       @map("folder_id")
-  status      QuizStatus @default(pending) @map("status")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  endedAt     DateTime? @map("ended_at")
+  id              Int       @id @default(autoincrement())
+  title           String
+  description     String?
+  quizCode        String    @unique @map("test_code")
+  clazzId         Int       @map("class_id")
+  folderId        Int       @map("folder_id")
+  status          QuizStatus @default(pending) @map("status")
+  timePerQuestion Int?      @default(0) @map("time_per_question") // Time in seconds, 0 = no auto-advance
+  isPaused        Boolean   @default(false) @map("is_paused")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  endedAt         DateTime? @map("ended_at")
 
   // Relations
   clazz      Clazz        @relation(fields: [clazzId], references: [id], onDelete: Cascade)

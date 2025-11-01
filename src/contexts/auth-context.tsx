@@ -64,8 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return; // Don't do anything while loading
         }
 
-        const isAdminRoute = pathname.startsWith('/admin');
-        const isPublicRoute = publicPaths.includes(pathname);
+        const isAdminRoute = pathname?.startsWith('/admin') || false;
+        const isPublicRoute = pathname ? publicPaths.includes(pathname) : false;
 
         if (user) { // User is logged in
             if (user.role === 'admin' && !isAdminRoute && pathname === '/') {

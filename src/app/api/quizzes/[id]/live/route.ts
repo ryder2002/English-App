@@ -44,6 +44,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const getQuizStatus = (q: any) => q.status || 'pending';
     const quizStatus = getQuizStatus(quiz);
+    const isPaused = (quiz as any).isPaused || false;
+    const timePerQuestion = (quiz as any).timePerQuestion || 0;
 
     // For users: check if they are member of the class
     if (user.role !== 'admin') {
@@ -80,6 +82,22 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         orderBy: { createdAt: 'asc' },
       });
 
+      // Determine direction based on vocabulary language
+      // If vocabulary is primarily English, use en-vi; if Chinese, use vi-en or en-vi
+      // Default to en-vi for most cases
+      let direction: 'en-vi' | 'vi-en' | 'random' = 'en-vi';
+      if (vocabulary.length > 0) {
+        const languages = vocabulary.map(v => v.language);
+        const hasChinese = languages.some(l => l === 'chinese');
+        const hasEnglish = languages.some(l => l === 'english');
+        // If mostly Chinese, use vi-en; otherwise default to en-vi
+        if (hasChinese && !hasEnglish) {
+          direction = 'vi-en';
+        } else {
+          direction = 'en-vi';
+        }
+      }
+
       return NextResponse.json({
         quiz: {
           id: quiz.id,
@@ -87,7 +105,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           description: quiz.description,
           quizCode: quiz.quizCode,
           status: quizStatus,
-          direction: quiz.direction,
+          direction: direction,
+          timePerQuestion,
+          isPaused,
         },
         vocabulary: vocabulary.map((v: any) => ({
           id: v.id.toString(),
@@ -144,6 +164,22 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const resultsWithDetails = results.map((r: any) => {
       const answerDetails = r.answers || [];
+      const correctAnswers = answerDetails.filter((a: any) => a.isCorrect);
+      const incorrectAnswers = answerDetails.filter((a: any) => !a.isCorrect);
+      
+      // Calculate current streak (consecutive correct answers)
+      let currentStreak = 0;
+      if (answerDetails.length > 0) {
+        // Count backwards from the most recent answer
+        for (let i = answerDetails.length - 1; i >= 0; i--) {
+          if (answerDetails[i].isCorrect) {
+            currentStreak++;
+          } else {
+            break; // Streak broken
+          }
+        }
+      }
+      
       return {
         id: r.id,
         userId: r.userId,
@@ -162,8 +198,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           isCorrect: a.isCorrect,
           answeredAt: a.answeredAt,
         })),
-        correctCount: answerDetails.filter((a: any) => a.isCorrect).length,
-        incorrectCount: answerDetails.filter((a: any) => !a.isCorrect).length,
+        correctCount: correctAnswers.length,
+        incorrectCount: incorrectAnswers.length,
+        currentStreak: currentStreak, // Add streak counter
         currentQuestion: r.status === 'in_progress' ? (answerDetails.length > 0 ? answerDetails.length : 0) : (r.maxScore || 0), // Current question number
         maxQuestions: r.maxScore || 0,
       };
@@ -197,6 +234,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         quizCode: quiz.quizCode,
         status: quizStatus,
         createdAt: quiz.createdAt,
+        timePerQuestion,
+        isPaused,
       },
       results: resultsWithDetails,
       leaderboard,

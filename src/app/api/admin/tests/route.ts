@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
-    const { title, description, clazzId, folderId } = body;
+    const { title, description, clazzId, folderId, timePerQuestion } = body;
     if (!title || !clazzId || !folderId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
     // Generate unique quizCode
@@ -53,7 +53,16 @@ export async function POST(request: NextRequest) {
 
     const quizCode = await generateCode();
 
-    const created = await prisma.quiz.create({ data: { title, description, quizCode, clazzId, folderId } });
+    const created = await prisma.quiz.create({ 
+      data: { 
+        title, 
+        description, 
+        quizCode, 
+        clazzId, 
+        folderId,
+        timePerQuestion: timePerQuestion ? Number(timePerQuestion) : 0,
+      } 
+    });
     return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error' }, { status: 400 });

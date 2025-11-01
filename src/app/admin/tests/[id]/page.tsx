@@ -29,6 +29,8 @@ interface QuizDetail {
   description: string;
   quizCode: string;
   status: string;
+  createdAt?: string;
+  endedAt?: string;
   clazz: { name: string; };
   folder: { name: string; };
 }
@@ -93,12 +95,18 @@ export default function TestDetailPage() {
     }
 
     fetchData();
-    // Poll for real-time updates every 3 seconds
+  }, [id]);
+
+  // Poll for real-time updates every 3 seconds (only when quiz is active)
+  useEffect(() => {
+    if (!id || !quiz) return;
+    
+    const currentStatus = (quiz as any)?.status || 'pending';
+    if (currentStatus !== 'active') return;
+
+    fetchMonitorData();
     const interval = setInterval(() => {
-      const currentStatus = (quiz as any)?.status || 'pending';
-      if (currentStatus === 'active') {
-        fetchMonitorData();
-      }
+      fetchMonitorData();
     }, 3000);
 
     return () => clearInterval(interval);
@@ -253,16 +261,6 @@ export default function TestDetailPage() {
     }
   };
 
-  if (isLoading) return <div>Đang tải...</div>;
-  if (!quiz) {
-    notFound();
-  }
-
-  const quizStatus = (quiz as any).status || 'pending';
-  const isPending = quizStatus === 'pending';
-  const isActive = quizStatus === 'active';
-  const isEnded = quizStatus === 'ended';
-
   // Auto-redirect based on quiz status - only run once when quiz is loaded
   useEffect(() => {
     if (!id || !quiz || isLoading) return;
@@ -275,9 +273,17 @@ export default function TestDetailPage() {
       // Quiz is pending, go to lobby page
       router.push(`/quizzes/${id}/lobby`);
     }
-    // Only run this effect when quiz first loads
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isLoading]);
+  }, [id, quiz, isLoading, router]);
+
+  if (isLoading) return <div>Đang tải...</div>;
+  if (!quiz) {
+    notFound();
+  }
+
+  const quizStatus = (quiz as any).status || 'pending';
+  const isPending = quizStatus === 'pending';
+  const isActive = quizStatus === 'active';
+  const isEnded = quizStatus === 'ended';
 
   return (
     <div>
@@ -400,17 +406,17 @@ export default function TestDetailPage() {
                   Ngày tạo
                 </div>
                 <div className="text-sm">
-                  {quiz.createdAt ? new Date((quiz as any).createdAt).toLocaleString('vi-VN') : '-'}
+                  {quiz.createdAt ? new Date(quiz.createdAt).toLocaleString('vi-VN') : '-'}
                 </div>
               </div>
-              {(quiz as any).endedAt && (
+              {quiz.endedAt && (
                 <div className="space-y-1">
                   <div className="text-sm text-muted-foreground flex items-center gap-1">
                     <Power className="h-4 w-4" />
                     Ngày kết thúc
                   </div>
                   <div className="text-sm">
-                    {new Date((quiz as any).endedAt).toLocaleString('vi-VN')}
+                    {new Date(quiz.endedAt).toLocaleString('vi-VN')}
                   </div>
                 </div>
               )}
