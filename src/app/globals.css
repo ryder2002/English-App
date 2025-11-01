@@ -28,13 +28,13 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --sidebar-background: 224 71% 15%; /* Deep Indigo */
+    --sidebar-background: 222 47% 11%; /* Very dark slate/gray for better contrast */
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 180 81% 60%; /* Bright Cyan for active items */
     --sidebar-primary-foreground: 224 71% 10%;
-    --sidebar-accent: 224 71% 25%; /* Slightly lighter Indigo for hover */
+    --sidebar-accent: 222 47% 18%; /* Slightly lighter for hover */
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 224 71% 20%;
+    --sidebar-border: 222 47% 15%;
     --sidebar-ring: 180 81% 48%;
   }
   .dark {
@@ -62,13 +62,13 @@
     --chart-3: 160 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 224 71% 10%;
+    --sidebar-background: 222 47% 8%; /* Very dark slate/gray for better contrast in dark mode */
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 180 81% 48%; /* Cyan for active items */
     --sidebar-primary-foreground: 224 71% 4%;
-    --sidebar-accent: 224 71% 15%; /* Lighter Indigo for hover */
+    --sidebar-accent: 222 47% 15%; /* Lighter for hover */
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 224 71% 15%;
+    --sidebar-border: 222 47% 12%;
     --sidebar-ring: 180 81% 48%;
   }
 }

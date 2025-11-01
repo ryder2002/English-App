@@ -80,22 +80,46 @@ export default function UserTestsPage() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
-        <div className="container mx-auto p-4 md:p-6 lg:p-8">
-          {/* Header với gradient */}
-          <div className="mb-8 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft p-6 border border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+      <div className="min-h-screen relative overflow-hidden">
+        {/* Artistic Background với animated elements */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 via-pink-50 to-yellow-50 dark:from-gray-900 dark:via-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20">
+          {/* Floating animated shapes */}
+          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300/30 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDuration: '4s' }}></div>
+          <div className="absolute top-40 right-20 w-96 h-96 bg-pink-300/30 dark:bg-pink-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDuration: '6s' }}></div>
+          <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-blue-300/30 dark:bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDuration: '5s' }}></div>
+          <div className="absolute bottom-40 right-1/3 w-64 h-64 bg-yellow-300/30 dark:bg-yellow-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDuration: '7s' }}></div>
+          
+          {/* Decorative floating emojis */}
+          <div className="absolute top-32 left-1/4 text-4xl animate-bounce-slow opacity-30" style={{ animationDuration: '3s' }}>📚</div>
+          <div className="absolute top-60 right-1/4 text-5xl animate-bounce-slow opacity-30" style={{ animationDuration: '4s', animationDelay: '1s' }}>✍️</div>
+          <div className="absolute bottom-32 left-1/3 text-4xl animate-bounce-slow opacity-30" style={{ animationDuration: '5s', animationDelay: '0.5s' }}>🎯</div>
+          <div className="absolute bottom-60 right-1/4 text-5xl animate-bounce-slow opacity-30" style={{ animationDuration: '6s', animationDelay: '1.5s' }}>⭐</div>
+          <div className="absolute top-1/2 left-10 text-3xl animate-bounce-slow opacity-30" style={{ animationDuration: '4.5s', animationDelay: '2s' }}>💡</div>
+          <div className="absolute top-1/3 right-10 text-4xl animate-bounce-slow opacity-30" style={{ animationDuration: '5.5s', animationDelay: '0.8s' }}>🎓</div>
+        </div>
+        
+        <div className="relative z-10 container mx-auto p-4 md:p-6 lg:p-8">
+          {/* Header với gradient và artistic design */}
+          <div className="mb-8 rounded-3xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-2xl p-6 md:p-8 border-2 border-purple-200/50 dark:border-purple-800/50 relative overflow-hidden">
+            {/* Decorative background pattern */}
+            <div className="absolute inset-0 opacity-5 dark:opacity-10">
+              <div className="absolute top-0 left-0 w-full h-full" style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              }}></div>
+            </div>
+            <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md shadow-glow-green animate-pulse-slow">
-                  <span className="text-3xl">📝</span>
+                <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-glow-green animate-pulse-slow relative">
+                  <span className="text-4xl md:text-5xl relative z-10">📝</span>
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl"></div>
                 </div>
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent drop-shadow-sm">
                     Kiểm tra
                   </h1>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-sm md:text-base text-muted-foreground mt-2 font-medium">
                     Tự kiểm tra với từ vựng của bạn. Để làm bài kiểm tra trong lớp học, vui lòng vào{' '}
-                    <Link href="/classes" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+                    <Link href="/classes" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline transition-colors">
                       Lớp học
                     </Link>.
                   </p>
@@ -125,7 +149,14 @@ export default function UserTestsPage() {
           </div>
           
           {mounted && (
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-soft border border-gray-200/50 dark:border-gray-700/50 p-6">
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-3xl shadow-2xl border-2 border-purple-200/50 dark:border-purple-800/50 p-6 md:p-8 relative overflow-hidden">
+              {/* Subtle pattern overlay */}
+              <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none">
+                <div className="absolute inset-0" style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20.5z'/%3E%3C/g%3E%3C/svg%3E")`,
+                }}></div>
+              </div>
+              <div className="relative z-10">
               <Tabs defaultValue="multiple-choice" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 rounded-xl p-1 border-2 border-purple-200 dark:border-purple-800">
                   <TabsTrigger 
@@ -163,6 +194,7 @@ export default function UserTestsPage() {
                   <SpellingPracticePlayer selectedFolder={selectedFolder} direction={spDirection as QuizDirection} />
                 </TabsContent>
               </Tabs>
+              </div>
             </div>
           )}
         </div>

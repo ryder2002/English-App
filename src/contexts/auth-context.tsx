@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NameInputDialog } from "@/components/name-input-dialog";
 
 interface User {
   id: number;
@@ -17,6 +18,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   login: (email: string, password: string) => Promise<string>;
   register: (email: string, password: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,8 +28,30 @@ const publicPaths = ["/login", "/signup", "/forgot-password", "/reset-password"]
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [showNameDialog, setShowNameDialog] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
+
+    const refreshUser = async () => {
+        try {
+            const response = await fetch('/api/auth/me', {
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const userData = await response.json();
+                setUser(userData.user);
+                return userData.user;
+            } else {
+                setUser(null);
+                return null;
+            }
+        } catch (error) {
+            console.error('Refresh user error:', error);
+            setUser(null);
+            return null;
+        }
+    };
 
     useEffect(() => {
         const initAuth = async (): Promise<User | null> => {
@@ -40,6 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (response.ok) {
                     const userData = await response.json();
                     setUser(userData.user);
+                    
+                    // Check if user needs to set name (first time login)
+                    if (userData.user && !userData.user.name) {
+                        setShowNameDialog(true);
+                    }
+                    
                     return userData.user;
                 } else {
                     // Token invalid or not present, ensure user is null
@@ -141,14 +171,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('Logout API error:', error);
         }
         setUser(null);
+        setShowNameDialog(false);
         router.push("/login");
     };
 
-    const value = { user, isLoading, signOut, login, register };
+    const handleUpdateName = async (name: string) => {
+        try {
+            const response = await fetch('/api/user/update-name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ name }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update name');
+            }
+
+            // Refresh user data
+            await refreshUser();
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const value = { user, isLoading, signOut, login, register, refreshUser };
 
     return (
         <AuthContext.Provider value={value}>
-            {isLoading ? <div /> : children}
+            {isLoading ? <div /> : (
+                <>
+                    {children}
+                    {showNameDialog && user && (
+                        <NameInputDialog
+                            open={showNameDialog}
+                            onOpenChange={setShowNameDialog}
+                            onSubmit={handleUpdateName}
+                            userEmail={user.email}
+                        />
+                    )}
+                </>
+            )}
         </AuthContext.Provider>
     );
 }

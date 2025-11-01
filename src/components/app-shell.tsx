@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { CNLogo } from "./cn-logo";
 import { useSidebar } from "./ui/sidebar";
+import { UserAvatar } from "./user-avatar";
 
 function MobileSheetContent() {
     const authContext = useAuth();
@@ -46,13 +47,26 @@ function MobileSheetContent() {
             </SidebarContent>
             <SidebarFooter className="p-2 flex flex-col gap-2 mt-auto">
                  <div className="flex items-center gap-3 p-2 rounded-md">
-                    <Avatar className="h-9 w-9">
+                    {user?.id ? (
+                      <UserAvatar 
+                        userId={user.id} 
+                        userName={user.name || undefined} 
+                        userEmail={user.email} 
+                        size="md"
+                        showName={false}
+                      />
+                    ) : (
+                      <Avatar className="h-9 w-9">
                         <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
                             {getInitials(user?.email)}
                         </AvatarFallback>
-                    </Avatar>
+                      </Avatar>
+                    )}
                     <div className="flex flex-col text-sm overflow-hidden">
-                        <span className="font-medium truncate">{user?.email}</span>
+                        <span className="font-medium truncate">{user?.name || user?.email}</span>
+                        {user?.name && user?.email && (
+                          <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                        )}
                     </div>
                 </div>
                 <Button variant="ghost" className="justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
@@ -97,13 +111,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </SidebarContent>
         <SidebarFooter className="p-2 flex flex-col gap-2">
             <div className="flex items-center gap-3 p-2 rounded-md">
-                <Avatar className="h-9 w-9">
+                {user.id ? (
+                  <UserAvatar 
+                    userId={user.id} 
+                    userName={user.name || undefined} 
+                    userEmail={user.email} 
+                    size="md"
+                    showName={false}
+                  />
+                ) : (
+                  <Avatar className="h-9 w-9">
                     <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
                         {getInitials(user.email)}
                     </AvatarFallback>
-                </Avatar>
+                  </Avatar>
+                )}
                 <div className="flex flex-col text-sm overflow-hidden">
-                    <span className="font-medium truncate">{user.email}</span>
+                    <span className="font-medium truncate">{user.name || user.email}</span>
+                    {user.name && user.email && (
+                      <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                    )}
                 </div>
             </div>
              <Button variant="ghost" className="justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>

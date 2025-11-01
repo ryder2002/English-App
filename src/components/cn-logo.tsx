@@ -2,7 +2,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Languages } from "lucide-react";
+import Image from "next/image";
 
 interface CNLogoProps {
     className?: string;
@@ -11,12 +11,14 @@ interface CNLogoProps {
 export function CNLogo({ className }: CNLogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-        <img 
-            src="https://www.kaizapp.com/wp-content/uploads/2023/10/icon-instant-translation.svg"
+        <Image 
+            src="/Logo.png"
             alt="CN Logo" 
-            className="h-8 w-8"
+            width={80}
+            height={80}
+            className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 object-contain"
+            priority
         />
-        <span className="text-3xl font-bold text-gradient">CN</span>
     </div>
   );
 }
