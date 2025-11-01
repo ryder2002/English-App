@@ -141,9 +141,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
-          <SidebarTrigger />
-          <CNLogo />
+        <header className="sticky top-0 z-30 flex h-11 items-center gap-2 border-b bg-background/95 px-3 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
+          <SidebarTrigger className="h-8 w-8" />
+          <div className="scale-75 origin-left">
+            <CNLogo />
+          </div>
         </header>
 
         {isMobile && (

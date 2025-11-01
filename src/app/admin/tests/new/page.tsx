@@ -53,9 +53,9 @@ export default function NewTestPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></Button>
-        <h1 className="text-2xl font-bold">Tạo Bài kiểm tra</h1>
+      <div className="flex items-center gap-2 md:gap-4 mb-3 md:mb-4">
+        <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => router.back()}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 md:h-4 md:w-4"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></Button>
+        <h1 className="text-lg md:text-2xl font-bold">Tạo Bài kiểm tra</h1>
       </div>
       {loading ? (
         <div className="p-6 text-center text-muted-foreground">Đang tải dữ liệu...</div>

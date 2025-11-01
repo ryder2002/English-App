@@ -132,13 +132,13 @@ export default function EditTestPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8 max-w-3xl">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
+      <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-6">
+        <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => router.back()}>
+          <ArrowLeft className="h-3 w-3 md:h-4 md:w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">Sửa bài kiểm tra</h1>
-          <p className="text-sm text-muted-foreground">Cập nhật thông tin bài kiểm tra</p>
+          <h1 className="text-lg md:text-2xl font-bold">Sửa bài kiểm tra</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Cập nhật thông tin bài kiểm tra</p>
         </div>
       </div>
 
