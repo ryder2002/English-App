@@ -23,9 +23,8 @@ import { useVocabulary } from "@/contexts/vocabulary-context";
 import { FolderSelectItems } from "@/components/folder-select-items";
 import { useToast } from "@/hooks/use-toast";
 import { batchAddVocabularyAction } from "@/app/actions";
-import { ArrowRight, ListPlus, Loader2 } from "lucide-react";
+import { ListPlus, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { type GenerateBatchVocabularyDetailsOutput } from "@/ai/flows/generate-batch-vocabulary-details";
@@ -159,48 +158,36 @@ export function BatchAddForm() {
     ]
 
     return (
-        <div className="max-w-2xl mx-auto">
-        <Card>
-            <CardHeader>
-                <CardTitle>Nhập danh sách từ</CardTitle>
-                <CardDescription>
-                    Nhập mỗi từ trên một dòng. Bạn có thể thêm từ đồng nghĩa bằng cách sử dụng =, -, : hoặc | để AI hiểu rõ hơn.<br/>
-                    Ví dụ: <code className="text-primary">hello = hi</code> (AI sẽ tạo nghĩa tiếng Việt là "xin chào")
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
                     name="words"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Danh sách từ vựng</FormLabel>
+                        <FormLabel className="text-base font-semibold">Danh sách từ vựng</FormLabel>
                         <FormControl>
                             <Textarea
-                                placeholder="hello = hi
-world
-你好
-put on : wear
-..."
+                                placeholder="hello = hi&#10;world&#10;你好&#10;put on : wear&#10;..."
                                 {...field}
-                                rows={8}
+                                rows={6}
                                 disabled={isSubmitting}
+                                className="resize-none text-sm font-mono"
                             />
                         </FormControl>
+                        <p className="text-xs text-muted-foreground">Nhập mỗi từ trên một dòng</p>
                         <FormMessage />
                         </FormItem>
                     )}
                 />
                 
-                <div className="flex flex-col sm:flex-row items-end gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name="sourceLanguage"
                         render={({ field }) => (
-                            <FormItem className="w-full sm:w-1/2">
-                            <FormLabel>Từ ngôn ngữ</FormLabel>
+                            <FormItem>
+                            <FormLabel className="text-sm">Từ ngôn ngữ</FormLabel>
                             <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
@@ -208,7 +195,7 @@ put on : wear
                             >
                                 <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Chọn một ngôn ngữ" />
+                                    <SelectValue placeholder="Chọn ngôn ngữ" />
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -219,15 +206,12 @@ put on : wear
                             </FormItem>
                         )}
                     />
-                    <div className="hidden sm:flex items-center justify-center pb-2">
-                      <ArrowRight className="h-4 w-4 text-muted-foreground"/>
-                    </div>
                     <FormField
                         control={form.control}
                         name="targetLanguage"
                         render={({ field }) => (
-                            <FormItem className="w-full sm:w-1/2">
-                            <FormLabel>Sang ngôn ngữ</FormLabel>
+                            <FormItem>
+                            <FormLabel className="text-sm">Sang ngôn ngữ</FormLabel>
                             <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
@@ -235,7 +219,7 @@ put on : wear
                             >
                                 <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Chọn một ngôn ngữ" />
+                                    <SelectValue placeholder="Chọn ngôn ngữ" />
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -248,64 +232,67 @@ put on : wear
                     />
                 </div>
 
-                <FormField
-                    control={form.control}
-                    name="folder"
-                    render={({ field }) => (
+                <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="folder"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-sm">Lưu vào thư mục</FormLabel>
+                                <Select
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                    disabled={isSubmitting}
+                                >
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Chọn thư mục" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <FolderSelectItems
+                                        folders={folderObjects || []}
+                                        folderTree={folderTree}
+                                        valueKey="name"
+                                        showNewFolderOption={true}
+                                        newFolderLabel="+ Tạo thư mục mới..."
+                                      />
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    
+                    {selectedFolder === "new_folder" && (
                         <FormItem>
-                            <FormLabel>Lưu vào thư mục</FormLabel>
-                             <Select
-                                onValueChange={field.onChange}
-                                value={field.value}
+                            <FormLabel className="text-sm">Tên thư mục mới</FormLabel>
+                            <FormControl>
+                            <Input
+                                placeholder="ví dụ: Chủ đề Gia đình"
+                                value={newFolderName}
+                                onChange={(e) => setNewFolderName(e.target.value)}
                                 disabled={isSubmitting}
-                            >
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn một thư mục" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <FolderSelectItems
-                                    folders={folderObjects || []}
-                                    folderTree={folderTree}
-                                    valueKey="name"
-                                    showNewFolderOption={true}
-                                    newFolderLabel="+ Tạo thư mục mới..."
-                                  />
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
+                            />
+                            </FormControl>
                         </FormItem>
                     )}
-                />
-                
-                {selectedFolder === "new_folder" && (
-                    <FormItem>
-                        <FormLabel>Tên thư mục mới</FormLabel>
-                        <FormControl>
-                        <Input
-                            placeholder="ví dụ: Chủ đề Gia đình"
-                            value={newFolderName}
-                            onChange={(e) => setNewFolderName(e.target.value)}
-                            disabled={isSubmitting}
-                        />
-                        </FormControl>
-                    </FormItem>
-                )}
+                </div>
 
-
-                <Button type="submit" disabled={isSubmitting} className="w-full">
+                <Button 
+                    type="submit" 
+                    disabled={isSubmitting} 
+                    className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all"
+                    size="lg"
+                >
                     {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                     <ListPlus className="mr-2 h-4 w-4" />
                     )}
-                    Thêm từ
+                    Thêm từ vựng
                 </Button>
             </form>
-            </Form>
-            </CardContent>
-        </Card>
-        </div>
+        </Form>
     );
 }

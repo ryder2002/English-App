@@ -30,7 +30,8 @@ export default function AddVocabularyPage() {
                             <Info className="h-4 w-4" />
                             <AlertDescription>
                                 <strong>Mẹo:</strong> Thêm từ đồng nghĩa với các ký tự <code className="bg-muted px-1 rounded">=</code>, <code className="bg-muted px-1 rounded">-</code>, <code className="bg-muted px-1 rounded">:</code>, hoặc <code className="bg-muted px-1 rounded">|</code><br/>
-                                Ví dụ: <code className="text-primary bg-muted px-1 rounded">hello = hi</code> → AI sẽ tạo nghĩa tiếng Việt: "xin chào"
+                                Ví dụ: <code className="text-primary bg-muted px-1 rounded">hello = hi</code> → AI sẽ tạo nghĩa tiếng Việt: "xin chào".<br/>
+                                <strong>Lưu ý: mỗi từ vựng nhập trên một dòng.</strong>
                             </AlertDescription>
                         </Alert>
                         <BatchAddForm />

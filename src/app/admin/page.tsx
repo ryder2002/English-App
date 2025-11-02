@@ -73,7 +73,9 @@ export default function AdminPage() {
           {isLoading ? (
             <div className="text-gray-400 text-sm md:text-base py-4">⏳ Đang tải dữ liệu...</div>
           ) : isError ? (
-            <div className="text-red-500 text-sm md:text-base py-4">❌ Lỗi tải dữ liệu.</div>
+            <div className="text-red-500 text-sm md:text-base py-4">
+              ❌ Lỗi tải dữ liệu: {isError?.message || 'Không thể tải dữ liệu'}
+            </div>
           ) : stats?.recentActivities?.length ? (
             <ul className="divide-y divide-gray-200 dark:divide-gray-700">
               {stats.recentActivities.map((a: any, i: number) => (
@@ -83,7 +85,7 @@ export default function AdminPage() {
               ))}
             </ul>
           ) : (
-            <div className="text-gray-400 text-sm md:text-base py-4">📭 Chưa có dữ liệu.</div>
+            <div className="text-gray-400 text-sm md:text-base py-4">📭 Chưa có hoạt động nào gần đây.</div>
           )}
         </section>
     </div>

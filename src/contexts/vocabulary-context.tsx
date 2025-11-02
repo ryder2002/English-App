@@ -136,8 +136,18 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   const removeFolder = async (id: string) => {
     const success = await folderServiceDelete(id);
     if (success) {
-      setFolderObjects(prev => prev.filter(f => f.id !== id));
+      // Refresh data to sync with database
+      // This will remove the deleted folder and all its children (cascade delete)
+      // as well as vocabulary items in those folders
+      await refreshData();
+      
       toast({ title: "Thành công", description: "Đã xóa thư mục." });
+    } else {
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa thư mục. Vui lòng thử lại.",
+        variant: "destructive",
+      });
     }
   };
 

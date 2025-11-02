@@ -4,7 +4,10 @@ import useSWR from 'swr';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) throw new Error('Error fetching admin stats');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Error fetching admin stats: ${res.status} ${res.statusText}`);
+  }
   return res.json();
 };
 
