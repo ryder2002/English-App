@@ -74,6 +74,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       createdAt: v.createdAt.toISOString(),
     }));
 
+    // Get direction from quiz
+    const quizDirection = (quiz as any).direction || 'en_vi';
+
     return NextResponse.json({
       quiz: {
         id: quiz.id,
@@ -81,7 +84,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         description: quiz.description,
         quizCode: quiz.quizCode,
         vocabularyCount: vocabulary.length,
-        direction: (quiz as any).direction || 'en_vi',
+        direction: quizDirection, // Return database format (en_vi, vi_en, random)
       },
       vocabulary: formattedVocabulary,
     });

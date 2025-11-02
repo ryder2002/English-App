@@ -1,7 +1,8 @@
 "use client";
 
-import { Users, Layers, BookOpen, FileText } from "lucide-react";
+import { Users, Layers, BookOpen, FileText, Folder } from "lucide-react";
 import { useAdminStats } from "./useAdminStats";
+import Link from "next/link";
 
 export default function AdminPage() {
   const { stats, isLoading, isError } = useAdminStats();
@@ -25,27 +26,42 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Stats cards với responsive */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-10">
+        {/* Stats cards với responsive và links */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-10">
           <StatCard
             label="Tổng học viên"
-            value={isLoading ? "..." : stats?.studentCount ?? "--"}
+            value={isLoading ? "..." : stats?.studentCount ?? 0}
             icon={<Users className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />}
+            href="/admin/classes"
+            description="Xem tất cả lớp học"
           />
           <StatCard
             label="Tổng lớp học"
-            value={isLoading ? "..." : stats?.classCount ?? "--"}
+            value={isLoading ? "..." : stats?.classCount ?? 0}
             icon={<Layers className="w-5 h-5 md:w-6 md:h-6 text-green-500" />}
+            href="/admin/classes"
+            description="Quản lý lớp học"
+          />
+          <StatCard
+            label="Thư mục"
+            value={isLoading ? "..." : stats?.folderCount ?? 0}
+            icon={<Folder className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />}
+            href="/admin/folders"
+            description="Quản lý thư mục"
           />
           <StatCard
             label="Bộ từ vựng"
-            value={isLoading ? "..." : stats?.vocabCount ?? "--"}
+            value={isLoading ? "..." : stats?.vocabCount ?? 0}
             icon={<BookOpen className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />}
+            href="/admin/add-vocabulary"
+            description="Thêm từ vựng"
           />
           <StatCard
             label="Bài kiểm tra"
-            value={isLoading ? "..." : stats?.quizCount ?? "--"}
+            value={isLoading ? "..." : stats?.quizCount ?? 0}
             icon={<FileText className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />}
+            href="/admin/tests"
+            description="Quản lý bài kiểm tra"
           />
         </div>
 
@@ -78,16 +94,33 @@ function StatCard({
   label,
   value,
   icon,
+  href,
+  description,
 }: {
   label: string;
   value: string | number;
   icon: React.ReactNode;
+  href?: string;
+  description?: string;
 }) {
-  return (
-    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-soft hover:shadow-lg transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center py-4 md:py-6 px-3 md:px-4 border border-gray-200/50 dark:border-gray-700/50">
+  const content = (
+    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-soft hover:shadow-lg transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center py-4 md:py-6 px-3 md:px-4 border border-gray-200/50 dark:border-gray-700/50 cursor-pointer w-full h-full">
       <div className="mb-2">{icon}</div>
       <div className="text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{value}</div>
       <div className="text-gray-600 dark:text-gray-400 mt-1 text-xs md:text-sm text-center font-medium">{label}</div>
+      {description && (
+        <div className="text-xs text-muted-foreground mt-1 text-center opacity-75">{description}</div>
+      )}
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block w-full">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }

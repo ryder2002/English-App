@@ -48,6 +48,13 @@ export async function GET(request: NextRequest) {
         })
       : 0;
 
+    // Count folders owned by admin
+    const folderCount = await prisma.folder.count({
+      where: {
+        userId: user.id,
+      },
+    });
+
     // Get recent activities for this admin only
     const [recentClazzes, recentQuizzes] = await Promise.all([
       prisma.clazz.findMany({
@@ -96,6 +103,7 @@ export async function GET(request: NextRequest) {
       classCount,
       vocabCount,
       quizCount,
+      folderCount,
       recentActivities,
     });
   } catch (error: any) {
