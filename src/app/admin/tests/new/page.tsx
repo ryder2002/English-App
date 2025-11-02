@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import useSWR from 'swr';
 import { useVocabulary } from '@/contexts/vocabulary-context';
+import { FolderSelectItems } from '@/components/folder-select-items';
 
 const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then(res => res.json());
 
@@ -18,12 +19,14 @@ export default function NewTestPage() {
   const [clazzId, setClazzId] = useState<string | null>(null);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [timePerQuestion, setTimePerQuestion] = useState<string>('0');
+  const [direction, setDirection] = useState<string>('en_vi');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { data: classes = [], isLoading: loadingClasses } = useSWR('/api/admin/classes', fetcher);
-  const { folderObjects } = useVocabulary();
+  const { folderObjects, buildFolderTree } = useVocabulary();
   const loadingFolders = !folderObjects;
+  const folderTree = buildFolderTree ? buildFolderTree() : [];
 
   const handleCreate = async () => {
     setIsSubmitting(true);
@@ -38,7 +41,8 @@ export default function NewTestPage() {
           description,
           clazzId: clazzId ? Number(clazzId) : null,
           folderId: folderId ? Number(folderId) : null,
-          timePerQuestion: timePerQuestion ? Number(timePerQuestion) : 0
+          timePerQuestion: timePerQuestion ? Number(timePerQuestion) : 0,
+          direction: direction || 'en_vi'
         })
       });
       const data = await res.json();
@@ -81,14 +85,13 @@ export default function NewTestPage() {
                 <SelectValue placeholder="Chọn thư mục" />
               </SelectTrigger>
               <SelectContent>
-                {(!folderObjects || folderObjects.length === 0) ? (
-                  <SelectItem value="none" disabled>Không có thư mục nào</SelectItem>
-                ) : (
-                  <>
-                    <SelectItem value="all">Tất cả thư mục</SelectItem>
-                    {folderObjects.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>)}
-                  </>
-                )}
+                <FolderSelectItems 
+                  folders={folderObjects || []}
+                  folderTree={folderTree}
+                  valueKey="id"
+                  showAllOption={true}
+                  allOptionLabel="Tất cả thư mục"
+                />
               </SelectContent>
             </Select>
 
@@ -103,6 +106,23 @@ export default function NewTestPage() {
               />
               <p className="text-xs text-muted-foreground">
                 Nhập 0 để tắt tự động chuyển câu. Ví dụ: 5 = tự động chuyển sau 5 giây
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Hướng dịch</label>
+              <Select value={direction} onValueChange={setDirection}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn hướng dịch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en_vi">🇬🇧 Tiếng Anh → Tiếng Việt</SelectItem>
+                  <SelectItem value="vi_en">🇻🇳 Tiếng Việt → Tiếng Anh</SelectItem>
+                  <SelectItem value="random">🎲 Ngẫu nhiên</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Chọn hướng dịch cho bài kiểm tra: Anh→Việt, Việt→Anh, hoặc ngẫu nhiên
               </p>
             </div>
 

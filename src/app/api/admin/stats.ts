@@ -34,20 +34,12 @@ export async function GET(request: NextRequest) {
     // Count classes owned by this admin
     const classCount = adminClasses.length;
 
-    // Count vocabulary in admin's folders
-    const adminFolders = await prisma.folder.findMany({
-      where: { userId: user.id },
-      select: { name: true },
+    // Count vocabulary owned by admin (directly by userId)
+    const vocabCount = await prisma.vocabulary.count({
+      where: {
+        userId: user.id,
+      },
     });
-    const folderNames = adminFolders.map(f => f.name);
-    const vocabCount = folderNames.length > 0
-      ? await prisma.vocabulary.count({
-          where: {
-            folder: { in: folderNames },
-            userId: user.id,
-          },
-        })
-      : 0;
 
     // Count quizzes in admin's classes
     const quizCount = classIds.length > 0

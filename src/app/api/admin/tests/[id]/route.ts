@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     }
 
     const body = await request.json();
-    const { title, description, clazzId, folderId, timePerQuestion } = body;
+    const { title, description, clazzId, folderId, timePerQuestion, direction } = body;
     if (!title || !clazzId || !folderId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
     const updated = await prisma.quiz.update({ 
@@ -64,6 +64,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         clazzId, 
         folderId,
         timePerQuestion: timePerQuestion !== undefined ? Number(timePerQuestion) : 0,
+        direction: (direction === 'en_vi' || direction === 'vi_en' || direction === 'random') ? direction : undefined,
       },
       include: { clazz: true, folder: true }
     });

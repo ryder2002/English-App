@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useToast } from "@/hooks/use-toast";
+import { FolderSelectItems } from "@/components/folder-select-items";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import type { Language, VocabularyItem } from "@/lib/types";
@@ -68,10 +69,11 @@ export function SaveVocabularyDialog({
     addVocabularyItem, 
     updateVocabularyItem, 
     addFolder, 
-    folderObjects 
+    folderObjects,
+    buildFolderTree
   } = useVocabulary();
 
-  const foldersList = useMemo(() => folderObjects.map(f => f.name), [folderObjects]);
+  const folderTree = buildFolderTree ? buildFolderTree() : [];
 
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,7 +108,7 @@ export function SaveVocabularyDialog({
           language: initialData.language || "english",
           vietnameseTranslation: initialData.vietnameseTranslation || "",
           partOfSpeech: initialData.partOfSpeech || "",
-          folder: defaultFolder || initialData.folder || (foldersList.length > 0 ? foldersList[0] : ""),
+          folder: defaultFolder || initialData.folder || (folderTree.length > 0 ? folderTree[0].name : (folderObjects && folderObjects.length > 0 ? folderObjects[0].name : "")),
         });
       } else {
         reset({
@@ -114,12 +116,12 @@ export function SaveVocabularyDialog({
           language: "english",
           vietnameseTranslation: "",
           partOfSpeech: "",
-          folder: defaultFolder || (foldersList.length > 0 ? foldersList[0] : ""),
+          folder: defaultFolder || (folderTree.length > 0 ? folderTree[0].name : (folderObjects && folderObjects.length > 0 ? folderObjects[0].name : "")),
         });
       }
       setNewFolderName("");
     }
-  }, [itemToEdit, initialData, open, defaultFolder, foldersList, reset]);
+  }, [itemToEdit, initialData, open, defaultFolder, folderTree, folderObjects, reset]);
 
   // Sửa lỗi lặp setState: Chỉ gọi setNewFolderName khi dialog đang mở, đã chọn new_folder và input đang hiện
   const selectedFolder = form.watch("folder");
@@ -134,9 +136,9 @@ export function SaveVocabularyDialog({
     setIsSubmitting(true);
     try {
       let targetFolder = values.folder;
-      // Sửa lại logic kiểm tra folderExists để dùng đúng danh sách foldersList, tránh lặp vô hạn khi thêm thư mục mới
+      // Kiểm tra folderExists để tránh lặp vô hạn khi thêm thư mục mới
       if (targetFolder === 'new_folder' && newFolderName) {
-        const folderExists = foldersList.some((f: string) => f.toLowerCase() === newFolderName.toLowerCase());
+        const folderExists = folderObjects?.some((f) => f.name.toLowerCase() === newFolderName.toLowerCase());
         if (!folderExists) {
           await addFolder(newFolderName);
         }
@@ -346,14 +348,13 @@ export function SaveVocabularyDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        {foldersList.map((folder: string) => (
-                        <SelectItem key={folder} value={folder}>
-                          {folder}
-                        </SelectItem>
-                        ))}
-                       <SelectItem value="new_folder">
-                          + Tạo thư mục mới...
-                        </SelectItem>
+                      <FolderSelectItems
+                        folders={folderObjects || []}
+                        folderTree={folderTree}
+                        valueKey="name"
+                        showNewFolderOption={true}
+                        newFolderLabel="+ Tạo thư mục mới..."
+                      />
                     </SelectContent>
                   </Select>
                   <FormMessage />

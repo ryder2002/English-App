@@ -4,6 +4,7 @@ import React from "react";
 import { FlashcardPlayer } from "@/components/flashcard-player";
 import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useState, useEffect } from "react";
+import { FolderSelectItems } from "@/components/folder-select-items";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import { AppShell } from "@/components/app-shell";
 
 export default function FlashcardsPage() {
   const { folderObjects = [], buildFolderTree } = useVocabulary() || {};
-  const folderTree = buildFolderTree();
+  const folderTree = buildFolderTree ? buildFolderTree() : [];
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [mounted, setMounted] = useState(false);
 
@@ -51,18 +52,13 @@ export default function FlashcardsPage() {
                       <SelectValue placeholder="📁 Chọn thư mục để học" />
                     </SelectTrigger>
                     <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
-                      <SelectItem value="all">📚 Tất cả từ vựng</SelectItem>
-                      {folderTree.map((folder) => (
-                        <React.Fragment key={folder.id}>
-                          <SelectItem value={folder.name}>{folder.name}</SelectItem>
-                          {folder.children &&
-                            folder.children.map((child) => (
-                              <SelectItem key={child.id} value={child.name}>
-                                &nbsp;&nbsp;└ {child.name}
-                              </SelectItem>
-                            ))}
-                        </React.Fragment>
-                      ))}
+                      <FolderSelectItems
+                        folders={folderObjects || []}
+                        folderTree={folderTree}
+                        valueKey="name"
+                        showAllOption={true}
+                        allOptionLabel="📚 Tất cả từ vựng"
+                      />
                     </SelectContent>
                   </Select>
                 )}

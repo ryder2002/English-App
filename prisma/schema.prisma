@@ -112,6 +112,7 @@ model Quiz {
   folderId        Int       @map("folder_id")
   status          QuizStatus @default(pending) @map("status")
   timePerQuestion Int?      @default(0) @map("time_per_question") // Time in seconds, 0 = no auto-advance
+  direction       QuizDirection @default(en_vi) @map("direction") // Translation direction: en-vi, vi-en, random
   isPaused        Boolean   @default(false) @map("is_paused")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -181,4 +182,10 @@ enum QuizResultStatus {
   in_progress
   completed
   submitted
+}
+
+enum QuizDirection {
+  en_vi
+  vi_en
+  random
 }

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Loader2, PlusCircle, Save, Sparkles, Trash2 } from "lucide-react";
 import { useVocabulary } from "@/contexts/vocabulary-context";
+import { FolderSelectItems } from "@/components/folder-select-items";
 import { useToast } from "@/hooks/use-toast";
 import { getVocabularyDetailsAction } from "@/app/actions";
 import type { Language } from "@/lib/types";
@@ -42,8 +43,8 @@ type SheetRow = {
 let nextId = 1;
 
 export function ManualAddTable() {
-  const { addVocabularyItem, folderObjects } = useVocabulary();
-  const folders = folderObjects.map(f => f.name);
+  const { addVocabularyItem, folderObjects, buildFolderTree } = useVocabulary();
+  const folderTree = buildFolderTree ? buildFolderTree() : [];
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -60,20 +61,34 @@ export function ManualAddTable() {
     folder: defaultFolder,
   });
 
+  const getFirstFolderName = () => {
+    if (folderTree.length > 0) {
+      // Get the first folder from the tree (flattened)
+      const getFirstFolder = (tree: any[]): string => {
+        if (tree.length === 0) return "";
+        const first = tree[0];
+        return first.name;
+      };
+      return getFirstFolder(folderTree);
+    }
+    return folderObjects.length > 0 ? folderObjects[0].name : "";
+  };
+
   const [rows, setRows] = useState<SheetRow[]>(() => [
-    createBlankRow(folderObjects.length > 0 ? folderObjects[0].name : "")
+    createBlankRow(getFirstFolderName())
   ]);
 
   useEffect(() => {
     // Update the default folder in the initial blank row once folders are loaded.
-    if (rows.length === 1 && rows[0].word === '' && folders.length > 0 && rows[0].folder === '') {
+    const firstFolder = getFirstFolderName();
+    if (rows.length === 1 && rows[0].word === '' && firstFolder && rows[0].folder === '') {
       setRows(currentRows => {
         const updatedRows = [...currentRows];
-        updatedRows[0].folder = folders[0];
+        updatedRows[0].folder = firstFolder;
         return updatedRows;
       });
     }
-  }, [folders]);
+  }, [folderTree, folderObjects]);
 
   const prevRowsRef = useRef<SheetRow[]>(rows);
 
@@ -203,7 +218,7 @@ export function ManualAddTable() {
     const lastRow = rows[rows.length - 1];
     setRows([
       ...rows,
-      createBlankRow(lastRow?.folder || (folders.length > 0 ? folders[0] : "")),
+      createBlankRow(lastRow?.folder || getFirstFolderName()),
     ]);
   };
 
@@ -247,7 +262,7 @@ export function ManualAddTable() {
 
         // Reset to a single blank row
         setRows([
-            createBlankRow(folders.length > 0 ? folders[0] : ""),
+            createBlankRow(getFirstFolderName()),
         ]);
 
     } catch (error) {
@@ -355,17 +370,17 @@ export function ManualAddTable() {
                     onValueChange={(value) =>
                       handleInputChange(index, "folder", value)
                     }
-                    disabled={isSaving || folders.length === 0}
+                    disabled={isSaving || folderObjects.length === 0}
                   >
                     <SelectTrigger className="text-base">
                       <SelectValue placeholder="Chọn thư mục" />
                     </SelectTrigger>
                     <SelectContent>
-                      {folders.map((folder) => (
-                        <SelectItem key={folder} value={folder} className="text-base">
-                          {folder}
-                        </SelectItem>
-                      ))}
+                      <FolderSelectItems
+                        folders={folderObjects || []}
+                        folderTree={folderTree}
+                        valueKey="name"
+                      />
                     </SelectContent>
                   </Select>
                 </TableCell>

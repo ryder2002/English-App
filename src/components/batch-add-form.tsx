@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useVocabulary } from "@/contexts/vocabulary-context";
+import { FolderSelectItems } from "@/components/folder-select-items";
 import { useToast } from "@/hooks/use-toast";
 import { batchAddVocabularyAction } from "@/app/actions";
 import { ArrowRight, ListPlus, Loader2 } from "lucide-react";
@@ -44,8 +45,8 @@ const formSchema = z.object({
 type BatchAddFormValues = z.infer<typeof formSchema>;
 
 export function BatchAddForm() {
-    const { folderObjects, addFolder, addVocabularyItem } = useVocabulary();
-    const folders: string[] = folderObjects.map((f: { name: string }) => f.name);
+    const { folderObjects, addFolder, addVocabularyItem, buildFolderTree } = useVocabulary();
+    const folderTree = buildFolderTree ? buildFolderTree() : [];
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newFolderName, setNewFolderName] = useState("");
@@ -61,10 +62,15 @@ export function BatchAddForm() {
     });
     
     useEffect(() => {
-        if (folders.length > 0 && !form.getValues('folder')) {
-            form.setValue('folder', folders[0]);
+        const getFirstFolderName = () => {
+            if (folderTree.length > 0) return folderTree[0].name;
+            return folderObjects.length > 0 ? folderObjects[0].name : "";
+        };
+        const firstFolder = getFirstFolderName();
+        if (firstFolder && !form.getValues('folder')) {
+            form.setValue('folder', firstFolder);
         }
-    }, [folders, form.setValue, form.getValues]);
+    }, [folderTree, folderObjects, form]);
 
 
     const selectedFolder = form.watch("folder");
@@ -94,7 +100,7 @@ export function BatchAddForm() {
                     setIsSubmitting(false);
                     return;
                 }
-                const folderExists = folders.some(f => f.toLowerCase() === newFolderName.toLowerCase());
+                const folderExists = folderObjects.some(f => f.name.toLowerCase() === newFolderName.toLowerCase());
                 if (!folderExists) {
                     await addFolder(newFolderName);
                 }
@@ -259,24 +265,13 @@ put on : wear
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {folders.length === 0 ? (
-                                    folderObjects.length === 0 ? (
-                                      <SelectItem value="__loading__" disabled>Đang tải thư mục...</SelectItem>
-                                    ) : (
-                                      <SelectItem value="__none__" disabled>Không có thư mục nào</SelectItem>
-                                    )
-                                  ) : (
-                                    <>
-                                      {folders.map((folder) => (
-                                        <SelectItem key={folder} value={folder}>
-                                          {folder}
-                                        </SelectItem>
-                                      ))}
-                                      <SelectItem value="new_folder">
-                                        + Tạo thư mục mới...
-                                      </SelectItem>
-                                    </>
-                                  )}
+                                  <FolderSelectItems
+                                    folders={folderObjects || []}
+                                    folderTree={folderTree}
+                                    valueKey="name"
+                                    showNewFolderOption={true}
+                                    newFolderLabel="+ Tạo thư mục mới..."
+                                  />
                                 </SelectContent>
                             </Select>
                             <FormMessage />

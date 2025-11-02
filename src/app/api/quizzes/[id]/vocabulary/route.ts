@@ -81,6 +81,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         description: quiz.description,
         quizCode: quiz.quizCode,
         vocabularyCount: vocabulary.length,
+        direction: (quiz as any).direction || 'en_vi',
       },
       vocabulary: formattedVocabulary,
     });

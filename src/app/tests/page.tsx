@@ -15,6 +15,7 @@ import { MatchingGamePlayer } from "@/components/matching-game-player";
 import { SpellingPracticePlayer } from "@/components/spelling-practice-player";
 import { useVocabulary } from "@/contexts/vocabulary-context";
 import { useAuth } from "@/contexts/auth-context";
+import { FolderSelectItems } from "@/components/folder-select-items";
 
 // Add this type definition if not imported from elsewhere
 type QuizDirection = "en-vi" | "vi-en" | "random";
@@ -59,7 +60,7 @@ export default function UserTestsPage() {
   const auth = useAuth();
   const router = useRouter();
   const { folderObjects = [], buildFolderTree } = useVocabulary() || {};
-  const folderTree = buildFolderTree();
+  const folderTree = buildFolderTree ? buildFolderTree() : [];
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [mcDirection, setMcDirection] = useState("en-vi");
   const [spDirection, setSpDirection] = useState("en-vi");
@@ -131,17 +132,13 @@ export default function UserTestsPage() {
                     <SelectValue placeholder="📁 Chọn thư mục để kiểm tra" />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
-                    <SelectItem value="all">📚 Tất cả từ vựng</SelectItem>
-                    {folderTree.map((folder: any) => (
-                      <React.Fragment key={folder.id}>
-                        <SelectItem value={folder.name}>{folder.name}</SelectItem>
-                        {folder.children && folder.children.map((child: any) => (
-                          <SelectItem key={child.id} value={child.name}>
-                            &nbsp;&nbsp;└ {child.name}
-                          </SelectItem>
-                        ))}
-                      </React.Fragment>
-                    ))}
+                    <FolderSelectItems
+                      folders={folderObjects || []}
+                      folderTree={folderTree}
+                      valueKey="name"
+                      showAllOption={true}
+                      allOptionLabel="📚 Tất cả từ vựng"
+                    />
                   </SelectContent>
                 </Select>
               </div>

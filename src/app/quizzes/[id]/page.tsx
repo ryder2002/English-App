@@ -18,9 +18,29 @@ interface QuizData {
     description?: string;
     quizCode: string;
     vocabularyCount: number;
+    direction?: string;
   };
   resultId: number;
   startedAt: string;
+}
+
+interface QuizResultDetail {
+  result: {
+    id: number;
+    score: number;
+    maxScore: number;
+    startedAt: string;
+    endedAt?: string;
+    status: string;
+  };
+  answers: Array<{
+    id: number;
+    questionText: string;
+    questionType: string;
+    selectedAnswer: string;
+    correctAnswer: string;
+    isCorrect: boolean;
+  }>;
 }
 
 export default function QuizTakingPage() {
@@ -38,6 +58,8 @@ export default function QuizTakingPage() {
   const [maxScore, setMaxScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [quizDirection, setQuizDirection] = useState<QuizDirection>('en-vi');
+  const [resultDetail, setResultDetail] = useState<QuizResultDetail | null>(null);
+  const [showResultDetail, setShowResultDetail] = useState(false);
 
   useEffect(() => {
     if (!quizId || !resultId) {
@@ -59,6 +81,15 @@ export default function QuizTakingPage() {
       }
 
       const data = await res.json();
+      const quizDirectionFromQuiz = data.quiz?.direction || 'en_vi';
+      // Convert en_vi -> en-vi, vi_en -> vi-en, random -> random
+      const directionMap: Record<string, QuizDirection> = {
+        'en_vi': 'en-vi',
+        'vi_en': 'vi-en',
+        'random': 'random'
+      };
+      setQuizDirection(directionMap[quizDirectionFromQuiz] || 'en-vi');
+      
       setQuizData({
         quiz: data.quiz,
         resultId: Number(resultId),
@@ -66,6 +97,9 @@ export default function QuizTakingPage() {
       });
       setVocabulary(data.vocabulary || []);
       setMaxScore(data.vocabulary?.length || 0);
+
+      // Check if quiz is already completed - fetch result detail
+      checkQuizResult();
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -78,10 +112,26 @@ export default function QuizTakingPage() {
     }
   };
 
-  // Track score from quiz player
-  useEffect(() => {
-    // We'll update score when quiz finishes
-  }, []);
+  const checkQuizResult = async () => {
+    try {
+      const res = await fetch(`/api/quizzes/${quizId}/result/${resultId}`, {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.result && (data.result.status === 'completed' || data.result.status === 'submitted')) {
+          setResultDetail(data);
+          setScore(data.result.score);
+          setMaxScore(data.result.maxScore);
+          setIsFinished(true);
+          setShowResultDetail(true);
+        }
+      }
+    } catch (error) {
+      // Quiz not completed yet or result not found
+      console.log('Quiz result not found or not completed yet');
+    }
+  };
 
   interface QuizAnswer {
     vocabularyId: number | null;
@@ -122,6 +172,9 @@ export default function QuizTakingPage() {
       }
 
       const result = await res.json();
+      
+      // Fetch result detail to show answers
+      await checkQuizResult();
       
       toast({
         title: 'Hoàn thành!',
@@ -213,6 +266,96 @@ export default function QuizTakingPage() {
               onComplete={handleQuizComplete}
               resultId={Number(resultId)}
             />
+          ) : showResultDetail && resultDetail ? (
+            <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in-0 zoom-in-95 duration-500">
+              <Card className="border-2 shadow-soft bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20">
+                <CardContent className="p-8 space-y-6">
+                  <div className="text-center space-y-4">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      Kết quả bài kiểm tra
+                    </h2>
+                    <div className="inline-flex flex-col items-center gap-2 px-8 py-6 rounded-2xl bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 border-2 border-blue-200 dark:border-blue-800 shadow-lg">
+                      <div className="text-6xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                        {resultDetail.result.score} / {resultDetail.result.maxScore}
+                      </div>
+                      <div className="text-2xl font-semibold text-muted-foreground">
+                        Tỷ lệ chính xác: <span className="font-bold text-green-600">
+                          {resultDetail.result.maxScore > 0 ? Math.round((resultDetail.result.score / resultDetail.result.maxScore) * 100) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                    {resultDetail.answers.map((answer, index) => (
+                      <Card 
+                        key={answer.id}
+                        className={`p-5 rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] shadow-sm ${
+                          answer.isCorrect 
+                            ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-300 dark:border-green-700 hover:shadow-glow-green" 
+                            : "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-red-300 dark:border-red-700 hover:shadow-glow-red"
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-md ${
+                            answer.isCorrect 
+                              ? "bg-gradient-to-br from-green-500 to-emerald-600" 
+                              : "bg-gradient-to-br from-red-500 to-rose-600"
+                          }`}>
+                            {answer.isCorrect ? (
+                              <span className="text-white font-bold">✓</span>
+                            ) : (
+                              <span className="text-white font-bold">✗</span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-lg mb-2">
+                              <span className="text-muted-foreground">Câu {index + 1}:</span>{' '}
+                              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                {answer.questionText}
+                              </span>
+                              <span className="ml-2 text-xs text-muted-foreground bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                                {answer.questionType === 'word_to_meaning' ? '📝 Từ → Nghĩa' : '📚 Nghĩa → Từ'}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground font-medium">Đáp án của bạn:</span>
+                                <span className={`px-3 py-1 rounded-lg font-semibold text-sm ${
+                                  answer.isCorrect 
+                                    ? "bg-green-500 text-white" 
+                                    : "bg-red-500 text-white"
+                                }`}>
+                                  {answer.selectedAnswer || '(Chưa trả lời)'}
+                                </span>
+                              </div>
+                              {!answer.isCorrect && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-muted-foreground font-medium">Đáp án đúng:</span>
+                                  <span className="px-3 py-1 rounded-lg bg-green-500 text-white font-semibold text-sm">
+                                    {answer.correctAnswer}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-center gap-4 pt-4">
+                    <Button 
+                      onClick={() => router.push('/classes')}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-lg px-8 py-6 rounded-xl"
+                    >
+                      🏠 Quay về lớp học
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <Card>
               <CardContent className="p-6 text-center space-y-4">

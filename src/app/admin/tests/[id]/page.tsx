@@ -215,7 +215,17 @@ export default function TestDetailPage() {
       }
       
       const data = await res.json();
-      setResultDetails(data.result);
+      // API returns { result: { ... } }, we need to extract it properly
+      if (data.result) {
+        setResultDetails({
+          answers: data.result.answers || [],
+          score: data.result.score,
+          maxScore: data.result.maxScore,
+          correctCount: data.result.correctCount,
+          incorrectCount: data.result.incorrectCount,
+          user: data.result.user,
+        });
+      }
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -592,10 +602,10 @@ export default function TestDetailPage() {
                               Xem chi tiết
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
                             <DialogHeader>
-                              <DialogTitle>
-                                Chi tiết bài làm của {result.user.name || result.user.email}
+                              <DialogTitle className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                📊 Chi tiết bài làm của {result.user.name || result.user.email}
                               </DialogTitle>
                             </DialogHeader>
                             {isLoadingDetails ? (
@@ -603,66 +613,88 @@ export default function TestDetailPage() {
                                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                               </div>
                             ) : resultDetails ? (
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-3 gap-4 mb-4">
-                                  <Card>
-                                    <CardContent className="p-4 text-center">
-                                      <div className="text-2xl font-bold text-primary">
+                              <div className="space-y-6">
+                                {/* Stats Cards */}
+                                <div className="grid grid-cols-3 gap-4">
+                                  <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+                                    <CardContent className="p-6 text-center">
+                                      <div className="text-4xl font-bold text-primary mb-2">
                                         {resultDetails.score || result.score}/{resultDetails.maxScore || result.maxScore}
                                       </div>
-                                      <div className="text-sm text-muted-foreground">Điểm số</div>
+                                      <div className="text-sm text-muted-foreground font-medium">Điểm số</div>
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        Tỷ lệ: {resultDetails.maxScore > 0 ? Math.round(((resultDetails.score || result.score) / resultDetails.maxScore) * 100) : 0}%
+                                      </div>
                                     </CardContent>
                                   </Card>
-                                  <Card>
-                                    <CardContent className="p-4 text-center">
-                                      <div className="text-2xl font-bold text-green-600">
+                                  <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                                    <CardContent className="p-6 text-center">
+                                      <div className="text-4xl font-bold text-green-600 mb-2">
                                         {resultDetails.correctCount || result.correctCount || 0}
                                       </div>
-                                      <div className="text-sm text-muted-foreground">Câu đúng</div>
+                                      <div className="text-sm text-muted-foreground font-medium">Câu đúng</div>
                                     </CardContent>
                                   </Card>
-                                  <Card>
-                                    <CardContent className="p-4 text-center">
-                                      <div className="text-2xl font-bold text-red-600">
+                                  <Card className="border-2 border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20">
+                                    <CardContent className="p-6 text-center">
+                                      <div className="text-4xl font-bold text-red-600 mb-2">
                                         {resultDetails.incorrectCount || result.incorrectCount || 0}
                                       </div>
-                                      <div className="text-sm text-muted-foreground">Câu sai</div>
+                                      <div className="text-sm text-muted-foreground font-medium">Câu sai</div>
                                     </CardContent>
                                   </Card>
                                 </div>
-                                <div className="space-y-3">
+
+                                {/* Answers List */}
+                                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                                  <h3 className="text-lg font-semibold text-muted-foreground mb-3">Chi tiết từng câu:</h3>
                                   {(resultDetails.answers || result.answerDetails || []).map((answer: AnswerDetail, index: number) => (
                                     <Card 
                                       key={answer.id || index}
-                                      className={answer.isCorrect ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"}
+                                      className={`p-5 rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] shadow-sm ${
+                                        answer.isCorrect 
+                                          ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-300 dark:border-green-700 hover:shadow-glow-green" 
+                                          : "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-red-300 dark:border-red-700 hover:shadow-glow-red"
+                                      }`}
                                     >
-                                      <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
-                                          <div className="mt-1">
+                                      <CardContent className="p-0">
+                                        <div className="flex items-start gap-4">
+                                          <div className={`mt-1 h-10 w-10 rounded-full flex items-center justify-center shrink-0 shadow-md ${
+                                            answer.isCorrect 
+                                              ? "bg-gradient-to-br from-green-500 to-emerald-600" 
+                                              : "bg-gradient-to-br from-red-500 to-rose-600"
+                                          }`}>
                                             {answer.isCorrect ? (
-                                              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                              <CheckCircle2 className="h-6 w-6 text-white" />
                                             ) : (
-                                              <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                              <XCircle className="h-6 w-6 text-white" />
                                             )}
                                           </div>
                                           <div className="flex-1">
-                                            <div className="font-semibold mb-2">
-                                              Câu {index + 1}: {answer.questionText}
-                                              <span className="ml-2 text-xs text-muted-foreground">
-                                                ({answer.questionType === 'word_to_meaning' ? 'Từ → Nghĩa' : 'Nghĩa → Từ'})
+                                            <div className="font-semibold text-lg mb-2">
+                                              <span className="text-muted-foreground">Câu {index + 1}:</span>{' '}
+                                              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
+                                                {answer.questionText}
+                                              </span>
+                                              <span className="ml-2 text-xs text-muted-foreground bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                                                {answer.questionType === 'word_to_meaning' ? '📝 Từ → Nghĩa' : '📚 Nghĩa → Từ'}
                                               </span>
                                             </div>
-                                            <div className="text-sm space-y-1">
-                                              <div>
-                                                <span className="text-muted-foreground">Đáp án của học viên: </span>
-                                                <span className={answer.isCorrect ? "text-green-600 dark:text-green-400 font-medium" : "text-red-600 dark:text-red-400 font-medium"}>
-                                                  {answer.selectedAnswer}
+                                            <div className="text-sm space-y-2">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-muted-foreground font-medium">Đáp án của học viên:</span>
+                                                <span className={`px-3 py-1 rounded-lg font-semibold ${
+                                                  answer.isCorrect 
+                                                    ? "bg-green-500 text-white" 
+                                                    : "bg-red-500 text-white"
+                                                }`}>
+                                                  {answer.selectedAnswer || '(Chưa trả lời)'}
                                                 </span>
                                               </div>
                                               {!answer.isCorrect && (
-                                                <div>
-                                                  <span className="text-muted-foreground">Đáp án đúng: </span>
-                                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-muted-foreground font-medium">Đáp án đúng:</span>
+                                                  <span className="px-3 py-1 rounded-lg bg-green-500 text-white font-semibold">
                                                     {answer.correctAnswer}
                                                   </span>
                                                 </div>
@@ -673,6 +705,11 @@ export default function TestDetailPage() {
                                       </CardContent>
                                     </Card>
                                   ))}
+                                  {(!resultDetails.answers || resultDetails.answers.length === 0) && (!result.answerDetails || result.answerDetails.length === 0) && (
+                                    <div className="text-center p-8 text-muted-foreground">
+                                      Chưa có câu trả lời nào
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ) : (
@@ -781,8 +818,8 @@ export default function TestDetailPage() {
                         </DialogTrigger>
                         <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[85vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle className="text-base md:text-lg">
-                              Chi tiết bài làm của {result.user.name || result.user.email}
+                            <DialogTitle className="text-lg md:text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                              📊 Chi tiết bài làm của {result.user.name || result.user.email}
                             </DialogTitle>
                           </DialogHeader>
                           {isLoadingDetails ? (
@@ -790,66 +827,88 @@ export default function TestDetailPage() {
                               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                             </div>
                           ) : resultDetails ? (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4">
-                                <Card className="border-2 border-blue-200 dark:border-blue-800">
-                                  <CardContent className="p-3 md:p-4 text-center">
-                                    <div className="text-xl md:text-2xl font-bold text-primary">
+                            <div className="space-y-4 md:space-y-6">
+                              {/* Stats Cards */}
+                              <div className="grid grid-cols-3 gap-2 md:gap-4">
+                                <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+                                  <CardContent className="p-4 md:p-6 text-center">
+                                    <div className="text-2xl md:text-4xl font-bold text-primary mb-1 md:mb-2">
                                       {resultDetails.score || result.score}/{resultDetails.maxScore || result.maxScore}
                                     </div>
-                                    <div className="text-xs md:text-sm text-muted-foreground">Điểm số</div>
+                                    <div className="text-xs md:text-sm text-muted-foreground font-medium">Điểm số</div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {resultDetails.maxScore > 0 ? Math.round(((resultDetails.score || result.score) / resultDetails.maxScore) * 100) : 0}%
+                                    </div>
                                   </CardContent>
                                 </Card>
-                                <Card className="border-2 border-green-200 dark:border-green-800">
-                                  <CardContent className="p-3 md:p-4 text-center">
-                                    <div className="text-xl md:text-2xl font-bold text-green-600">
+                                <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                                  <CardContent className="p-4 md:p-6 text-center">
+                                    <div className="text-2xl md:text-4xl font-bold text-green-600 mb-1 md:mb-2">
                                       {resultDetails.correctCount || result.correctCount || 0}
                                     </div>
-                                    <div className="text-xs md:text-sm text-muted-foreground">Câu đúng</div>
+                                    <div className="text-xs md:text-sm text-muted-foreground font-medium">Câu đúng</div>
                                   </CardContent>
                                 </Card>
-                                <Card className="border-2 border-red-200 dark:border-red-800">
-                                  <CardContent className="p-3 md:p-4 text-center">
-                                    <div className="text-xl md:text-2xl font-bold text-red-600">
+                                <Card className="border-2 border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20">
+                                  <CardContent className="p-4 md:p-6 text-center">
+                                    <div className="text-2xl md:text-4xl font-bold text-red-600 mb-1 md:mb-2">
                                       {resultDetails.incorrectCount || result.incorrectCount || 0}
                                     </div>
-                                    <div className="text-xs md:text-sm text-muted-foreground">Câu sai</div>
+                                    <div className="text-xs md:text-sm text-muted-foreground font-medium">Câu sai</div>
                                   </CardContent>
                                 </Card>
                               </div>
-                              <div className="space-y-2 md:space-y-3">
+
+                              {/* Answers List */}
+                              <div className="space-y-2 md:space-y-3 max-h-[400px] md:max-h-[500px] overflow-y-auto pr-1 md:pr-2">
+                                <h3 className="text-sm md:text-lg font-semibold text-muted-foreground mb-2 md:mb-3">Chi tiết từng câu:</h3>
                                 {(resultDetails.answers || result.answerDetails || []).map((answer: AnswerDetail, index: number) => (
                                   <Card 
                                     key={answer.id || index}
-                                    className={answer.isCorrect ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"}
+                                    className={`p-3 md:p-5 rounded-xl border-2 transition-all duration-300 hover:scale-[1.01] shadow-sm ${
+                                      answer.isCorrect 
+                                        ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-300 dark:border-green-700" 
+                                        : "bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-red-300 dark:border-red-700"
+                                    }`}
                                   >
-                                    <CardContent className="p-3 md:p-4">
-                                      <div className="flex items-start gap-2 md:gap-3">
-                                        <div className="mt-1">
+                                    <CardContent className="p-0">
+                                      <div className="flex items-start gap-2 md:gap-4">
+                                        <div className={`mt-1 h-8 w-8 md:h-10 md:w-10 rounded-full flex items-center justify-center shrink-0 shadow-md ${
+                                          answer.isCorrect 
+                                            ? "bg-gradient-to-br from-green-500 to-emerald-600" 
+                                            : "bg-gradient-to-br from-red-500 to-rose-600"
+                                        }`}>
                                           {answer.isCorrect ? (
-                                            <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 text-green-600 dark:text-green-400" />
+                                            <CheckCircle2 className="h-4 w-4 md:h-6 md:w-6 text-white" />
                                           ) : (
-                                            <XCircle className="h-4 w-4 md:h-5 md:w-5 text-red-600 dark:text-red-400" />
+                                            <XCircle className="h-4 w-4 md:h-6 md:w-6 text-white" />
                                           )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <div className="font-semibold mb-1 md:mb-2 text-sm md:text-base">
-                                            Câu {index + 1}: {answer.questionText}
-                                            <span className="ml-1 md:ml-2 text-xs text-muted-foreground">
-                                              ({answer.questionType === 'word_to_meaning' ? 'Từ → Nghĩa' : 'Nghĩa → Từ'})
+                                          <div className="font-semibold text-sm md:text-lg mb-1 md:mb-2">
+                                            <span className="text-muted-foreground">Câu {index + 1}:</span>{' '}
+                                            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
+                                              {answer.questionText}
+                                            </span>
+                                            <span className="ml-1 md:ml-2 text-xs text-muted-foreground bg-gray-100 dark:bg-gray-800 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">
+                                              {answer.questionType === 'word_to_meaning' ? '📝 Từ → Nghĩa' : '📚 Nghĩa → Từ'}
                                             </span>
                                           </div>
-                                          <div className="text-xs md:text-sm space-y-1">
-                                            <div>
-                                              <span className="text-muted-foreground">Đáp án của học viên: </span>
-                                              <span className={answer.isCorrect ? "text-green-600 dark:text-green-400 font-medium" : "text-red-600 dark:text-red-400 font-medium"}>
-                                                {answer.selectedAnswer}
+                                          <div className="text-xs md:text-sm space-y-1 md:space-y-2">
+                                            <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                              <span className="text-muted-foreground font-medium">Đáp án của học viên:</span>
+                                              <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-lg font-semibold text-xs md:text-sm ${
+                                                answer.isCorrect 
+                                                  ? "bg-green-500 text-white" 
+                                                  : "bg-red-500 text-white"
+                                              }`}>
+                                                {answer.selectedAnswer || '(Chưa trả lời)'}
                                               </span>
                                             </div>
                                             {!answer.isCorrect && (
-                                              <div>
-                                                <span className="text-muted-foreground">Đáp án đúng: </span>
-                                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                              <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                                                <span className="text-muted-foreground font-medium">Đáp án đúng:</span>
+                                                <span className="px-2 md:px-3 py-0.5 md:py-1 rounded-lg bg-green-500 text-white font-semibold text-xs md:text-sm">
                                                   {answer.correctAnswer}
                                                 </span>
                                               </div>
@@ -860,10 +919,15 @@ export default function TestDetailPage() {
                                     </CardContent>
                                   </Card>
                                 ))}
+                                {(!resultDetails.answers || resultDetails.answers.length === 0) && (!result.answerDetails || result.answerDetails.length === 0) && (
+                                  <div className="text-center p-6 md:p-8 text-muted-foreground text-sm md:text-base">
+                                    Chưa có câu trả lời nào
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ) : (
-                            <div className="text-center p-8 text-muted-foreground">
+                            <div className="text-center p-6 md:p-8 text-muted-foreground text-sm md:text-base">
                               Chưa có dữ liệu chi tiết
                             </div>
                           )}

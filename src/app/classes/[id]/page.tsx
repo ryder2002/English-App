@@ -59,8 +59,6 @@ export default function ClassDetailPage() {
 
   const [classDetail, setClassDetail] = useState<ClassDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [quizCode, setQuizCode] = useState('');
-  const [isJoiningQuiz, setIsJoiningQuiz] = useState(false);
 
   useEffect(() => {
     if (!classId) {
@@ -125,50 +123,6 @@ export default function ClassDetailPage() {
   const pendingQuizzes = classDetail.quizzes.filter(q => q.status === 'pending');
   const activeQuizzes = classDetail.quizzes.filter(q => q.status === 'active');
   const endedQuizzes = classDetail.quizzes.filter(q => q.status === 'ended');
-
-  const handleJoinQuiz = async () => {
-    if (!quizCode.trim()) {
-      toast({
-        title: 'Lỗi',
-        description: 'Vui lòng nhập mã bài kiểm tra',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsJoiningQuiz(true);
-    try {
-      const res = await fetch('/api/quizzes/enter-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ quizCode: quizCode.trim().toUpperCase() }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Không thể vào bài kiểm tra');
-      }
-
-      // Check quiz status and redirect accordingly
-      const quizStatus = data.quiz.status || 'pending';
-      if (quizStatus === 'active') {
-        router.push(`/quizzes/${data.quiz.id}/live`);
-      } else if (quizStatus === 'pending') {
-        router.push(`/quizzes/${data.quiz.id}/lobby`);
-      } else {
-        router.push(`/quizzes/${data.quiz.id}/live`);
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Lỗi',
-        description: error.message || 'Không thể vào bài kiểm tra',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsJoiningQuiz(false);
-    }
-  };
 
   const handleLeaveClass = async () => {
     if (!confirm('Bạn có chắc muốn rời lớp học này?')) return;
@@ -465,43 +419,6 @@ export default function ClassDetailPage() {
             </CardContent>
           </Card>
         )}
-
-        {/* Enter Quiz Code */}
-        <Card className="mb-6 border-0 shadow-soft bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-rose-50/50 dark:from-purple-900/10 dark:via-pink-900/10 dark:to-rose-900/10">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-md">
-                <Plus className="h-6 w-6 text-white" />
-              </div>
-              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 bg-clip-text text-transparent font-bold">
-                🔑 Nhập mã bài kiểm tra
-              </span>
-            </CardTitle>
-            <CardDescription className="text-base">
-              Nhập mã bài kiểm tra để tham gia nếu bạn có mã từ giáo viên
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <Input
-                placeholder="Nhập mã bài kiểm tra (ví dụ: ABC123)"
-                value={quizCode}
-                onChange={(e) => setQuizCode(e.target.value.toUpperCase())}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleJoinQuiz();
-                }}
-                className="flex-1 font-mono border-2 border-purple-200 dark:border-purple-800 rounded-xl shadow-sm focus:ring-2 focus:ring-purple-500"
-              />
-              <Button 
-                onClick={handleJoinQuiz} 
-                disabled={isJoiningQuiz || !quizCode.trim()}
-                className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl font-semibold px-8 py-6 disabled:opacity-50"
-              >
-                {isJoiningQuiz ? '⏳ Đang tham gia...' : '✅ Tham gia'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* No Quizzes */}
         {classDetail.quizzes.length === 0 && (

@@ -81,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-r border-gray-200 dark:border-gray-700 shadow-sm flex-col justify-between">
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-r border-gray-200 dark:border-gray-700 shadow-sm flex-col justify-between z-40">
         <NavContent />
       </aside>
 
@@ -107,7 +107,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Main content */}
-      <main className="flex-1 md:ml-0 pt-20 md:pt-0 p-4 md:p-6 lg:p-8 min-h-screen">
+      <main className="flex-1 md:ml-64 pt-20 md:pt-0 p-4 md:p-6 lg:p-8 min-h-screen">
         {children}
       </main>
     </div>

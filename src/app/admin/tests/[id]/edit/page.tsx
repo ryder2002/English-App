@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { useAdminClasses } from '@/app/admin/useAdminClasses';
 import { useVocabulary } from '@/contexts/vocabulary-context';
+import { FolderSelectItems } from '@/components/folder-select-items';
 
 export default function EditTestPage() {
   const params = useParams();
@@ -25,13 +26,15 @@ export default function EditTestPage() {
   const { toast } = useToast();
   const id = params?.id as string | undefined;
   const { classes } = useAdminClasses();
-  const { folderObjects } = useVocabulary();
+  const { folderObjects, buildFolderTree } = useVocabulary();
+  const folderTree = buildFolderTree ? buildFolderTree() : [];
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [clazzId, setClazzId] = useState<string>('');
   const [folderId, setFolderId] = useState<string>('');
   const [timePerQuestion, setTimePerQuestion] = useState<string>('0');
+  const [direction, setDirection] = useState<string>('en_vi');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -60,6 +63,7 @@ export default function EditTestPage() {
       setClazzId(String(data.clazzId || ''));
       setFolderId(String(data.folderId || ''));
       setTimePerQuestion(String((data as any).timePerQuestion || 0));
+      setDirection((data as any).direction || 'en_vi');
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -97,6 +101,7 @@ export default function EditTestPage() {
           clazzId: Number(clazzId),
           folderId: Number(folderId),
           timePerQuestion: timePerQuestion ? Number(timePerQuestion) : 0,
+          direction: direction || 'en_vi',
         }),
       });
 
@@ -198,15 +203,13 @@ export default function EditTestPage() {
                   <SelectValue placeholder="Chọn thư mục" />
                 </SelectTrigger>
                 <SelectContent>
-                  {!folderObjects || folderObjects.length === 0 ? (
-                    <SelectItem value="" disabled>Chưa có thư mục</SelectItem>
-                  ) : (
-                    folderObjects.map((f: any) => (
-                      <SelectItem key={f.id} value={String(f.id)}>
-                        {f.name}
-                      </SelectItem>
-                    ))
-                  )}
+                  <FolderSelectItems 
+                    folders={folderObjects || []}
+                    folderTree={folderTree}
+                    valueKey="id"
+                    showAllOption={false}
+                    includeEmpty={true}
+                  />
                 </SelectContent>
               </Select>
             </div>
@@ -223,6 +226,23 @@ export default function EditTestPage() {
               />
               <p className="text-xs text-muted-foreground">
                 Nhập 0 để tắt tự động chuyển câu. Ví dụ: 5 = tự động chuyển sau 5 giây
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="direction">Hướng dịch *</Label>
+              <Select value={direction} onValueChange={setDirection} required>
+                <SelectTrigger id="direction">
+                  <SelectValue placeholder="Chọn hướng dịch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en_vi">🇬🇧 Tiếng Anh → Tiếng Việt</SelectItem>
+                  <SelectItem value="vi_en">🇻🇳 Tiếng Việt → Tiếng Anh</SelectItem>
+                  <SelectItem value="random">🎲 Ngẫu nhiên</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Chọn hướng dịch cho bài kiểm tra: Anh→Việt, Việt→Anh, hoặc ngẫu nhiên
               </p>
             </div>
 

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Loader2, PlusCircle, Save, Sparkles, Trash2 } from "lucide-react";
 import { useVocabulary } from "@/contexts/vocabulary-context";
+import { FolderSelectItems } from "@/components/folder-select-items";
 import { useToast } from "@/hooks/use-toast";
 import { getIpaAction, getPinyinAction, getVocabularyDetailsAction } from "@/app/actions";
 import type { Language } from "@/lib/types";
@@ -38,8 +39,8 @@ type SheetRow = {
 let nextId = 1;
 
 export function ManualAddTable() {
-  const { addVocabularyItem, folderObjects } = useVocabulary();
-  const folders = folderObjects.map(f => f.name);
+  const { addVocabularyItem, folderObjects, buildFolderTree } = useVocabulary();
+  const folderTree = buildFolderTree ? buildFolderTree() : [];
   const { toast } = useToast();
   const [rows, setRows] = useState<SheetRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,9 +48,13 @@ export function ManualAddTable() {
   useEffect(() => {
     // Initialize with one blank row, setting a default folder if available.
     if (rows.length === 0) {
-        setRows([createBlankRow(folders.length > 0 ? folders[0] : "")]);
+        const getFirstFolderName = () => {
+          if (folderTree.length > 0) return folderTree[0].name;
+          return folderObjects.length > 0 ? folderObjects[0].name : "";
+        };
+        setRows([createBlankRow(getFirstFolderName())]);
     }
-  }, [folders]);
+  }, [folderTree, folderObjects]);
 
   const createBlankRow = (defaultFolder: string): SheetRow => ({
     id: nextId++,
@@ -141,7 +146,7 @@ export function ManualAddTable() {
     const lastRow = rows[rows.length - 1];
     setRows([
       ...rows,
-      createBlankRow(lastRow?.folder || (folders.length > 0 ? folders[0] : "")),
+      createBlankRow(lastRow?.folder || (folderTree.length > 0 ? folderTree[0].name : (folderObjects.length > 0 ? folderObjects[0].name : ""))),
     ]);
   };
 
@@ -183,7 +188,7 @@ export function ManualAddTable() {
 
         // Reset to a single blank row
         setRows([
-            createBlankRow(folders.length > 0 ? folders[0] : ""),
+            createBlankRow(folderTree.length > 0 ? folderTree[0].name : (folderObjects.length > 0 ? folderObjects[0].name : "")),
         ]);
 
     } catch (error) {
@@ -304,17 +309,17 @@ export function ManualAddTable() {
                     onValueChange={(value) =>
                       handleInputChange(index, "folder", value)
                     }
-                    disabled={isSaving || folders.length === 0}
+                    disabled={isSaving || folderObjects.length === 0}
                   >
                     <SelectTrigger className="text-base">
                       <SelectValue placeholder="Chọn thư mục" />
                     </SelectTrigger>
                     <SelectContent>
-                      {folders.map((folder) => (
-                        <SelectItem key={folder} value={folder} className="text-base">
-                          {folder}
-                        </SelectItem>
-                      ))}
+                      <FolderSelectItems
+                        folders={folderObjects || []}
+                        folderTree={folderTree}
+                        valueKey="name"
+                      />
                     </SelectContent>
                   </Select>
                 </TableCell>

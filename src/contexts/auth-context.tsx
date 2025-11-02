@@ -146,11 +146,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ email, password }),
+                credentials: 'include',
             });
 
             if (response.ok) {
                 const data = await response.json();
                 setUser(data.user);
+                
+                // Force reload để cookie httpOnly được gửi lên server và redirect
+                const redirectTo = data.redirectTo || (data.user?.role === 'admin' ? '/admin' : '/');
+                window.location.href = redirectTo;
             } else {
                 const error = await response.json();
                 throw new Error(error.error || 'Registration failed');
