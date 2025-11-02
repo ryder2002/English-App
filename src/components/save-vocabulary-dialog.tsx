@@ -92,6 +92,17 @@ export function SaveVocabularyDialog({
 
   const { reset } = form;
 
+  // Memoize default folder to prevent infinite loops - use folderObjects directly instead of folderTree
+  const defaultFolderName = useMemo(() => {
+    if (defaultFolder) return defaultFolder;
+    if (folderObjects && folderObjects.length > 0) {
+      // Find first folder without parent (root folder)
+      const rootFolder = folderObjects.find(f => !f.parentId) || folderObjects[0];
+      return rootFolder?.name || "";
+    }
+    return "";
+  }, [defaultFolder, folderObjects]);
+
   useEffect(() => {
     if (open) {
       if (itemToEdit) {
@@ -108,7 +119,7 @@ export function SaveVocabularyDialog({
           language: initialData.language || "english",
           vietnameseTranslation: initialData.vietnameseTranslation || "",
           partOfSpeech: initialData.partOfSpeech || "",
-          folder: defaultFolder || initialData.folder || (folderTree.length > 0 ? folderTree[0].name : (folderObjects && folderObjects.length > 0 ? folderObjects[0].name : "")),
+          folder: defaultFolder || initialData.folder || defaultFolderName,
         });
       } else {
         reset({
@@ -116,20 +127,25 @@ export function SaveVocabularyDialog({
           language: "english",
           vietnameseTranslation: "",
           partOfSpeech: "",
-          folder: defaultFolder || (folderTree.length > 0 ? folderTree[0].name : (folderObjects && folderObjects.length > 0 ? folderObjects[0].name : "")),
+          folder: defaultFolder || defaultFolderName,
         });
       }
       setNewFolderName("");
     }
-  }, [itemToEdit, initialData, open, defaultFolder, folderTree, folderObjects, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, itemToEdit?.id, initialData?.word]);
 
   // Sửa lỗi lặp setState: Chỉ gọi setNewFolderName khi dialog đang mở, đã chọn new_folder và input đang hiện
   const selectedFolder = form.watch("folder");
 
   useEffect(() => {
     if (!open || selectedFolder !== "new_folder") {
-      if (newFolderName !== "") setNewFolderName("");
+      if (newFolderName !== "") {
+        setNewFolderName("");
+      }
     }
+    // Only depend on open and selectedFolder, not newFolderName
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, selectedFolder]);
 
  const onSubmit = async (values: SaveVocabularyFormValues) => {
@@ -193,26 +209,52 @@ export function SaveVocabularyDialog({
           });
         }
       } else {
-        const details = await getVocabularyDetailsAction(
-          values.word,
-          values.language as Language,
-          "vietnamese"
-        );
+        // Try to get AI details, but allow manual input if AI fails
+        let details: { translation?: string; partOfSpeech?: string; ipa?: string; pinyin?: string } = {};
+        
+        try {
+          const aiDetails = await getVocabularyDetailsAction(
+            values.word,
+            values.language as Language,
+            "vietnamese"
+          );
+          details = aiDetails;
+        } catch (aiError) {
+          console.error("AI detail fetch failed:", aiError);
+          // Continue with manual input if AI fails
+          toast({
+            variant: "default",
+            title: "Thông tin AI",
+            description: "Không thể tự động điền thông tin. Sử dụng thông tin bạn đã nhập.",
+          });
+        }
 
-        const finalVietnameseTranslation = values.vietnameseTranslation || (values.language === 'vietnamese' ? values.word : details.translation);
-
+        // Determine final Vietnamese translation
+        let finalVietnameseTranslation = values.vietnameseTranslation;
+        
         if (!finalVietnameseTranslation) {
-          throw new Error("Không thể tìm thấy nghĩa Tiếng Việt cho từ này.");
+          if (values.language === 'vietnamese') {
+            finalVietnameseTranslation = values.word;
+          } else if (details.translation) {
+            finalVietnameseTranslation = details.translation;
+          } else {
+            // Require user to provide translation if AI failed
+            throw new Error("Vui lòng nhập nghĩa Tiếng Việt cho từ này.");
+          }
+        }
+
+        if (!finalVietnameseTranslation || finalVietnameseTranslation.trim() === '') {
+          throw new Error("Vui lòng nhập nghĩa Tiếng Việt cho từ này.");
         }
 
         const vocabularyData = {
-          word: values.word,
+          word: values.word.trim(),
           language: values.language as Language,
           folder: targetFolder,
-          vietnameseTranslation: finalVietnameseTranslation,
-          partOfSpeech: values.partOfSpeech || details.partOfSpeech,
-          ipa: initialData?.ipa || details.ipa,
-          pinyin: initialData?.pinyin || details.pinyin,
+          vietnameseTranslation: finalVietnameseTranslation.trim(),
+          partOfSpeech: values.partOfSpeech || details.partOfSpeech || undefined,
+          ipa: initialData?.ipa || details.ipa || undefined,
+          pinyin: initialData?.pinyin || details.pinyin || undefined,
         };
 
         const addResult = await addVocabularyItem(vocabularyData);
@@ -222,6 +264,8 @@ export function SaveVocabularyDialog({
             title: "Thành công!",
             description: `"${values.word}" đã được thêm vào từ vựng của bạn.`,
           });
+        } else {
+          throw new Error("Không thể thêm từ vựng. Vui lòng kiểm tra lại thông tin.");
         }
       }
 

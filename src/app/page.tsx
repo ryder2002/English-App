@@ -1,8 +1,9 @@
 "use client";
 
 import { AppShell } from "@/components/app-shell";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, FileSpreadsheet } from "lucide-react";
 import { SaveVocabularyDialog } from "@/components/save-vocabulary-dialog";
+import { ImportExcelDialog } from "@/components/import-excel-dialog";
 import { Button } from "@/components/ui/button";
 import { VocabularyList } from "@/components/vocabulary-list";
 import { useState, useEffect } from "react";
@@ -14,6 +15,7 @@ export default function VocabularyPage() {
   const auth = useAuth();
   const router = useRouter();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!auth?.isLoading && !auth?.user) {
@@ -53,17 +55,32 @@ export default function VocabularyPage() {
                 </p>
               </div>
             </div>
-            <Button 
-              onClick={() => setIsSaveDialogOpen(true)} 
-              className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 px-4 py-2.5 sm:px-6 sm:py-6 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold"
-            >
-              <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="hidden sm:inline">➕ Thêm từ</span>
-              <span className="sm:hidden">➕ Thêm</span>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button 
+                onClick={() => setIsSaveDialogOpen(true)} 
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 px-4 py-2.5 sm:px-6 sm:py-6 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold"
+              >
+                <PlusCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">➕ Thêm từ</span>
+                <span className="sm:hidden">➕ Thêm</span>
+              </Button>
+              <Button 
+                onClick={() => setIsImportDialogOpen(true)} 
+                variant="outline"
+                className="w-full sm:w-auto border-2 border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-600 transition-all duration-300 hover:scale-105 px-4 py-2.5 sm:px-6 sm:py-6 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold"
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">📊 Import Excel</span>
+                <span className="sm:hidden">📊 Import</span>
+              </Button>
+            </div>
             <SaveVocabularyDialog
               open={isSaveDialogOpen}
               onOpenChange={setIsSaveDialogOpen}
+            />
+            <ImportExcelDialog
+              open={isImportDialogOpen}
+              onOpenChange={setIsImportDialogOpen}
             />
           </div>
           <VocabularyList />
