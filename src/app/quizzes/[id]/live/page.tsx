@@ -926,7 +926,15 @@ export default function QuizLivePage() {
           {liveData.vocabulary && Array.isArray(liveData.vocabulary) && liveData.vocabulary.length > 0 ? (
             <QuizPlayerForClass
               vocabulary={liveData.vocabulary}
-              quizDirection={(liveData.quiz.direction as QuizDirection) || 'en-vi'}
+              quizDirection={(() => {
+                const dir = liveData.quiz.direction || 'en_vi';
+                const directionMap: Record<string, QuizDirection> = {
+                  'en_vi': 'en-vi',
+                  'vi_en': 'vi-en',
+                  'random': 'random'
+                };
+                return directionMap[dir] || 'en-vi';
+              })()}
               onComplete={handleQuizComplete}
               resultId={Number(liveData.resultId || 0)}
               quizId={Number(quizId)}

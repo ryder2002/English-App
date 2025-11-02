@@ -236,8 +236,8 @@ export default function EditTestPage() {
                   <SelectValue placeholder="Chọn hướng dịch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en_vi">🇬🇧 Tiếng Anh → Tiếng Việt</SelectItem>
-                  <SelectItem value="vi_en">🇻🇳 Tiếng Việt → Tiếng Anh</SelectItem>
+                  <SelectItem value="en_vi">🇬🇧 Tiếng Anh → 🇻🇳 Tiếng Việt</SelectItem>
+                  <SelectItem value="vi_en">🇻🇳 Tiếng Việt → 🇬🇧 Tiếng Anh</SelectItem>
                   <SelectItem value="random">🎲 Ngẫu nhiên</SelectItem>
                 </SelectContent>
               </Select>

@@ -82,21 +82,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         orderBy: { createdAt: 'asc' },
       });
 
-      // Determine direction based on vocabulary language
-      // If vocabulary is primarily English, use en-vi; if Chinese, use vi-en or en-vi
-      // Default to en-vi for most cases
-      let direction: 'en-vi' | 'vi-en' | 'random' = 'en-vi';
-      if (vocabulary.length > 0) {
-        const languages = vocabulary.map(v => v.language);
-        const hasChinese = languages.some(l => l === 'chinese');
-        const hasEnglish = languages.some(l => l === 'english');
-        // If mostly Chinese, use vi-en; otherwise default to en-vi
-        if (hasChinese && !hasEnglish) {
-          direction = 'vi-en';
-        } else {
-          direction = 'en-vi';
-        }
-      }
+      // Get direction from quiz, default to en_vi
+      const quizDirection = (quiz as any).direction || 'en_vi';
+      // Convert en_vi -> en-vi, vi_en -> vi-en, random -> random for frontend
+      const directionMap: Record<string, string> = {
+        'en_vi': 'en-vi',
+        'vi_en': 'vi-en',
+        'random': 'random'
+      };
+      const direction = directionMap[quizDirection] || 'en-vi';
 
       return NextResponse.json({
         quiz: {
@@ -105,7 +99,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           description: quiz.description,
           quizCode: quiz.quizCode,
           status: quizStatus,
-          direction: direction,
+          direction: quizDirection, // Keep database format for conversion
           timePerQuestion,
           isPaused,
         },
@@ -226,6 +220,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         return new Date(a.endedAt).getTime() - new Date(b.endedAt).getTime();
       });
 
+    // Get direction from quiz for admin view
+    const quizDirection = (quiz as any).direction || 'en_vi';
+
     return NextResponse.json({
       quiz: {
         id: quiz.id,
@@ -234,6 +231,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         quizCode: quiz.quizCode,
         status: quizStatus,
         createdAt: quiz.createdAt,
+        direction: quizDirection, // Include direction for admin
         timePerQuestion,
         isPaused,
       },

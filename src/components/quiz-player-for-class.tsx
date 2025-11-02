@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
@@ -211,7 +211,7 @@ export function QuizPlayerForClass({
         }
 
         return {
-            prompt: isWordToMeaning ? "Nghĩa của từ sau là gì?" : "Từ nào có nghĩa là:",
+            prompt: isWordToMeaning ? "🇬🇧 Nghĩa của từ sau là gì?" : "🇻🇳 Từ nào có nghĩa là:",
             questionText: isWordToMeaning ? questionItem.word : questionItem.vietnameseTranslation,
             ipa: isWordToMeaning ? questionItem.ipa : undefined,
             questionType,
@@ -221,6 +221,33 @@ export function QuizPlayerForClass({
         };
 
     }, [quizDeck, currentIndex, fullDeck, isLoading, quizDirection, isMounted]); // Added isMounted to dependency array
+
+    const handleAutoAdvance = useCallback(() => {
+        if (selectedAnswer || !currentQuestion) return;
+        
+        // Auto-select first option (or random) - or just skip
+        // For now, we'll just move to next question
+        if (currentIndex < quizDeck.length - 1) {
+            // Save empty answer
+            const answerData: QuizAnswer = {
+                vocabularyId: currentQuestion.originalItem.id ? parseInt(currentQuestion.originalItem.id) : null,
+                questionText: currentQuestion.questionText,
+                questionType: currentQuestion.questionType,
+                selectedAnswer: '', // No answer selected
+                correctAnswer: currentQuestion.correctAnswer,
+                isCorrect: false,
+            };
+            
+            setAnswers(prev => [...prev, answerData]);
+            
+            setCurrentIndex(prev => prev + 1);
+            setSelectedAnswer(null);
+        } else {
+            // All questions answered, ready to submit
+            setIsFinished(true);
+            setSubmittedAnswers(prev => [...prev]);
+        }
+    }, [selectedAnswer, currentQuestion, currentIndex, quizDeck.length]);
 
     // Auto-advance timer effect
     useEffect(() => {
@@ -247,36 +274,7 @@ export function QuizPlayerForClass({
         } else {
             setTimeRemaining(null);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentIndex, isPaused, isFinished, selectedAnswer, currentQuestion, timePerQuestion]);
-
-    const handleAutoAdvance = () => {
-        if (selectedAnswer || !currentQuestion) return;
-        
-        // Auto-select first option (or random) - or just skip
-        // For now, we'll just move to next question
-        if (currentIndex < quizDeck.length - 1) {
-            // Save empty answer
-            const answerData: QuizAnswer = {
-                vocabularyId: currentQuestion.originalItem.id ? parseInt(currentQuestion.originalItem.id) : null,
-                questionText: currentQuestion.questionText,
-                questionType: currentQuestion.questionType,
-                selectedAnswer: '', // No answer selected
-                correctAnswer: currentQuestion.correctAnswer,
-                isCorrect: false,
-            };
-            
-            const newAnswers = [...answers, answerData];
-            setAnswers(newAnswers);
-            
-            setCurrentIndex(prev => prev + 1);
-            setSelectedAnswer(null);
-        } else {
-            // All questions answered, ready to submit
-            setIsFinished(true);
-            setSubmittedAnswers(answers);
-        }
-    };
+    }, [currentIndex, isPaused, isFinished, selectedAnswer, currentQuestion, timePerQuestion, handleAutoAdvance]);
 
     const handleAnswerSelect = async (answer: string) => {
         if (selectedAnswer || !currentQuestion) return;
