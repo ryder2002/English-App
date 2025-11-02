@@ -48,18 +48,29 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
           line-height: 1.6;
           color: #1f2937;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%), url('${process.env.NEXTAUTH_URL || 'https://congnhat.online'}/BG.png');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          background-attachment: fixed;
+          background-blend-mode: overlay;
           padding: 20px;
+          margin: 0;
+          min-height: 100vh;
         }
         .email-wrapper {
           max-width: 600px;
           margin: 0 auto;
+          position: relative;
+          z-index: 1;
         }
         .container {
           background: #ffffff;
           border-radius: 16px;
           overflow: hidden;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          position: relative;
+          z-index: 2;
         }
         .header {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

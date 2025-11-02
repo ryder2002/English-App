@@ -148,8 +148,8 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
   };
 
   return (
-    <div className="flex flex-col h-full flex-grow mx-auto w-full bg-card/50 dark:bg-card/80 rounded-t-lg sm:rounded-t-xl shadow-lg border">
-        <ScrollArea className="flex-grow p-3 sm:p-4 md:p-6" viewportRef={scrollViewportRef}>
+    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-full bg-card/50 dark:bg-card/80 rounded-t-lg sm:rounded-t-xl shadow-lg border overflow-hidden" style={{ touchAction: 'pan-y' }} data-chatbot>
+        <ScrollArea className="flex-grow p-3 sm:p-4 md:p-6 overflow-y-auto" viewportRef={scrollViewportRef} data-scroll-area>
             <div className="space-y-4 sm:space-y-6">
                 {messages.map((message, index) => (
                     <div key={index} className={cn("flex items-start gap-2 sm:gap-3 md:gap-4", message.role === 'user' ? 'justify-end' : '')}>
@@ -199,7 +199,8 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
                             placeholder="Hỏi về bản dịch, định nghĩa, ngữ pháp..."
                             {...field}
                             disabled={isLoading}
-                            className="h-9 sm:h-10 md:h-11 text-sm sm:text-base rounded-full px-3 sm:px-4 md:px-5 bg-background/70 dark:bg-card/70"
+                            className="h-9 sm:h-10 md:h-11 text-base sm:text-base md:text-base rounded-full px-3 sm:px-4 md:px-5 bg-background/70 dark:bg-card/70"
+                            style={{ fontSize: '16px' }}
                         />
                         </FormControl>
                     </FormItem>

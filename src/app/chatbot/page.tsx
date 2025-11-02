@@ -92,7 +92,7 @@ export default function ChatbotPage() {
 
     return (
         <AppShell>
-          <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] md:h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
+          <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] md:h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 overflow-hidden">
              <div className="container mx-auto px-3 py-3 sm:px-4 sm:py-4 md:p-6 lg:p-8 flex-shrink-0">
                <div className="mb-2 sm:mb-4 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft p-3 sm:p-4 border border-gray-200/50 dark:border-gray-700/50">
                  <div className="flex items-center justify-center gap-3 sm:gap-4">
