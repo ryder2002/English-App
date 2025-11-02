@@ -122,28 +122,29 @@ export default function ClassesPage() {
   return (
     <AppShell>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
-        <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:p-6 lg:p-8">
           {/* Header với gradient */}
-          <div className="mb-8 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft p-6 border border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-glow animate-pulse-slow">
-                  <span className="text-3xl">🎓</span>
+          <div className="mb-4 sm:mb-6 md:mb-8 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft p-4 sm:p-5 md:p-6 border border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-glow animate-pulse-slow flex-shrink-0">
+                  <span className="text-xl sm:text-2xl md:text-3xl">🎓</span>
                 </div>
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                     Lớp học của tôi
                   </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                     Tham gia lớp học và làm bài kiểm tra
                   </p>
                 </div>
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 px-6 py-6 rounded-xl text-base font-semibold">
-                    <Plus className="mr-2 h-5 w-5" />
-                    ➕ Tham gia lớp
+                  <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 px-4 py-2.5 sm:px-6 sm:py-6 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold">
+                    <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="hidden sm:inline">➕ Tham gia lớp</span>
+                    <span className="sm:hidden">➕ Tham gia</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-800 dark:to-blue-900/20 border-0 shadow-2xl">
@@ -191,25 +192,25 @@ export default function ClassesPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {classes.map((clazz) => (
                 <Card 
                   key={clazz.id} 
-                  className="border-0 shadow-soft hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm overflow-hidden group"
+                  className="border-0 shadow-soft hover:shadow-lg transition-all duration-300 hover:scale-[1.02] sm:hover:scale-105 cursor-pointer bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm overflow-hidden group"
                   onClick={() => router.push(`/classes/${clazz.id}`)}
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <CardHeader className="relative">
-                    <CardTitle className="flex items-center justify-between text-xl">
-                      <span className="font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  <CardHeader className="relative p-4 sm:p-6">
+                    <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-lg sm:text-xl">
+                      <span className="font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent line-clamp-2">
                         {clazz.name}
                       </span>
-                      <span className="text-sm font-mono bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800 font-bold text-purple-700 dark:text-purple-300">
+                      <span className="text-xs sm:text-sm font-mono bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-purple-200 dark:border-purple-800 font-bold text-purple-700 dark:text-purple-300 shrink-0">
                         {clazz.classCode}
                       </span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4 relative">
+                  <CardContent className="space-y-3 sm:space-y-4 relative p-4 sm:p-6 pt-0">
                     {clazz.description && (
                       <p className="text-sm text-muted-foreground">{clazz.description}</p>
                     )}

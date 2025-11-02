@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
@@ -222,48 +222,81 @@ export function QuizPlayerForClass({
 
     }, [quizDeck, currentIndex, fullDeck, isLoading, quizDirection, isMounted]); // Added isMounted to dependency array
 
-    const handleAutoAdvance = useCallback(() => {
-        if (selectedAnswer || !currentQuestion) return;
-        
-        // Auto-select first option (or random) - or just skip
-        // For now, we'll just move to next question
-        if (currentIndex < quizDeck.length - 1) {
-            // Save empty answer
-            const answerData: QuizAnswer = {
-                vocabularyId: currentQuestion.originalItem.id ? parseInt(currentQuestion.originalItem.id) : null,
-                questionText: currentQuestion.questionText,
-                questionType: currentQuestion.questionType,
-                selectedAnswer: '', // No answer selected
-                correctAnswer: currentQuestion.correctAnswer,
-                isCorrect: false,
-            };
+    // Use ref to avoid recreating function and causing timer resets
+    const handleAutoAdvanceRef = useRef<() => void>();
+    
+    useEffect(() => {
+        handleAutoAdvanceRef.current = () => {
+            if (selectedAnswer || !currentQuestion) return;
             
-            setAnswers(prev => [...prev, answerData]);
-            
-            setCurrentIndex(prev => prev + 1);
-            setSelectedAnswer(null);
-        } else {
-            // All questions answered, ready to submit
-            setIsFinished(true);
-            setSubmittedAnswers(prev => [...prev]);
-        }
+            // Auto-select first option (or random) - or just skip
+            // For now, we'll just move to next question
+            if (currentIndex < quizDeck.length - 1) {
+                // Save empty answer
+                const answerData: QuizAnswer = {
+                    vocabularyId: currentQuestion.originalItem.id ? parseInt(currentQuestion.originalItem.id) : null,
+                    questionText: currentQuestion.questionText,
+                    questionType: currentQuestion.questionType,
+                    selectedAnswer: '', // No answer selected
+                    correctAnswer: currentQuestion.correctAnswer,
+                    isCorrect: false,
+                };
+                
+                setAnswers(prev => [...prev, answerData]);
+                
+                setCurrentIndex(prev => prev + 1);
+                setSelectedAnswer(null);
+            } else {
+                // All questions answered, ready to submit
+                setIsFinished(true);
+                setSubmittedAnswers(prev => [...prev]);
+            }
+        };
     }, [selectedAnswer, currentQuestion, currentIndex, quizDeck.length]);
 
+    // Track previous index to detect actual question changes
+    const prevIndexRef = useRef<number>(-1);
+    
     // Auto-advance timer effect
     useEffect(() => {
+        // Stop timer if conditions are met
         if (isPaused || isFinished || selectedAnswer || !currentQuestion) {
             setTimeRemaining(null);
+            prevIndexRef.current = currentIndex; // Update ref even when stopping
             return;
         }
 
+        // Only start/reset timer if:
+        // 1. currentIndex actually changed (new question)
+        // 2. timePerQuestion is set
+        const indexChanged = prevIndexRef.current !== currentIndex;
+        
         if (timePerQuestion && timePerQuestion > 0) {
-            setTimeRemaining(timePerQuestion);
+            if (indexChanged) {
+                // New question - reset timer
+                prevIndexRef.current = currentIndex;
+                setTimeRemaining(timePerQuestion);
+            }
             
+            // Start interval if timer isn't already running
             const interval = setInterval(() => {
+                // Re-check conditions inside interval
+                if (isPaused || isFinished || selectedAnswer || !currentQuestion) {
+                    setTimeRemaining(null);
+                    return;
+                }
+                
                 setTimeRemaining(prev => {
-                    if (prev === null || prev <= 1) {
+                    // If timer was reset externally (shouldn't happen), use timePerQuestion
+                    if (prev === null || prev === undefined) {
+                        return timePerQuestion;
+                    }
+                    
+                    if (prev <= 1) {
                         // Time's up, auto-advance
-                        handleAutoAdvance();
+                        if (handleAutoAdvanceRef.current) {
+                            handleAutoAdvanceRef.current();
+                        }
                         return null;
                     }
                     return prev - 1;
@@ -273,8 +306,11 @@ export function QuizPlayerForClass({
             return () => clearInterval(interval);
         } else {
             setTimeRemaining(null);
+            prevIndexRef.current = currentIndex;
         }
-    }, [currentIndex, isPaused, isFinished, selectedAnswer, currentQuestion, timePerQuestion, handleAutoAdvance]);
+        // Only depend on currentIndex and conditions, NOT currentQuestion or handleAutoAdvance
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentIndex, isPaused, isFinished, selectedAnswer, timePerQuestion]);
 
     const handleAnswerSelect = async (answer: string) => {
         if (selectedAnswer || !currentQuestion) return;

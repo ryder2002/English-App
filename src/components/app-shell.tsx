@@ -146,9 +146,9 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-11 items-center gap-2 border-b bg-background/95 px-3 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
-          <SidebarTrigger className="h-8 w-8" />
-          <div className="scale-75 origin-left">
+        <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-background/95 px-2 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
+          <SidebarTrigger className="h-7 w-7" />
+          <div className="scale-[0.7] origin-left">
             <CNLogo />
           </div>
         </header>
@@ -159,7 +159,7 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
             </Sheet>
         )}
         
-        <main>{children}</main>
+        <main className="pb-4 md:pb-0">{children}</main>
       </SidebarInset>
     </div>
   );

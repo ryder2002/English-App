@@ -185,26 +185,26 @@ export function VocabularyList() {
           </AccordionTrigger>
           <AccordionContent className="pb-4">
             {isMobile ? (
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2 sm:space-y-3 pt-2">
                 {items.map((item) => (
-                  <Card key={item.id} className="bg-card/80">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div onClick={() => handleEdit(item)} className="flex-grow cursor-pointer pr-2">
-                          <h3 className="font-bold text-lg flex items-center gap-2">
-                            {item.word}
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={(e) => playAudio(e, item)}>
-                                    {speakingId === item.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-4 w-4"/>}
+                  <Card key={item.id} className="bg-card/80 hover:shadow-md transition-shadow">
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex justify-between items-start gap-2">
+                        <div onClick={() => handleEdit(item)} className="flex-grow cursor-pointer min-w-0">
+                          <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-1">
+                            <span className="truncate">{item.word}</span>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground flex-shrink-0" onClick={(e) => playAudio(e, item)}>
+                                    {speakingId === item.id ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin"/> : <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4"/>}
                                 </Button>
                           </h3>
-                          <p className="text-primary font-medium">
+                          <p className="text-primary font-medium text-sm sm:text-base line-clamp-2">
                             {item.vietnameseTranslation}
                           </p>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                    <MoreVertical className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -217,10 +217,10 @@ export function VocabularyList() {
                             </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      <div className="mt-2 text-sm space-y-1">
-                        <p className="text-muted-foreground">
-                            {item.partOfSpeech && <span className="font-mono text-xs px-1.5 py-0.5 rounded-sm mr-2">{item.partOfSpeech}</span>}
-                            {item.ipa || item.pinyin}
+                      <div className="mt-2 text-xs sm:text-sm space-y-1.5">
+                        <p className="text-muted-foreground flex flex-wrap items-center gap-1.5">
+                            {item.partOfSpeech && <span className="font-mono text-[10px] sm:text-xs px-1.5 py-0.5 rounded-sm bg-muted">{item.partOfSpeech}</span>}
+                            <span className="truncate">{item.ipa || item.pinyin}</span>
                         </p>
                         <Badge
                           variant={
@@ -228,6 +228,7 @@ export function VocabularyList() {
                               ? "secondary"
                               : "outline"
                           }
+                          className="text-xs"
                         >
                           {languageMap[item.language]}
                         </Badge>
