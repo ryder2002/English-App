@@ -284,13 +284,20 @@ export default function ClassDetailPage() {
                             </Badge>
                           </div>
                         </div>
-                        <Link href={`/quizzes/${quiz.id}/lobby`}>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="Nhập mã bài kiểm tra"
+                            value={quiz.quizCode}
+                            readOnly
+                            className="font-mono text-center font-bold max-w-[140px]"
+                          />
                           <Button 
+                            onClick={() => router.push(`/quizzes/enter?code=${quiz.quizCode}`)}
                             className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl font-semibold px-6 py-6"
                           >
-                            🚪 Tham gia phòng chờ
+                            🚪 Vào phòng chờ
                           </Button>
-                        </Link>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

@@ -79,7 +79,7 @@ function MobileSheetContent() {
 }
 
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, hideSidebar = false }: { children: React.ReactNode; hideSidebar?: boolean }) {
   const authContext = useAuth();
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
@@ -92,6 +92,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // If there's no user, we are likely on the login/signup page.
   // The AuthProvider will handle redirection for protected routes.
   if (!user) {
+    return <>{children}</>;
+  }
+
+  // If sidebar should be hidden, render without sidebar
+  if (hideSidebar) {
     return <>{children}</>;
   }
   

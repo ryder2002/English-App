@@ -155,7 +155,7 @@ export default function QuizLobbyPage() {
 
   if (isLoading) {
     return (
-      <AppShell>
+      <AppShell hideSidebar={true}>
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
           <div className="flex items-center justify-center h-96">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -167,7 +167,7 @@ export default function QuizLobbyPage() {
 
   if (!lobbyData) {
     return (
-      <AppShell>
+      <AppShell hideSidebar={true}>
         <div className="container mx-auto p-4 md:p-6 lg:p-8">
           <Card>
             <CardContent className="p-6 text-center">
@@ -180,7 +180,7 @@ export default function QuizLobbyPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell hideSidebar={true}>
       <div className="container mx-auto p-4 md:p-6 lg:p-8 max-w-4xl">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold mb-2">{lobbyData.quiz.title}</h1>
