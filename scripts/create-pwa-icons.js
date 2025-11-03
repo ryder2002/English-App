@@ -1,12 +1,12 @@
 /**
- * Script resize BG.png thành PWA icons (192x192, 512x512)
- * Chạy: node scripts/resize-icons-from-bg.js
+ * Script tạo PWA icons từ BG.png (chỉ 192x192 và 512x512 - sizes bắt buộc cho PWA)
+ * Chạy: node scripts/create-pwa-icons.js
  */
 
 const fs = require('fs');
 const path = require('path');
 
-async function resizeIcons() {
+async function createPwaIcons() {
   try {
     const sharp = require('sharp');
     
@@ -16,7 +16,6 @@ async function resizeIcons() {
     // Tạo thư mục icons nếu chưa có
     if (!fs.existsSync(iconsDir)) {
       fs.mkdirSync(iconsDir, { recursive: true });
-      console.log('✅ Created icons directory');
     }
 
     // Kiểm tra BG.png
@@ -28,9 +27,9 @@ async function resizeIcons() {
     // Background color cho padding (theme color)
     const bgColor = { r: 10, g: 15, b: 31, alpha: 1 }; // #0A0F1F
 
-    console.log('🔄 Resizing PWA icons from BG.png...\n');
+    console.log('🔄 Creating PWA icons from BG.png...\n');
 
-    // PWA icon sizes
+    // PWA icon sizes bắt buộc
     const pwaSizes = [
       { size: 192, name: 'icon-192.png' },
       { size: 512, name: 'icon-512.png' }
@@ -41,15 +40,20 @@ async function resizeIcons() {
       await sharp(bgPath)
         .resize(size, size, {
           fit: 'contain',
-          background: bgColor
+          background: bgColor,
+          kernel: sharp.kernel.lanczos3 // Lanczos3 cho chất lượng cao nhất
         })
-        .png()
+        .png({
+          quality: 100,
+          compressionLevel: 6, // Giảm compression để giữ chất lượng
+          palette: false // Không dùng palette để giữ màu gốc
+        })
         .toFile(outputPath);
       console.log(`✅ Created ${name} (${size}x${size}) from BG.png`);
     }
 
-    console.log('\n🎉 PWA icons created successfully from BG.png!');
-    console.log('✨ Icons are ready for PWA installation (desktop & mobile)!');
+    console.log('\n🎉 PWA icons created successfully!');
+    console.log('✨ Icons are ready for PWA installation!');
 
   } catch (error) {
     if (error.code === 'MODULE_NOT_FOUND') {
@@ -63,5 +67,5 @@ async function resizeIcons() {
   }
 }
 
-resizeIcons();
+createPwaIcons();
 
