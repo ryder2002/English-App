@@ -15,17 +15,37 @@ export async function sendResetPasswordEmail({
   userName = 'bạn'
 }: SendResetEmailParams) {
   try {
+    // Always use congnhat.online for email from (verified domain)
+    // Force use congnhat.online even if RESEND_FROM_EMAIL is set to other domain
+    let fromEmail = process.env.RESEND_FROM_EMAIL || 'CN English <noreply@congnhat.online>';
+    
+    // Ensure it uses congnhat.online domain (replace if needed)
+    if (!fromEmail.includes('congnhat.online')) {
+      // Extract name if exists, otherwise use default
+      const nameMatch = fromEmail.match(/^([^<]+)</);
+      const name = nameMatch ? nameMatch[1].trim() : 'CN English';
+      fromEmail = `${name} <noreply@congnhat.online>`;
+    }
+
     const data = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'CN VOCAB <cnvocab@congnhat.online>',
+      from: fromEmail,
       to: [to],
-      subject: '🔐 Đặt lại mật khẩu - CN VOCAB',
+      subject: '🔐 Đặt lại mật khẩu - CN English',
       html: getResetPasswordEmailTemplate(resetUrl, userName),
     });
 
     console.log('Reset password email sent successfully:', data);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending reset password email:', error);
+    
+    // Provide more helpful error message
+    if (error.message?.includes('from') || error.message?.includes('validation_error')) {
+      const errorMsg = `Invalid email format in RESEND_FROM_EMAIL. Current: "${process.env.RESEND_FROM_EMAIL || 'undefined'}". Expected: "CN English <noreply@congnhat.online>"`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+    
     throw error;
   }
 }
@@ -37,7 +57,7 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Đặt lại mật khẩu - CN VOCAB</title>
+      <title>Đặt lại mật khẩu - CN English</title>
       <style>
         * {
           margin: 0;
@@ -48,7 +68,7 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
           line-height: 1.6;
           color: #1f2937;
-          background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%), url('${process.env.NEXTAUTH_URL || 'https://congnhat.online'}/BG.png');
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%), url('${process.env.NEXTAUTH_URL?.includes('cnenglish.io.vn') ? process.env.NEXTAUTH_URL : 'https://cnenglish.io.vn'}/BG.png');
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
@@ -240,8 +260,10 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
       <div class="email-wrapper">
         <div class="container">
           <div class="header">
-            <div class="logo">CN</div>
-            <h1>CN VOCAB</h1>
+            <div class="logo">
+              <img src="${process.env.NEXTAUTH_URL?.includes('cnenglish.io.vn') ? process.env.NEXTAUTH_URL : 'https://cnenglish.io.vn'}/Logo.png" alt="CN English Logo" />
+            </div>
+            <h1>CN English</h1>
             <p>Your Smart Vocabulary Learning Platform</p>
           </div>
           
@@ -250,7 +272,7 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
             
             <p class="message">
               Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn trên nền tảng 
-              <span class="highlight">CN VOCAB</span>.
+              <span class="highlight">CN English</span>.
             </p>
             
             <p class="message">
@@ -280,7 +302,7 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
               </div>
               <p>• Không chia sẻ link này với bất kỳ ai để bảo vệ tài khoản của bạn.</p>
               <p>• Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng liên hệ với chúng tôi ngay lập tức.</p>
-              <p>• CN VOCAB sẽ không bao giờ yêu cầu mật khẩu của bạn qua email.</p>
+              <p>• CN English sẽ không bao giờ yêu cầu mật khẩu của bạn qua email.</p>
               <p>• Luôn sử dụng mật khẩu mạnh có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.</p>
             </div>
             
@@ -291,7 +313,10 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
           </div>
           
           <div class="footer">
-            <div class="footer-logo">CN VOCAB</div>
+            <div class="footer-logo">
+              <img src="${process.env.NEXTAUTH_URL?.includes('cnenglish.io.vn') ? process.env.NEXTAUTH_URL : 'https://cnenglish.io.vn'}/Logo.png" alt="CN English" style="width: 60px; height: 60px; object-fit: contain; margin-bottom: 10px;" />
+              <div style="font-size: 24px; font-weight: 700; color: #667eea; margin-top: 10px;">CN English</div>
+            </div>
             <p>Nền tảng học từ vựng thông minh</p>
             <p>Build your vocabulary, build your future</p>
             
@@ -303,7 +328,7 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
             </div>
             
             <div class="copyright">
-              <p>© ${new Date().getFullYear()} CN VOCAB. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} CN English. All rights reserved.</p>
               <p>Email này được gửi tới tài khoản của bạn vì có yêu cầu đặt lại mật khẩu.</p>
             </div>
           </div>
@@ -318,9 +343,18 @@ function getResetPasswordEmailTemplate(resetUrl: string, userName: string): stri
 export async function sendWelcomeEmail(to: string, userName: string) {
   try {
     const data = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'CN VOCAB <onboarding@resend.dev>',
+      from: (() => {
+        const email = process.env.RESEND_FROM_EMAIL || 'CN English <noreply@congnhat.online>';
+        // Force use congnhat.online
+        if (!email.includes('congnhat.online')) {
+          const nameMatch = email.match(/^([^<]+)</);
+          const name = nameMatch ? nameMatch[1].trim() : 'CN English';
+          return `${name} <noreply@congnhat.online>`;
+        }
+        return email;
+      })(),
       to: [to],
-      subject: '🎉 Chào mừng đến với CN VOCAB!',
+      subject: '🎉 Chào mừng đến với CN English!',
       html: getWelcomeEmailTemplate(userName),
     });
 
@@ -458,7 +492,7 @@ function getWelcomeEmailTemplate(userName: string): string {
           </div>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXTAUTH_URL || 'https://congnhat.online'}" class="cta-button">
+            <a href="${process.env.NEXTAUTH_URL?.includes('cnenglish.io.vn') ? process.env.NEXTAUTH_URL : 'https://cnenglish.io.vn'}" class="cta-button">
               Bắt đầu học ngay
             </a>
           </div>

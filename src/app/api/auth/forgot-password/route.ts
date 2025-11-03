@@ -39,8 +39,11 @@ export async function POST(request: NextRequest) {
       WHERE email = ${email}
     `;
 
-    // Create reset URL
-    const resetUrl = `${process.env.NEXTAUTH_URL || 'https://congnhat.online'}/reset-password?token=${resetToken}`;
+    // Create reset URL - Force use cnenglish.io.vn
+    const baseUrl = process.env.NEXTAUTH_URL?.includes('cnenglish.io.vn') 
+      ? process.env.NEXTAUTH_URL 
+      : 'https://cnenglish.io.vn';
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
     // Send email with Resend
     try {
