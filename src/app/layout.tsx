@@ -11,7 +11,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "CN - Language Learning",
+  title: "CN English",
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
   icons: {
     icon: [
