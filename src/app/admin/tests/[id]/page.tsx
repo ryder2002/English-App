@@ -526,7 +526,7 @@ export default function TestDetailPage() {
               <TableBody>
                 {monitorData.results.map((result) => (
                   <TableRow key={result.id}>
-                    <TableCell>{result.user.name || '-'}</TableCell>
+                    <TableCell>{result.user.name || result.user.email}</TableCell>
                     <TableCell>{result.user.email}</TableCell>
                     <TableCell>
                       {result.status === 'submitted' || result.status === 'completed' ? (

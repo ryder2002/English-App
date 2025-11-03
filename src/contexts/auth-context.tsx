@@ -41,6 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData.user);
+                // If user now has a name, close the dialog
+                if (userData.user?.name) {
+                    setShowNameDialog(false);
+                }
                 return userData.user;
             } else {
                 setUser(null);
@@ -65,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const userData = await response.json();
                     setUser(userData.user);
                     
-                    // Check if user needs to set name (first time login) - only for admin
-                    if (userData.user && !userData.user.name && userData.user.role === 'admin') {
+                    // Check if user needs to set name (first time login) - for all users
+                    if (userData.user && !userData.user.name) {
                         setShowNameDialog(true);
                     }
                     

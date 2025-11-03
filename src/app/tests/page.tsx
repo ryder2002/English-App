@@ -38,21 +38,23 @@ type DirectionSelectorProps = {
 };
 
 const DirectionSelector = ({ value, onValueChange }: DirectionSelectorProps) => (
-  <div className="flex items-center justify-center p-2 sm:p-3 md:p-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
-    <RadioGroup value={value} onValueChange={onValueChange} className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 md:space-x-6 w-full">
-      <div className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-200">
-        <RadioGroupItem value="en-vi" id={`r1-${value}`} className="border-2 border-purple-400 h-4 w-4 sm:h-5 sm:w-5" />
-        <Label htmlFor={`r1-${value}`} className="font-semibold cursor-pointer text-xs sm:text-sm md:text-base whitespace-nowrap">🇬🇧 Anh - Việt</Label>
-      </div>
-      <div className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-200">
-        <RadioGroupItem value="vi-en" id={`r2-${value}`} className="border-2 border-purple-400 h-4 w-4 sm:h-5 sm:w-5" />
-        <Label htmlFor={`r2-${value}`} className="font-semibold cursor-pointer text-xs sm:text-sm md:text-base whitespace-nowrap">🇻🇳 Việt - Anh</Label>
-      </div>
-      <div className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg hover:bg-white/50 dark:hover:bg-gray-800/50 transition-all duration-200">
-        <RadioGroupItem value="random" id={`r3-${value}`} className="border-2 border-purple-400 h-4 w-4 sm:h-5 sm:w-5"/>
-        <Label htmlFor={`r3-${value}`} className="font-semibold cursor-pointer text-xs sm:text-sm md:text-base whitespace-nowrap">🎲 Ngẫu nhiên</Label>
-      </div>
-    </RadioGroup>
+  <div className="w-full max-w-4xl mx-auto mb-4 sm:mb-6">
+    <div className="flex items-center justify-center p-2 sm:p-3 md:p-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-pink-50/80 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200/60 dark:border-purple-800/60 shadow-sm hover:shadow-md transition-all duration-300">
+      <RadioGroup value={value} onValueChange={onValueChange} className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-6 w-full">
+        <div className="flex items-center space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl hover:bg-white/70 dark:hover:bg-gray-800/70 transition-all duration-200 cursor-pointer">
+          <RadioGroupItem value="en-vi" id={`r1-${value}`} className="border-2 border-purple-400 h-4 w-4 sm:h-5 sm:w-5 data-[state=checked]:border-purple-600" />
+          <Label htmlFor={`r1-${value}`} className="font-semibold cursor-pointer text-xs sm:text-sm md:text-base whitespace-nowrap select-none">🇬🇧 Anh - Việt</Label>
+        </div>
+        <div className="flex items-center space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl hover:bg-white/70 dark:hover:bg-gray-800/70 transition-all duration-200 cursor-pointer">
+          <RadioGroupItem value="vi-en" id={`r2-${value}`} className="border-2 border-purple-400 h-4 w-4 sm:h-5 sm:w-5 data-[state=checked]:border-purple-600" />
+          <Label htmlFor={`r2-${value}`} className="font-semibold cursor-pointer text-xs sm:text-sm md:text-base whitespace-nowrap select-none">🇻🇳 Việt - Anh</Label>
+        </div>
+        <div className="flex items-center space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl hover:bg-white/70 dark:hover:bg-gray-800/70 transition-all duration-200 cursor-pointer">
+          <RadioGroupItem value="random" id={`r3-${value}`} className="border-2 border-purple-400 h-4 w-4 sm:h-5 sm:w-5 data-[state=checked]:border-purple-600"/>
+          <Label htmlFor={`r3-${value}`} className="font-semibold cursor-pointer text-xs sm:text-sm md:text-base whitespace-nowrap select-none">🎲 Ngẫu nhiên</Label>
+        </div>
+      </RadioGroup>
+    </div>
   </div>
 );
 
@@ -155,42 +157,37 @@ export default function UserTestsPage() {
               </div>
               <div className="relative z-10">
               <Tabs defaultValue="multiple-choice" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl p-0.5 sm:p-1 border-2 border-purple-200 dark:border-purple-800 gap-0.5 sm:gap-1">
-                  <TabsTrigger 
-                    value="multiple-choice"
-                    className="rounded-md sm:rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-2.5"
-                  >
-                    <span className="hidden sm:inline">✅ Trắc nghiệm</span>
-                    <span className="sm:hidden">✅</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="matching-game"
-                    className="rounded-md sm:rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-2.5"
-                  >
-                    <span className="hidden sm:inline">🎯 Ghép thẻ</span>
-                    <span className="sm:hidden">🎯</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="spelling-practice"
-                    className="rounded-md sm:rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-2.5"
-                  >
-                    <span className="hidden sm:inline">✍️ Luyện viết</span>
-                    <span className="sm:hidden">✍️</span>
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="multiple-choice" className="mt-4 sm:mt-6 md:mt-8">
-                  <div className="mb-4 sm:mb-6">
-                    <DirectionSelector value={mcDirection} onValueChange={setMcDirection} />
-                  </div>
+                <div className="w-full max-w-2xl mx-auto mb-6 sm:mb-8 flex justify-center">
+                  <TabsList className="inline-flex h-auto bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-pink-50/80 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-xl p-1.5 border border-purple-200/60 dark:border-purple-700/60 gap-1.5">
+                    <TabsTrigger 
+                      value="multiple-choice"
+                      className="flex items-center justify-center rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 font-semibold text-sm sm:text-base py-2.5 sm:py-3 px-4 sm:px-6 whitespace-nowrap data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-700 dark:data-[state=inactive]:text-gray-300 data-[state=inactive]:hover:bg-white/50 dark:data-[state=inactive]:hover:bg-gray-700/30"
+                    >
+                      ✅ Trắc nghiệm
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="matching-game"
+                      className="flex items-center justify-center rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 font-semibold text-sm sm:text-base py-2.5 sm:py-3 px-4 sm:px-6 whitespace-nowrap data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-700 dark:data-[state=inactive]:text-gray-300 data-[state=inactive]:hover:bg-white/50 dark:data-[state=inactive]:hover:bg-gray-700/30"
+                    >
+                      🎯 Ghép thẻ
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="spelling-practice"
+                      className="flex items-center justify-center rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 font-semibold text-sm sm:text-base py-2.5 sm:py-3 px-4 sm:px-6 whitespace-nowrap data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-700 dark:data-[state=inactive]:text-gray-300 data-[state=inactive]:hover:bg-white/50 dark:data-[state=inactive]:hover:bg-gray-700/30"
+                    >
+                      ✍️ Luyện viết
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                <TabsContent value="multiple-choice" className="mt-6 sm:mt-8">
+                  <DirectionSelector value={mcDirection} onValueChange={setMcDirection} />
                   <MultipleChoicePlayer selectedFolder={selectedFolder} quizDirection={mcDirection as QuizDirection} />
                 </TabsContent>
-                <TabsContent value="matching-game" className="mt-4 sm:mt-6 md:mt-8">
+                <TabsContent value="matching-game" className="mt-6 sm:mt-8">
                   <MatchingGamePlayer selectedFolder={selectedFolder} />
                 </TabsContent>
-                <TabsContent value="spelling-practice" className="mt-4 sm:mt-6 md:mt-8">
-                  <div className="mb-4 sm:mb-6">
-                    <DirectionSelector value={spDirection} onValueChange={setSpDirection} />
-                  </div>
+                <TabsContent value="spelling-practice" className="mt-6 sm:mt-8">
+                  <DirectionSelector value={spDirection} onValueChange={setSpDirection} />
                   <SpellingPracticePlayer selectedFolder={selectedFolder} direction={spDirection as QuizDirection} />
                 </TabsContent>
               </Tabs>
