@@ -40,7 +40,7 @@ export default function AdminClassesPage() {
       return (
         String(c.name).toLowerCase().includes(q) ||
         String(c.classCode).toLowerCase().includes(q) ||
-        String(c.teacher?.email || '').toLowerCase().includes(q)
+        String(c.teacher?.name || c.teacher?.email || '').toLowerCase().includes(q)
       );
     });
   }, [classes, query]);
@@ -92,7 +92,7 @@ export default function AdminClassesPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="relative flex-1 w-full">
               <Input
-                placeholder="🔍 Tìm theo tên, mã hoặc email giáo viên"
+                placeholder="🔍 Tìm theo tên lớp, mã lớp hoặc tên giáo viên"
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setPage(1); }}
                 className="pl-10 border-2 border-purple-200 dark:border-purple-800 rounded-xl"
@@ -158,7 +158,7 @@ export default function AdminClassesPage() {
                             {c.classCode}
                           </span>
                         </TableCell>
-                        <TableCell>{c.teacher?.email}</TableCell>
+                        <TableCell>{c.teacher?.name || c.teacher?.email}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -203,8 +203,8 @@ export default function AdminClassesPage() {
                             <span className="font-mono bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 px-2 py-1 rounded-lg font-bold">
                               🔑 {c.classCode}
                             </span>
-                            {c.teacher?.email && (
-                              <span className="text-muted-foreground">👨‍🏫 {c.teacher.email}</span>
+                            {c.teacher && (
+                              <span className="text-muted-foreground">👨‍🏫 {c.teacher.name || c.teacher.email}</span>
                             )}
                           </div>
                         </div>

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Only get classes where this admin is the teacher
     const classes = await prisma.clazz.findMany({
       where: { teacherId: user.id },
-      include: { teacher: { select: { id: true, email: true } }, members: true },
+      include: { teacher: { select: { id: true, email: true, name: true } }, members: true },
       orderBy: { createdAt: 'desc' }
     });
 
