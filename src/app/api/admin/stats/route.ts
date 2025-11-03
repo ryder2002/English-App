@@ -117,15 +117,6 @@ export async function GET(request: NextRequest) {
       recentActivities = [];
     }
 
-    console.log(`[Admin Stats] User ${user.id} stats:`, {
-      classCount,
-      folderCount,
-      vocabCount,
-      quizCount,
-      studentCount,
-      recentActivitiesCount: recentActivities.length
-    });
-
     return NextResponse.json({
       studentCount,
       classCount,

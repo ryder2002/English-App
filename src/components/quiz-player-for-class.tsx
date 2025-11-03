@@ -313,7 +313,7 @@ export function QuizPlayerForClass({
     }, [currentIndex, isPaused, isFinished, selectedAnswer, timePerQuestion]);
 
     const handleAnswerSelect = async (answer: string) => {
-        if (selectedAnswer || !currentQuestion) return;
+        if (selectedAnswer || !currentQuestion || isPaused) return;
 
         setSelectedAnswer(answer);
         setTimeRemaining(null); // Stop timer
@@ -331,6 +331,9 @@ export function QuizPlayerForClass({
 
         // Show feedback immediately
         setFeedback(isCorrect ? 'correct' : 'incorrect');
+        
+        // Store previous score for potential rollback
+        const previousScore = currentScore;
         
         // Update score immediately
         const newScore = isCorrect ? currentScore + 1 : currentScore;
@@ -361,6 +364,20 @@ export function QuizPlayerForClass({
                     if (onAnswerSubmitted) {
                         onAnswerSubmitted(answerData, data.currentScore || newScore);
                     }
+                } else {
+                    // Handle error response
+                    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+                    if (errorData.error?.includes('paused')) {
+                        // Quiz was paused - reset all selection state to allow retry after resume
+                        setSelectedAnswer(null);
+                        setFeedback(null);
+                        // Revert score change since answer wasn't accepted
+                        setCurrentScore(previousScore);
+                        // Remove the answer from answers array
+                        setAnswers(prev => prev.filter((_, idx) => idx < prev.length - 1));
+                        return; // Don't proceed with answer submission
+                    }
+                    console.error('Failed to submit answer:', errorData.error || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Failed to submit answer:', error);
@@ -668,7 +685,7 @@ export function QuizPlayerForClass({
                                     !showFeedback && !isSelected && "hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 dark:hover:from-gray-700 dark:hover:to-blue-900/20 border-gray-200 dark:border-gray-700"
                                 )}
                                 onClick={() => handleAnswerSelect(option)}
-                                disabled={!!selectedAnswer}
+                                disabled={!!selectedAnswer || isPaused}
                             >
                                 <div className="flex items-center gap-3 flex-grow">
                                     <div className={cn(

@@ -143,8 +143,8 @@ export default function ClassesPage() {
                 <DialogTrigger asChild>
                   <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 px-4 py-2.5 sm:px-6 sm:py-6 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold">
                     <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="hidden sm:inline">➕ Tham gia lớp</span>
-                    <span className="sm:hidden">➕ Tham gia</span>
+                    <span className="hidden sm:inline">Tham gia lớp</span>
+                    <span className="sm:hidden">Tham gia</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-800 dark:to-blue-900/20 border-0 shadow-2xl">

@@ -59,12 +59,6 @@ export async function GET(request: NextRequest) {
       return matches;
     });
 
-    // Debug logging
-    console.log(`[Folders API] User ${userId} (role: ${user.role}) requested folders. Found ${formattedFolders.length} folders, returning ${filteredFolders.length} after filtering.`);
-    if (filteredFolders.length > 0) {
-      console.log(`[Folders API] First folder userId: ${filteredFolders[0].userId}, name: ${filteredFolders[0].name}`);
-    }
-
     return NextResponse.json({ folders: filteredFolders })
   } catch (error) {
     console.error('Error fetching folders:', error)

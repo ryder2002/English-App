@@ -54,9 +54,6 @@ export async function GET(request: NextRequest) {
       return matches;
     });
 
-    // Debug logging (remove in production)
-    console.log(`[Vocabulary API] User ${userId} (role: ${user.role}) requested vocabulary. Found ${vocabulary.length} items, returning ${filteredVocabulary.length} after filtering.`);
-
     // Convert to match the existing VocabularyItem interface
     const formattedVocabulary = filteredVocabulary.map((item: any) => ({
       id: item.id.toString(),

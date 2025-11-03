@@ -98,8 +98,6 @@ export async function DELETE(
     const folderId = parseInt(id)
     const isAdmin = payload.role === 'admin'
 
-    console.log(`[DELETE Folder] User ${payload.userId} (admin: ${isAdmin}) attempting to delete folder ${folderId}`)
-
     // First get the folder
     const folder = await prisma.folder.findFirst({
       where: isAdmin 
@@ -111,8 +109,6 @@ export async function DELETE(
       console.error(`[DELETE Folder] Folder ${folderId} not found for user ${payload.userId}`)
       return NextResponse.json({ error: 'Folder not found' }, { status: 404 })
     }
-
-    console.log(`[DELETE Folder] Found folder: ${folder.name} (userId: ${folder.userId})`)
 
     // Recursively collect all folder IDs to delete
     const collectFolderIds = async (parentId: number): Promise<number[]> => {
@@ -131,7 +127,6 @@ export async function DELETE(
     }
 
     const allFolderIds = await collectFolderIds(folder.id)
-    console.log(`[DELETE Folder] Will delete ${allFolderIds.length} folders:`, allFolderIds)
 
     // Get all folder names for vocabulary deletion
     const allFolders = await prisma.folder.findMany({
@@ -143,18 +138,16 @@ export async function DELETE(
           }
     })
     const folderNames = allFolders.map(f => f.name)
-    console.log(`[DELETE Folder] Will delete vocabulary from folders:`, folderNames)
 
     // Delete quizzes that use these folders
-    const quizDeleteResult = await prisma.quiz.deleteMany({
+    await prisma.quiz.deleteMany({
       where: {
         folderId: { in: allFolderIds }
       }
     })
-    console.log(`[DELETE Folder] Deleted ${quizDeleteResult.count} quizzes using these folders`)
 
     // Delete vocabulary items in these folders
-    const vocabDeleteResult = await prisma.vocabulary.deleteMany({
+    await prisma.vocabulary.deleteMany({
       where: isAdmin
         ? { folder: { in: folderNames } }
         : {
@@ -162,7 +155,6 @@ export async function DELETE(
             folder: { in: folderNames }
           }
     })
-    console.log(`[DELETE Folder] Deleted ${vocabDeleteResult.count} vocabulary items`)
 
     // Delete folders (cascade will handle children)
     await prisma.folder.delete({
@@ -170,7 +162,6 @@ export async function DELETE(
         id: folderId
       }
     })
-    console.log(`[DELETE Folder] Successfully deleted folder ${folderId}`)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

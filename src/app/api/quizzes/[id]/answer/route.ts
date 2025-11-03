@@ -38,6 +38,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       return NextResponse.json({ error: 'Quiz is not active' }, { status: 400 });
     }
 
+    // Check if quiz is paused
+    const isPaused = (quiz as any).isPaused || false;
+    if (isPaused) {
+      return NextResponse.json({ error: 'Quiz is paused. Please wait for admin to resume.' }, { status: 400 });
+    }
+
     // Verify the result belongs to the user
     const existingResult = await prisma.quizResult.findUnique({
       where: { id: resultId },
