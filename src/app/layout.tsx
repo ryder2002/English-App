@@ -15,17 +15,10 @@ export const metadata: Metadata = {
   description: "Học từ vựng tiếng Anh và tiếng Trung một cách dễ dàng.",
   icons: {
     icon: [
-      { url: "/BG.png", sizes: "16x16", type: "image/png" },
-      { url: "/BG.png", sizes: "32x32", type: "image/png" },
-      { url: "/BG.png", sizes: "48x48", type: "image/png" },
-      { url: "/BG.png", sizes: "64x64", type: "image/png" },
-      { url: "/BG.png", sizes: "128x128", type: "image/png" },
-      { url: "/BG.png", sizes: "192x192", type: "image/png" },
-      { url: "/BG.png", sizes: "256x256", type: "image/png" },
-      { url: "/BG.png", sizes: "512x512", type: "image/png" },
+      { url: "/Logo.png", type: "image/png" },
     ],
-    apple: "/BG.png",
-    shortcut: "/BG.png",
+    apple: "/Logo.png",
+    shortcut: "/Logo.png",
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -49,12 +42,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="CN" />
-        <link rel="apple-touch-icon" href="/BG.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/BG.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/BG.png" />
-        <link rel="icon" type="image/png" sizes="48x48" href="/BG.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/BG.png" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/BG.png" />
+        <link rel="icon" href="/Logo.png" type="image/png" />
+        <link rel="shortcut icon" href="/Logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/Logo.png" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#0A0F1F" />

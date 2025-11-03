@@ -9,13 +9,17 @@ export async function GET(request: NextRequest) {
     const token = tokenFromHeader || tokenFromCookie;
 
     if (!token) {
+      // This is normal for unauthenticated users - not an error
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const payload = await AuthService.verifyToken(token)
 
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      // Token invalid or expired - clear cookie if exists
+      const response = NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      response.cookies.delete('token')
+      return response
     }
 
     return NextResponse.json({
@@ -27,8 +31,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Auth verification error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // If verification fails, clear the invalid cookie
+    const response = NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    response.cookies.delete('token')
+    return response
   }
 }
