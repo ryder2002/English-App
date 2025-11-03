@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user from token (check both cookie and Authorization header)
-    let token = request.cookies.get("auth-token")?.value;
+    // Check cookie first (used by admin with httpOnly cookie)
+    let token = request.cookies.get("token")?.value;
     
-    // If no cookie token, check Authorization header
+    // If no cookie token, check Authorization header (used by regular users)
     if (!token) {
       const authHeader = request.headers.get("authorization");
       if (authHeader && authHeader.startsWith("Bearer ")) {

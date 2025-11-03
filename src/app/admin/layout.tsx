@@ -1,6 +1,6 @@
 "use client";
 
-import { UserCircle, Users, Layers, BookOpen, FileText, LogOut, Menu, X } from "lucide-react";
+import { Users, Layers, BookOpen, FileText, LogOut, Menu, X, Settings } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/folders", label: "Thư mục", icon: Layers },
     { href: "/admin/add-vocabulary", label: "Thêm từ vựng", icon: FileText },
     { href: "/admin/tests", label: "Kiểm tra", icon: Users },
+    { href: "/admin/settings", label: "Cài đặt", icon: Settings },
   ];
 
   const handleLogout = async () => {

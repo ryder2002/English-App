@@ -75,9 +75,15 @@ export const deleteFolder = async (id: string): Promise<boolean> => {
       credentials: 'include'
     });
 
-    return response.ok;
-  } catch (error) {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error deleting folder:', response.status, errorData);
+      throw new Error(errorData.error || `Failed to delete folder: ${response.statusText}`);
+    }
+
+    return true;
+  } catch (error: any) {
     console.error('Error deleting folder:', error);
-    return false;
+    throw error; // Re-throw to allow context to handle it
   }
 };

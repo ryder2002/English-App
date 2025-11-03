@@ -134,18 +134,27 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFolder = async (id: string) => {
-    const success = await folderServiceDelete(id);
-    if (success) {
-      // Refresh data to sync with database
-      // This will remove the deleted folder and all its children (cascade delete)
-      // as well as vocabulary items in those folders
-      await refreshData();
-      
-      toast({ title: "Thành công", description: "Đã xóa thư mục." });
-    } else {
+    try {
+      const success = await folderServiceDelete(id);
+      if (success) {
+        // Refresh data to sync with database
+        // This will remove the deleted folder and all its children (cascade delete)
+        // as well as vocabulary items in those folders
+        await refreshData();
+        
+        toast({ title: "Thành công", description: "Đã xóa thư mục." });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: "Không thể xóa thư mục. Vui lòng thử lại.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error in removeFolder:', error);
       toast({
         title: "Lỗi",
-        description: "Không thể xóa thư mục. Vui lòng thử lại.",
+        description: error.message || "Không thể xóa thư mục. Vui lòng thử lại.",
         variant: "destructive",
       });
     }

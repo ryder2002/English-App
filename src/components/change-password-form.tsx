@@ -48,18 +48,17 @@ export function ChangePasswordForm() {
   const onSubmit = async (values: ChangePasswordFormValues) => {
     setIsLoading(true);
     try {
-      // Get token from localStorage
+      // Try to get token from localStorage first (for regular users)
+      // If not found, the API will use the httpOnly cookie (for admin)
       const token = localStorage.getItem('auth-token');
-      if (!token) {
-        throw new Error("Vui lòng đăng nhập lại để tiếp tục");
-      }
 
       const response = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
+        credentials: 'include', // Important: include cookies
         body: JSON.stringify({
           currentPassword: values.currentPassword,
           newPassword: values.newPassword,

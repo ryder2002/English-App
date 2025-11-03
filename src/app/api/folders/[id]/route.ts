@@ -38,11 +38,24 @@ export async function PUT(
     const { name } = body
     const folderId = parseInt(id)
 
+    // Check if user is admin - admins can update any folder
+    const isAdmin = payload.role === 'admin'
+    
+    // First check if folder exists
+    const folder = await prisma.folder.findFirst({
+      where: isAdmin
+        ? { id: folderId }
+        : { id: folderId, userId: payload.userId }
+    })
+
+    if (!folder) {
+      return NextResponse.json({ error: 'Folder not found' }, { status: 404 })
+    }
+
     // Update folder
     const updatedFolder = await prisma.folder.update({
       where: {
-        id: folderId,
-        userId: payload.userId // Ensure user owns the folder
+        id: folderId
       },
       data: { name }
     })
@@ -72,32 +85,41 @@ export async function DELETE(
     // Verify authentication
     const token = getTokenFromRequest(request)
     if (!token) {
+      console.error('[DELETE Folder] No token provided')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const payload = verifyJWT(token)
     if (!payload) {
+      console.error('[DELETE Folder] Invalid token')
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     const folderId = parseInt(id)
+    const isAdmin = payload.role === 'admin'
+
+    console.log(`[DELETE Folder] User ${payload.userId} (admin: ${isAdmin}) attempting to delete folder ${folderId}`)
 
     // First get the folder
     const folder = await prisma.folder.findFirst({
-      where: {
-        id: folderId,
-        userId: payload.userId
-      }
+      where: isAdmin 
+        ? { id: folderId }
+        : { id: folderId, userId: payload.userId }
     })
 
     if (!folder) {
+      console.error(`[DELETE Folder] Folder ${folderId} not found for user ${payload.userId}`)
       return NextResponse.json({ error: 'Folder not found' }, { status: 404 })
     }
+
+    console.log(`[DELETE Folder] Found folder: ${folder.name} (userId: ${folder.userId})`)
 
     // Recursively collect all folder IDs to delete
     const collectFolderIds = async (parentId: number): Promise<number[]> => {
       const children = await prisma.folder.findMany({
-        where: { parentId, userId: payload.userId }
+        where: isAdmin 
+          ? { parentId }
+          : { parentId, userId: payload.userId }
       })
       
       let ids = [parentId]
@@ -109,23 +131,38 @@ export async function DELETE(
     }
 
     const allFolderIds = await collectFolderIds(folder.id)
+    console.log(`[DELETE Folder] Will delete ${allFolderIds.length} folders:`, allFolderIds)
 
     // Get all folder names for vocabulary deletion
     const allFolders = await prisma.folder.findMany({
-      where: { 
-        id: { in: allFolderIds },
-        userId: payload.userId
-      }
+      where: isAdmin
+        ? { id: { in: allFolderIds } }
+        : { 
+            id: { in: allFolderIds },
+            userId: payload.userId
+          }
     })
     const folderNames = allFolders.map(f => f.name)
+    console.log(`[DELETE Folder] Will delete vocabulary from folders:`, folderNames)
 
-    // Delete vocabulary items in these folders
-    await prisma.vocabulary.deleteMany({
+    // Delete quizzes that use these folders
+    const quizDeleteResult = await prisma.quiz.deleteMany({
       where: {
-        userId: payload.userId,
-        folder: { in: folderNames }
+        folderId: { in: allFolderIds }
       }
     })
+    console.log(`[DELETE Folder] Deleted ${quizDeleteResult.count} quizzes using these folders`)
+
+    // Delete vocabulary items in these folders
+    const vocabDeleteResult = await prisma.vocabulary.deleteMany({
+      where: isAdmin
+        ? { folder: { in: folderNames } }
+        : {
+            userId: payload.userId,
+            folder: { in: folderNames }
+          }
+    })
+    console.log(`[DELETE Folder] Deleted ${vocabDeleteResult.count} vocabulary items`)
 
     // Delete folders (cascade will handle children)
     await prisma.folder.delete({
@@ -133,10 +170,14 @@ export async function DELETE(
         id: folderId
       }
     })
+    console.log(`[DELETE Folder] Successfully deleted folder ${folderId}`)
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error deleting folder:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[DELETE Folder] Error:', error)
+    console.error('[DELETE Folder] Error stack:', error.stack)
+    return NextResponse.json({ 
+      error: error.message || 'Internal server error' 
+    }, { status: 500 })
   }
 }

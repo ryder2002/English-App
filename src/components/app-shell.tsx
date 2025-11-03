@@ -106,15 +106,16 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
   }
 
   return (
-    <div className="md:grid md:grid-cols-[auto_1fr]">
-      <Sidebar>
-        <SidebarHeader className="p-4">
+    <div className="lg:grid lg:grid-cols-[auto_1fr]">
+      {/* Sidebar - Hidden on mobile/tablet, shown on desktop (lg+) */}
+      <Sidebar className="hidden lg:flex">
+        <SidebarHeader className="p-4 lg:p-6">
           <CNLogo />
         </SidebarHeader>
-        <SidebarContent className="p-2">
+        <SidebarContent className="p-2 lg:p-4">
           <SidebarNav />
         </SidebarContent>
-        <SidebarFooter className="p-2 flex flex-col gap-2">
+        <SidebarFooter className="p-2 lg:p-4 flex flex-col gap-2">
             <div className="flex items-center gap-3 p-2 rounded-md">
                 {user.id ? (
                   <UserAvatar 
@@ -146,20 +147,22 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-background/95 px-2 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
-          <SidebarTrigger className="h-7 w-7" />
-          <div className="scale-[0.7] origin-left">
+        {/* Mobile/Tablet Header - Hidden on desktop (lg+) */}
+        <header className="sticky top-0 z-30 flex h-12 md:h-14 lg:hidden items-center gap-2 md:gap-4 border-b bg-background/95 px-3 md:px-6 py-1.5 md:py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <SidebarTrigger className="h-7 w-7 md:h-8 md:w-8" />
+          <div className="scale-[0.7] md:scale-75 origin-left">
             <CNLogo />
           </div>
         </header>
 
+        {/* Mobile Sheet - Only for mobile */}
         {isMobile && (
             <Sheet open={openMobile} onOpenChange={setOpenMobile}>
                 <MobileSheetContent />
             </Sheet>
         )}
         
-        <main className="pb-4 md:pb-0">{children}</main>
+        <main className="pb-4 md:pb-6 lg:pb-0">{children}</main>
       </SidebarInset>
     </div>
   );
