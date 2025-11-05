@@ -45,14 +45,29 @@ const generateIpaFlow = ai.defineFlow(
     outputSchema: GenerateIpaOutputSchema,
   },
   async input => {
-    const {output} = await generateIpaPrompt(input);
-    if (!output || !output.ipa) {
+    const { retryWithBackoff } = await import('@/lib/ai-retry');
+    
+    try {
+      const promptResult = await retryWithBackoff(
+        () => generateIpaPrompt(input),
+        {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+        }
+      );
+      
+      const output = promptResult.output;
+      if (!output || !output.ipa) {
+        return { ipa: undefined };
+      }
+      // Ensure the IPA is always wrapped in a single pair of slashes.
+      const trimmedIpa = output.ipa.replace(/^\/+|\/+$/g, '');
+      return {
+        ipa: `/${trimmedIpa}/`,
+      };
+    } catch (error) {
+      console.warn('Failed to generate IPA after retries:', error);
       return { ipa: undefined };
     }
-    // Ensure the IPA is always wrapped in a single pair of slashes.
-    const trimmedIpa = output.ipa.replace(/^\/+|\/+$/g, '');
-    return {
-        ipa: `/${trimmedIpa}/`,
-    };
   }
 );

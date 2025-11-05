@@ -97,6 +97,7 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
   },
   async (input): Promise<GenerateBatchVocabularyDetailsOutput> => {
     const { words, sourceLanguage, targetLanguage, folder } = input;
+    const { retryWithBackoff } = await import('@/lib/ai-retry');
 
     // Parse từng dòng, lấy word, synonym, raw
     const parsedWords: ParsedWordDefinition[] = parseWordsWithDefinitions(words.join('\n'));
@@ -107,16 +108,25 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
     if (sourceLanguage === 'english') {
       // Gom tất cả từ chính và synonyms để gửi sang AI validator
       const allWordsToValidate = parsedWords.flatMap(p => [p.word, ...(p.synonyms || [])]);
-      const validationResult = await validateEnglishWordsFlow({ words: allWordsToValidate });
-      const validWordsSet = new Set(validationResult.validatedWords.map(w => w.toLowerCase()));
-      for (const item of parsedWords) {
-        // Nếu bất kỳ từ nào trong [word, ...synonyms] hợp lệ thì chấp nhận cả dòng
-        const candidates = [item.word, ...(item.synonyms || [])];
-        if (candidates.some(w => validWordsSet.has(w.toLowerCase()))) {
-          validWords.push(item);
-        } else {
-          invalidWords.push(item.raw);
+      try {
+        const validationResult = await retryWithBackoff(
+          () => validateEnglishWordsFlow({ words: allWordsToValidate }),
+          { maxRetries: 3, initialDelayMs: 1000 }
+        );
+        const validWordsSet = new Set(validationResult.validatedWords.map(w => w.toLowerCase()));
+        for (const item of parsedWords) {
+          // Nếu bất kỳ từ nào trong [word, ...synonyms] hợp lệ thì chấp nhận cả dòng
+          const candidates = [item.word, ...(item.synonyms || [])];
+          if (candidates.some(w => validWordsSet.has(w.toLowerCase()))) {
+            validWords.push(item);
+          } else {
+            invalidWords.push(item.raw);
+          }
         }
+      } catch (error) {
+        console.error('Word validation failed, treating all words as invalid:', error);
+        // If validation fails, mark all as invalid to be safe
+        invalidWords = parsedWords.map(p => p.raw);
       }
     } else {
       validWords = parsedWords;
@@ -133,28 +143,37 @@ const generateBatchVocabularyDetailsFlow = ai.defineFlow(
 
     let aiGeneratedWords: any[] = [];
     if (wordsForProcessing.length > 0) {
-      const { output } = await generateBatchDetailsPrompt({ ...input, words: wordsForProcessing });
-      if (!output) {
-        console.error('Batch generation failed: AI returned no output.');
-      } else {
-        // Map lại để hiển thị raw, nghĩa TV của từ gốc, IPA của cả từ gốc và tất cả synonyms
-        aiGeneratedWords = validWords.map((item, idx) => {
-          const main = output.find(o => o.word.toLowerCase() === item.word.toLowerCase());
-          let ipa = main?.ipa || '';
-          if (item.synonyms && item.synonyms.length > 0) {
-            const ipaList = [ipa];
-            item.synonyms.forEach(syn => {
-              const synObj = output.find(o => o.word.toLowerCase() === syn.toLowerCase());
-              if (synObj?.ipa) ipaList.push(synObj.ipa);
-            });
-            ipa = ipaList.filter(Boolean).join(', ');
-          }
-          return {
-            ...main,
-            word: item.raw,
-            ipa,
-          };
-        });
+      try {
+        const result = await retryWithBackoff(
+          () => generateBatchDetailsPrompt({ ...input, words: wordsForProcessing }),
+          { maxRetries: 3, initialDelayMs: 1000 }
+        );
+        const output = result.output;
+        if (!output) {
+          console.error('Batch generation failed: AI returned no output.');
+        } else {
+          // Map lại để hiển thị raw, nghĩa TV của từ gốc, IPA của cả từ gốc và tất cả synonyms
+          aiGeneratedWords = validWords.map((item, idx) => {
+            const main = output.find(o => o.word.toLowerCase() === item.word.toLowerCase());
+            let ipa = main?.ipa || '';
+            if (item.synonyms && item.synonyms.length > 0) {
+              const ipaList = [ipa];
+              item.synonyms.forEach(syn => {
+                const synObj = output.find(o => o.word.toLowerCase() === syn.toLowerCase());
+                if (synObj?.ipa) ipaList.push(synObj.ipa);
+              });
+              ipa = ipaList.filter(Boolean).join(', ');
+            }
+            return {
+              ...main,
+              word: item.raw,
+              ipa,
+            };
+          });
+        }
+      } catch (error) {
+        console.error('Batch generation failed after retries:', error);
+        throw new Error('Không thể kết nối đến dịch vụ AI. Vui lòng thử lại sau.');
       }
     }
     return { processedWords: aiGeneratedWords, invalidWords };

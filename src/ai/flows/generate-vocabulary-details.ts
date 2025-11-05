@@ -112,13 +112,30 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
         examples: []
       };
     }
-    const {output} = await generateVocabularyDetailsPrompt(input);
 
-    if (!output) {
+    const { retryWithBackoff } = await import('@/lib/ai-retry');
+    
+    let promptResult;
+    try {
+      promptResult = await retryWithBackoff(
+        () => generateVocabularyDetailsPrompt(input),
+        {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+        }
+      );
+    } catch (error: any) {
+      console.error('Failed to generate vocabulary details after retries:', error);
+      throw new Error("Không thể kết nối đến dịch vụ AI. Vui lòng thử lại sau.");
+    }
+
+    if (!promptResult || !promptResult.output) {
       throw new Error("Failed to get details from AI.");
     }
+
+    const result = promptResult.output;
     
-    if (!output.exists) {
+    if (!result.exists) {
         return {
             exists: false,
             pronunciation: '',
@@ -128,16 +145,27 @@ const generateVocabularyDetailsFlow = ai.defineFlow(
     }
 
     let pronunciation: string | undefined = undefined;
-    if (input.sourceLanguage === 'english') {
-        const ipaResult = await generateIpa({ word: input.word });
+    try {
+      if (input.sourceLanguage === 'english') {
+        const ipaResult = await retryWithBackoff(
+          () => generateIpa({ word: input.word }),
+          { maxRetries: 2, initialDelayMs: 500 }
+        );
         pronunciation = ipaResult.ipa;
-    } else if (input.sourceLanguage === 'chinese') {
-        const pinyinResult = await generatePinyin({ word: input.word });
+      } else if (input.sourceLanguage === 'chinese') {
+        const pinyinResult = await retryWithBackoff(
+          () => generatePinyin({ word: input.word }),
+          { maxRetries: 2, initialDelayMs: 500 }
+        );
         pronunciation = pinyinResult.pinyin;
+      }
+    } catch (error) {
+      console.warn('Failed to generate pronunciation, continuing without it:', error);
+      // Continue without pronunciation if it fails
     }
 
     return {
-        ...output,
+        ...result,
         pronunciation,
     };
   }

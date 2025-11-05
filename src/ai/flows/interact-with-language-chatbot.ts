@@ -76,7 +76,25 @@ const interactWithLanguageChatbotFlow = ai.defineFlow(
     outputSchema: InteractWithLanguageChatbotOutputSchema,
   },
   async input => {
-    const {output} = await interactWithLanguageChatbotPrompt(input);
-    return output!;
+    const { retryWithBackoff } = await import('@/lib/ai-retry');
+    
+    try {
+      const promptResult = await retryWithBackoff(
+        () => interactWithLanguageChatbotPrompt(input),
+        {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+        }
+      );
+      
+      if (!promptResult || !promptResult.output) {
+        throw new Error('Chatbot returned no response');
+      }
+      
+      return promptResult.output;
+    } catch (error: any) {
+      console.error('Chatbot failed after retries:', error);
+      throw new Error('Không thể kết nối đến dịch vụ AI. Vui lòng thử lại sau.');
+    }
   }
 );

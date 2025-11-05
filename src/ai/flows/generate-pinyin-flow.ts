@@ -43,9 +43,24 @@ const generatePinyinFlow = ai.defineFlow(
     outputSchema: GeneratePinyinOutputSchema,
   },
   async input => {
-    const {output} = await generatePinyinPrompt(input);
-    return {
+    const { retryWithBackoff } = await import('@/lib/ai-retry');
+    
+    try {
+      const promptResult = await retryWithBackoff(
+        () => generatePinyinPrompt(input),
+        {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+        }
+      );
+      
+      const output = promptResult.output;
+      return {
         pinyin: output?.pinyin,
-    };
+      };
+    } catch (error) {
+      console.warn('Failed to generate Pinyin after retries:', error);
+      return { pinyin: undefined };
+    }
   }
 );

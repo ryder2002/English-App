@@ -29,15 +29,29 @@ const getSpellingCorrectionFlow = ai.defineFlow(
     outputSchema: SpellingCorrectionResponse,
   },
   async ({ word }) => {
-    const { output } = await spellingCorrectionPrompt({ word });
+    const { retryWithBackoff } = await import('@/lib/ai-retry');
+    
+    try {
+      const promptResult = await retryWithBackoff(
+        () => spellingCorrectionPrompt({ word }),
+        {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+        }
+      );
 
-    if (!output) {
+      const output = promptResult.output;
+      if (!output) {
         console.error('Error getting spelling correction from AI');
         return { suggestions: [] };
-    }
+      }
 
-    const filteredSuggestions = output.suggestions.filter(s => s.toLowerCase() !== word.toLowerCase());
-    return { suggestions: filteredSuggestions };
+      const filteredSuggestions = output.suggestions.filter(s => s.toLowerCase() !== word.toLowerCase());
+      return { suggestions: filteredSuggestions };
+    } catch (error) {
+      console.warn('Failed to get spelling correction after retries:', error);
+      return { suggestions: [] };
+    }
   }
 );
 
