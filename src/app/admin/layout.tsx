@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Layers, BookOpen, FileText, LogOut, Menu, X, Settings } from "lucide-react";
+import { Users, Layers, BookOpen, FileText, LogOut, Menu, X, Settings, Bell } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";

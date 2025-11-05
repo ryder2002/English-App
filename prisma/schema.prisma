@@ -23,11 +23,11 @@ model User {
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  vocabulary     Vocabulary[]
-  folders        Folder[]
-  classesJoined  ClassMember[]
-  classesOwned   Clazz[]        @relation("ClassTeacher")
-  quizResults    QuizResult[]
+  vocabulary    Vocabulary[]
+  folders       Folder[]
+  classesJoined ClassMember[]
+  classesOwned  Clazz[]       @relation("ClassTeacher")
+  quizResults   QuizResult[]
 
   @@map("users")
 }
@@ -43,7 +43,7 @@ model Folder {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children Folder[] @relation("FolderHierarchy")
-  quizzes    Quiz[]
+  quizzes  Quiz[]
 
   @@unique([name, userId, parentId])
   @@map("folders")
@@ -82,81 +82,81 @@ model Clazz {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  teacher  User          @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
-  members  ClassMember[]
-  quizzes  Quiz[]
+  teacher User          @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  members ClassMember[]
+  quizzes Quiz[]
 
   @@map("classes")
 }
 
 model ClassMember {
-  id        Int      @id @default(autoincrement())
-  clazzId   Int      @map("class_id")
-  userId    Int      @map("user_id")
-  joinedAt  DateTime @default(now()) @map("joined_at")
+  id       Int      @id @default(autoincrement())
+  clazzId  Int      @map("class_id")
+  userId   Int      @map("user_id")
+  joinedAt DateTime @default(now()) @map("joined_at")
 
   // Relations
-  clazz     Clazz     @relation(fields: [clazzId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clazz Clazz @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([clazzId, userId])
   @@map("class_members")
 }
 
 model Quiz {
-  id              Int       @id @default(autoincrement())
+  id              Int           @id @default(autoincrement())
   title           String
   description     String?
-  quizCode        String    @unique @map("test_code")
-  clazzId         Int       @map("class_id")
-  folderId        Int       @map("folder_id")
-  status          QuizStatus @default(pending) @map("status")
-  timePerQuestion Int?      @default(0) @map("time_per_question") // Time in seconds, 0 = no auto-advance
+  quizCode        String        @unique @map("test_code")
+  clazzId         Int           @map("class_id")
+  folderId        Int           @map("folder_id")
+  status          QuizStatus    @default(pending) @map("status")
+  timePerQuestion Int?          @default(0) @map("time_per_question") // Time in seconds, 0 = no auto-advance
   direction       QuizDirection @default(en_vi) @map("direction") // Translation direction: en-vi, vi-en, random
-  isPaused        Boolean   @default(false) @map("is_paused")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  endedAt         DateTime? @map("ended_at")
+  isPaused        Boolean       @default(false) @map("is_paused")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  endedAt         DateTime?     @map("ended_at")
 
   // Relations
-  clazz      Clazz        @relation(fields: [clazzId], references: [id], onDelete: Cascade)
-  folder     Folder       @relation(fields: [folderId], references: [id])
-  results    QuizResult[]
+  clazz   Clazz        @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  folder  Folder       @relation(fields: [folderId], references: [id])
+  results QuizResult[]
 
   @@map("tests")
 }
 
 model QuizResult {
-  id        Int      @id @default(autoincrement())
-  quizId    Int      @map("test_id")
-  userId    Int      @map("user_id")
+  id        Int              @id @default(autoincrement())
+  quizId    Int              @map("test_id")
+  userId    Int              @map("user_id")
   score     Float
-  maxScore  Float    @map("max_score")
-  startedAt DateTime @default(now()) @map("started_at")
-  endedAt   DateTime? @map("ended_at")
+  maxScore  Float            @map("max_score")
+  startedAt DateTime         @default(now()) @map("started_at")
+  endedAt   DateTime?        @map("ended_at")
   status    QuizResultStatus @default(in_progress) @map("status")
 
   // Relations
-  quiz      Quiz              @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  answers   QuizAnswerDetail[]
+  quiz    Quiz               @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers QuizAnswerDetail[]
 
   @@map("test_results")
 }
 
 model QuizAnswerDetail {
-  id           Int      @id @default(autoincrement())
-  resultId     Int      @map("result_id")
-  vocabularyId Int?     @map("vocabulary_id")
-  questionText String   @map("question_text")
-  questionType String   @map("question_type") // 'word_to_meaning' | 'meaning_to_word'
-  selectedAnswer String @map("selected_answer")
-  correctAnswer String @map("correct_answer")
-  isCorrect    Boolean  @map("is_correct")
-  answeredAt   DateTime @default(now()) @map("answered_at")
+  id             Int      @id @default(autoincrement())
+  resultId       Int      @map("result_id")
+  vocabularyId   Int?     @map("vocabulary_id")
+  questionText   String   @map("question_text")
+  questionType   String   @map("question_type") // 'word_to_meaning' | 'meaning_to_word'
+  selectedAnswer String   @map("selected_answer")
+  correctAnswer  String   @map("correct_answer")
+  isCorrect      Boolean  @map("is_correct")
+  answeredAt     DateTime @default(now()) @map("answered_at")
 
   // Relations
-  result      QuizResult  @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  result QuizResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
 
   @@map("quiz_answer_details")
 }
@@ -188,4 +188,25 @@ enum QuizDirection {
   en_vi
   vi_en
   random
+}
+
+model SystemNotification {
+  id        Int              @id @default(autoincrement())
+  title     String
+  content   String           @db.Text
+  type      NotificationType @default(info)
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  createdBy Int?             @map("created_by")
+
+  @@map("system_notifications")
+}
+
+enum NotificationType {
+  info
+  warning
+  maintenance
+  update
+  important
 }

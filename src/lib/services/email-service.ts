@@ -508,4 +508,265 @@ function getWelcomeEmailTemplate(userName: string): string {
   `;
 }
 
+// System notification email
+interface SendSystemNotificationEmailParams {
+  to: string;
+  title: string;
+  content: string;
+  type?: 'info' | 'warning' | 'maintenance' | 'update' | 'important';
+  userName?: string;
+}
+
+export async function sendSystemNotificationEmail({
+  to,
+  title,
+  content,
+  type = 'info',
+  userName = 'bạn'
+}: SendSystemNotificationEmailParams) {
+  try {
+    // Kiểm tra Resend API key
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured in environment variables');
+    }
+
+    let fromEmail = process.env.RESEND_FROM_EMAIL || 'CN English <noreply@congnhat.online>';
+    
+    if (!fromEmail.includes('congnhat.online')) {
+      const nameMatch = fromEmail.match(/^([^<]+)</);
+      const name = nameMatch ? nameMatch[1].trim() : 'CN English';
+      fromEmail = `${name} <noreply@congnhat.online>`;
+    }
+
+    const typeEmojis = {
+      info: 'ℹ️',
+      warning: '⚠️',
+      maintenance: '🔧',
+      update: '🔄',
+      important: '🚨'
+    };
+
+    console.log(`📧 Sending notification email to ${to}...`);
+    
+    const data = await resend.emails.send({
+      from: fromEmail,
+      to: [to],
+      subject: `${typeEmojis[type]} ${title} - CN English`,
+      html: getSystemNotificationEmailTemplate(title, content, type, userName),
+    });
+
+    const emailId = (data as any)?.id || (data as any)?.data?.id;
+    console.log(`✅ System notification email sent successfully to ${to}`);
+    console.log(`📧 Email ID: ${emailId}`);
+    console.log(`📊 Check delivery status at: https://resend.com/emails`);
+    console.log(`📬 Note: Email may be in spam folder if using unverified domain`);
+    return { success: true, data, emailId };
+  } catch (error: any) {
+    console.error(`❌ Error sending system notification email to ${to}:`, {
+      message: error.message,
+      status: error.statusCode || error.status,
+      details: error
+    });
+    throw error;
+  }
+}
+
+function getSystemNotificationEmailTemplate(
+  title: string,
+  content: string,
+  type: string,
+  userName: string
+): string {
+  const typeColors = {
+    info: { bg: '#3b82f6', text: '#1e40af' },
+    warning: { bg: '#f59e0b', text: '#92400e' },
+    maintenance: { bg: '#f97316', text: '#9a3412' },
+    update: { bg: '#10b981', text: '#065f46' },
+    important: { bg: '#ef4444', text: '#991b1b' }
+  };
+
+  const colors = typeColors[type as keyof typeof typeColors] || typeColors.info;
+  
+  // Get base URL for logo
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://cnenglish.io.vn';
+  const logoUrl = `${baseUrl}/Logo.png`;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${title} - CN English</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1f2937;
+          background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%), url('${process.env.NEXTAUTH_URL?.includes('cnenglish.io.vn') ? process.env.NEXTAUTH_URL : 'https://cnenglish.io.vn'}/BG.png');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          background-attachment: fixed;
+          background-blend-mode: overlay;
+          padding: 20px;
+          margin: 0;
+          min-height: 100vh;
+        }
+        .email-wrapper {
+          max-width: 600px;
+          margin: 0 auto;
+          position: relative;
+          z-index: 1;
+        }
+        .container {
+          background: #ffffff;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .header {
+          background: linear-gradient(135deg, ${colors.bg} 0%, ${colors.text} 100%);
+          padding: 48px 32px;
+          text-align: center;
+        }
+        .logo {
+          width: 100px;
+          height: 100px;
+          background: white;
+          border-radius: 20px;
+          margin: 0 auto 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          padding: 12px;
+        }
+        .logo img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+        }
+        .header h1 {
+          color: white;
+          font-size: 32px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+        }
+        .content {
+          padding: 48px 40px;
+        }
+        .greeting {
+          font-size: 24px;
+          font-weight: 600;
+          color: #1f2937;
+          margin-bottom: 24px;
+        }
+        .notification-title {
+          font-size: 28px;
+          font-weight: 700;
+          color: ${colors.text};
+          margin-bottom: 20px;
+          padding-bottom: 16px;
+          border-bottom: 3px solid ${colors.bg};
+        }
+        .notification-content {
+          font-size: 16px;
+          color: #4b5563;
+          line-height: 1.8;
+          white-space: pre-wrap;
+          margin-bottom: 20px;
+        }
+        .button-container {
+          text-align: center;
+          margin: 40px 0;
+        }
+        .view-button {
+          display: inline-block;
+          background: linear-gradient(135deg, ${colors.bg} 0%, ${colors.text} 100%);
+          color: white !important;
+          text-decoration: none;
+          padding: 18px 48px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 16px;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+        .footer {
+          background: #f9fafb;
+          padding: 40px;
+          text-align: center;
+          border-top: 1px solid #e5e7eb;
+        }
+        .footer-logo {
+          font-size: 20px;
+          font-weight: 700;
+          color: #667eea;
+          margin-bottom: 16px;
+        }
+        .footer p {
+          font-size: 14px;
+          color: #6b7280;
+          margin: 8px 0;
+        }
+        .footer a {
+          color: #667eea;
+          text-decoration: none;
+        }
+        .copyright {
+          margin-top: 20px;
+          font-size: 12px;
+          color: #9ca3af;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-wrapper">
+        <div class="container">
+          <div class="header">
+            <div class="logo">
+              <img src="${logoUrl}" alt="CN English Logo" />
+            </div>
+            <h1>Thông báo hệ thống</h1>
+          </div>
+          
+          <div class="content">
+            <div class="greeting">Xin chào ${userName}!</div>
+            
+            <div class="notification-title">${title}</div>
+            
+            <div class="notification-content">${content.replace(/\n/g, '<br />')}</div>
+            
+            <div class="button-container">
+              <a href="${process.env.NEXTAUTH_URL?.includes('cnenglish.io.vn') ? process.env.NEXTAUTH_URL : 'https://cnenglish.io.vn'}/notification" class="view-button">
+                Xem thông báo đầy đủ
+              </a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <div class="footer-logo">
+              <img src="${logoUrl}" alt="CN English Logo" style="width: 80px; height: 80px; object-fit: contain; margin: 0 auto 16px; display: block; background: white; padding: 12px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);" />
+              <div style="font-size: 24px; font-weight: 700; color: #667eea; margin-top: 10px;">CN English</div>
+            </div>
+            <p>Nền tảng học từ vựng thông minh</p>
+            <p>Build your vocabulary, build your future</p>
+            
+            <div class="copyright">
+              <p>© ${new Date().getFullYear()} CN English. All rights reserved.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 export { resend };
