@@ -108,15 +108,15 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
   return (
     <div className="lg:grid lg:grid-cols-[auto_1fr]">
       {/* Sidebar - Hidden on mobile/tablet, shown on desktop (lg+) */}
-      <Sidebar className="hidden lg:flex">
+      <Sidebar className="hidden lg:flex border-r shadow-sm supports-[backdrop-filter]:backdrop-blur bg-sidebar/95">
         <SidebarHeader className="p-4 lg:p-6">
           <CNLogo />
         </SidebarHeader>
         <SidebarContent className="p-2 lg:p-4">
           <SidebarNav />
         </SidebarContent>
-        <SidebarFooter className="p-2 lg:p-4 flex flex-col gap-2">
-            <div className="flex items-center gap-3 p-2 rounded-md">
+        <SidebarFooter className="p-2 lg:p-4 flex flex-col gap-2 border-t">
+            <div className="flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-sidebar-accent/60">
                 {user.id ? (
                   <UserAvatar 
                     userId={user.id} 
@@ -139,7 +139,7 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
                     )}
                 </div>
             </div>
-             <Button variant="ghost" className="justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
+             <Button aria-label="Đăng xuất" variant="ghost" className="justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors" onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Đăng xuất
             </Button>
@@ -147,9 +147,11 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
       </Sidebar>
 
       <SidebarInset>
+        {/* Top decorative background behind content header (full viewport, low opacity) */}
+        <div className="app-hero-bg"></div>
         {/* Mobile/Tablet Header - Hidden on desktop (lg+) */}
-        <header className="sticky top-0 z-30 flex h-12 md:h-14 lg:hidden items-center gap-2 md:gap-4 border-b bg-background/95 px-3 md:px-6 py-1.5 md:py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <SidebarTrigger className="h-7 w-7 md:h-8 md:w-8" />
+        <header className="sticky top-0 z-30 flex h-12 md:h-14 lg:hidden items-center gap-2 md:gap-4 border-b bg-background/80 px-3 md:px-6 py-1.5 md:py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+          <SidebarTrigger aria-label="Mở menu" className="h-7 w-7 md:h-8 md:w-8" />
           <div className="scale-[0.7] md:scale-75 origin-left">
             <CNLogo />
           </div>
@@ -161,8 +163,11 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
                 <MobileSheetContent />
             </Sheet>
         )}
-        
-        <main className="pb-4 md:pb-6 lg:pb-0">{children}</main>
+        <main className="pb-4 md:pb-6 lg:pb-0 px-3 md:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-6xl">
+            {children}
+          </div>
+        </main>
       </SidebarInset>
     </div>
   );

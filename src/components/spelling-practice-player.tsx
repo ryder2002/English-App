@@ -101,7 +101,21 @@ export function SpellingPracticePlayer({ selectedFolder, direction }: SpellingPr
         const correctAnswer = isViEn ? currentWord.word : currentWord.vietnameseTranslation;
 
         setSubmittedAnswer(spellingInput);
-        const isCorrect = spellingInput.trim().toLowerCase() === correctAnswer.toLowerCase();
+
+        // If EN -> VI: accept any one meaning among multiple meanings (e.g., "sự khác biệt, nét đặc trưng")
+        const normalize = (s: string) => s.trim().toLowerCase();
+        let isCorrect: boolean;
+        if (!isViEn) {
+            const acceptedAnswers = (correctAnswer || '')
+                .split(/[,;/]|\bor\b/gi)
+                .map(ans => normalize(ans))
+                .filter(Boolean);
+            isCorrect = acceptedAnswers.length > 0
+                ? acceptedAnswers.includes(normalize(spellingInput))
+                : normalize(spellingInput) === normalize(correctAnswer || '');
+        } else {
+            isCorrect = normalize(spellingInput) === normalize(correctAnswer || '');
+        }
 
         if (isCorrect) {
             setScore(prev => prev + 1);

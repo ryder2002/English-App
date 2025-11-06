@@ -76,13 +76,14 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --sidebar-background: 222 47% 11%; /* Very dark slate/gray for better contrast */
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 180 81% 60%; /* Bright Cyan for active items */
-    --sidebar-primary-foreground: 224 71% 10%;
-    --sidebar-accent: 222 47% 18%; /* Slightly lighter for hover */
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 47% 15%;
+    /* Sidebar (light mode): switch to white background */
+    --sidebar-background: 0 0% 100%; /* White */
+    --sidebar-foreground: 224 71% 4%; /* Dark text */
+    --sidebar-primary: 180 81% 48%; /* Cyan for active items */
+    --sidebar-primary-foreground: 224 71% 4%;
+    --sidebar-accent: 210 40% 96.1%; /* Light hover */
+    --sidebar-accent-foreground: 224 71% 4%;
+    --sidebar-border: 210 20% 88%;
     --sidebar-ring: 180 81% 48%;
   }
   .dark {
@@ -131,6 +132,35 @@
 }
 
 @layer utilities {
+  /* Decorative hero background at top of content */
+  .app-hero-bg {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: 100svh;
+    background:
+      /* effect layers */
+      radial-gradient(1200px 200px at -10% -20%, hsla(var(--primary) / 0.12), transparent 60%),
+      radial-gradient(800px 200px at 110% -10%, hsla(var(--accent) / 0.14), transparent 60%),
+      linear-gradient(to bottom, hsla(var(--primary) / 0.06), hsla(var(--accent) / 0.02) 40%, hsla(var(--primary) / 0.03) 100%),
+      /* base wash to ensure full coverage */
+      linear-gradient(0deg, hsla(var(--primary) / 0.03), hsla(var(--primary) / 0.03));
+    opacity: 0.10;
+    pointer-events: none;
+    filter: saturate(110%);
+    z-index: 0;
+  }
+  /* Active nav item gradient wrapper (works on light & dark) */
+  .active-nav-item-gradient {
+    @apply relative block w-full overflow-hidden rounded-md p-[2px] shadow-soft;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--accent) / 0.25) 100%);
+  }
+  .active-nav-item-gradient > * {
+    @apply rounded-[6px] bg-sidebar-accent/10;
+  }
+
   .text-gradient {
     @apply bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent;
   }
@@ -179,5 +209,22 @@
   
   .shadow-glow-red {
     box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  }
+
+  /* Smooth, minimal scrollbars */
+  .nice-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .nice-scrollbar::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .nice-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  .nice-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
   }
 }

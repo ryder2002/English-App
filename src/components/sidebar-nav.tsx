@@ -30,13 +30,13 @@ export function SidebarNav() {
 	return (
 		<SidebarMenu>
 			{navItems.map((item) => {
-				const isActive = pathname === item.href;
+				const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 				const button = (
 					<SidebarMenuButton
 						asChild
 						isActive={isActive}
 						tooltip={item.label}
-						className="relative z-10"
+						className="relative z-10 rounded-md transition-all duration-150 hover:translate-x-[1px] focus-visible:ring-2 focus-visible:ring-sidebar-ring"
 					>
 						<div>
 							<item.icon />

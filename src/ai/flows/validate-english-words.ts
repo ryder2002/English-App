@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { retryWithBackoff } from '@/lib/ai-retry';
 
 const ValidateEnglishWordsInputSchema = z.object({
-  words: z.array(z.string()).describe('A list of English words to validate.'),
+  words: z
+    .array(z.string())
+    .describe('A list of English words or phrases (including collocations, idioms, phrasal verbs) to validate.'),
 });
 
 const ValidateEnglishWordsOutputSchema = z.object({
@@ -17,12 +19,19 @@ const validationPrompt = ai.definePrompt({
   name: 'validateWordsPrompt',
   input: { schema: z.object({ words: z.array(z.string()) }) },
   output: { schema: ValidateEnglishWordsOutputSchema },
-  prompt: `You are an English language validator. Given a list of words, identify which ones are valid English words (including common nouns, verbs, adjectives, etc.). Ignore slang, made-up words, or typos.
+  prompt: `You are an English language validator. Given a list of English words or phrases, identify which ones are valid natural English expressions.
 
-Input Words: {{{json words}}}
+Consider the following as VALID if they are commonly used in English:
+- Single words (nouns, verbs, adjectives, adverbs, etc.)
+- Phrasal verbs (e.g., "put on", "give up")
+- Collocations and multi-word noun/verb phrases (e.g., "meet the demand", "take responsibility")
+- Idioms and fixed expressions (e.g., "break the ice")
 
-Return a JSON object containing a single key 'validatedWords' with an array of the words that are valid. If no words are valid, return an empty array.
-`,
+Treat obvious typos, non-English text, and made-up terms as INVALID.
+
+Input Items: {{{json words}}}
+
+Return a JSON object with a single key 'validatedWords' containing an array of the inputs that are valid. If none are valid, return an empty array.`,
 });
 
 export const validateEnglishWordsFlow = ai.defineFlow(
