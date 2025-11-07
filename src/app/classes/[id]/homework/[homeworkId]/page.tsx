@@ -66,9 +66,7 @@ export default function HomeworkPage() {
       // Reset view
       setLastResult(null);
       setShowAnswerKey(false);
-      if (homework?.promptText) setAnswer(homework.promptText);
-      else if (homework?.processedAnswerText) setAnswer(homework.processedAnswerText);
-      else setAnswer('');
+      setAnswer(''); // Keep answer field empty for student input
       // Refresh submission state
       fetchHomework();
     } catch (e: any) {
@@ -122,9 +120,8 @@ export default function HomeworkPage() {
             setLastResult(null);
           }
         } else {
-          if (data.promptText) setAnswer(data.promptText);
-          else if (data.processedAnswerText) setAnswer(data.processedAnswerText);
-          else setAnswer('');
+          // Don't pre-fill answer field, keep it empty for student input
+          setAnswer('');
           setLastResult(null);
         }
       }
@@ -301,9 +298,24 @@ export default function HomeworkPage() {
                   </div>
                 )}
 
-                {/* Editable prompt-only area or boxes */}
+                {/* Display content/promptText as read-only */}
+                {(homework.content || homework.promptText || homework.processedAnswerText) && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Văn bản giao cho học viên (có chỗ trống)
+                    </label>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-pre-wrap text-base leading-7">
+                      {homework.content || homework.promptText || homework.processedAnswerText}
+                    </div>
+                  </div>
+                )}
+
+                {/* Input area for boxes or textarea */}
                 {homework.boxes && homework.boxes > 0 ? (
                   <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Điền đáp án vào các ô tương ứng
+                    </label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {boxes.map((value, idx) => (
                         <div key={idx} className="flex items-center gap-2">
@@ -317,6 +329,7 @@ export default function HomeworkPage() {
                               setBoxes(next);
                             }}
                             disabled={isLocked || isSubmitted}
+                            placeholder={`Điền đáp án ${idx + 1}`}
                           />
                           {boxResults && (
                             boxResults[idx] ? (
@@ -332,22 +345,22 @@ export default function HomeworkPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div
-                      role="textbox"
-                      aria-label="Soạn đáp án của bạn"
-                      contentEditable={!isLocked && !isSubmitted}
-                      suppressContentEditableWarning
-                      onInput={(e) => setAnswer((e.target as HTMLDivElement).innerText)}
-                      className={`min-h-[200px] w-full rounded-xl border p-4 text-base leading-7 whitespace-pre-wrap outline-none transition ${
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Đáp án của bạn
+                    </label>
+                    <Textarea
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      disabled={isLocked || isSubmitted}
+                      placeholder="Nhập đáp án của bạn tại đây..."
+                      className={`min-h-[200px] w-full text-base leading-7 ${
                         isLocked || isSubmitted
-                          ? 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700'
-                          : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 focus:ring-2 focus:ring-yellow-400'
+                          ? 'bg-gray-50 dark:bg-gray-900/30'
+                          : 'bg-white dark:bg-gray-900/30'
                       }`}
-                    >
-                      {answer}
-                    </div>
+                    />
                     {!isSubmitted && (
-                      <p className="text-xs text-muted-foreground">Gõ trực tiếp để sửa nội dung ở trên, sau đó nhấn Nộp bài.</p>
+                      <p className="text-xs text-muted-foreground">Nhập đáp án của bạn vào ô trên, sau đó nhấn Nộp bài.</p>
                     )}
                   </div>
                 )}
