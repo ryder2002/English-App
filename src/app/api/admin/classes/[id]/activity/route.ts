@@ -100,7 +100,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         };
       } else {
         acc[session.userId].totalDuration += duration;
-        if (!acc[session.userId].lastActiveAt || acc[session.userId].lastActiveAt < lastActivity) {
+        const currentLastActive = acc[session.userId].lastActiveAt;
+        if (!currentLastActive || currentLastActive < lastActivity) {
           acc[session.userId].lastActiveAt = lastActivity;
         }
       }

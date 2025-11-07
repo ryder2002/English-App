@@ -9,12 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Play, Pause, Send } from 'lucide-react';
+import { SpeakingRecorder } from '@/components/speaking-recorder';
+import { SpeakingHomeworkPlayer } from '@/components/speaking-homework-player';
 
 interface Homework {
   id: number;
   title: string;
   description?: string;
-  type: 'listening' | 'reading';
+  type: 'listening' | 'reading' | 'speaking';
   deadline: string;
   status: string;
   audioUrl?: string;
@@ -22,6 +24,7 @@ interface Homework {
   processedAnswerText?: string | null;
   content?: string | null;
   hideMode?: 'all' | 'random';
+  speakingText?: string | null;
   submissions: Array<{
     id: number;
     attemptNumber: number;
@@ -33,6 +36,7 @@ interface Homework {
     score?: number | null;
     timeSpentSeconds?: number;
     isCorrect?: boolean;
+    transcribedText?: string;
   }>;
   currentSubmission?: {
     id: number;
@@ -45,6 +49,7 @@ interface Homework {
     score?: number | null;
     timeSpentSeconds?: number;
     isCorrect?: boolean;
+    transcribedText?: string;
   };
   boxes?: number;
   answerKey?: string | null;
@@ -68,6 +73,10 @@ export default function HomeworkPage() {
   const [boxes, setBoxes] = useState<string[]>([]);
   const [boxResults, setBoxResults] = useState<boolean[] | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Speaking homework states
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
+  const [transcribedText, setTranscribedText] = useState<string>('');
 
   const doRetry = async () => {
     try {
@@ -257,18 +266,18 @@ export default function HomeworkPage() {
   return (
     <AppShell>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
-        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:p-6 lg:p-8">
-          <div className="mb-4 sm:mb-6 flex items-center justify-between">
-            <Button variant="outline" size="icon" onClick={() => router.push(`/classes/${classId}`)}>
-              <ArrowLeft className="h-4 w-4" />
+        <div className="container mx-auto px-3 py-3 sm:px-4 sm:py-4 md:p-6 lg:p-8 max-w-5xl">
+          <div className="mb-3 sm:mb-4 md:mb-6 flex items-center justify-between gap-2">
+            <Button variant="outline" size="icon" onClick={() => router.push(`/classes/${classId}`)} className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+              <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {isSubmitted && !isLocked && (
-                <Button variant="outline" onClick={doRetry}>
+                <Button variant="outline" onClick={doRetry} className="h-8 sm:h-10 text-xs sm:text-sm px-2 sm:px-4">
                   Làm lại
                 </Button>
               )}
-              {!isLocked && !isSubmitted && (
+              {!isLocked && !isSubmitted && homework.type !== 'speaking' && (
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || (
@@ -276,9 +285,9 @@ export default function HomeworkPage() {
                       ? !boxes.some(b => (b || '').trim().length > 0)
                       : !answer.trim()
                   )}
-                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 h-8 sm:h-10 text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
                 </Button>
               )}
@@ -286,61 +295,61 @@ export default function HomeworkPage() {
           </div>
 
           <Card className="border-0 shadow-soft bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <CardTitle className="text-xl sm:text-2xl md:text-3xl mb-2">
+            <CardHeader className="pb-3 sm:pb-6">
+              <div className="flex items-start justify-between gap-2 sm:gap-4">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base sm:text-xl md:text-2xl lg:text-3xl mb-1 sm:mb-2 break-words">
                     {homework.title}
                   </CardTitle>
-                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                    <Badge variant="outline">{homework.type === 'listening' ? '🎧 Nghe' : '📖 Đọc'}</Badge>
-                    <Badge variant="outline">⏰ {deadline.toLocaleString('vi-VN')}</Badge>
-                    {isExpired && <Badge variant="destructive">⚠️ Đã quá hạn</Badge>}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                    <Badge variant="outline" className="text-xs">{homework.type === 'listening' ? '🎧 Nghe' : '📖 Đọc'}</Badge>
+                    <Badge variant="outline" className="text-xs whitespace-nowrap">⏰ {deadline.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</Badge>
+                    {isExpired && <Badge variant="destructive" className="text-xs">⚠️ Quá hạn</Badge>}
                     {isSubmitted && typeof currentSubmission?.score === 'number' && (
-                      <Badge variant="outline">Điểm: {currentSubmission.score}/1</Badge>
+                      <Badge variant="outline" className="text-xs">Điểm: {currentSubmission.score}/1</Badge>
                     )}
                     {currentSubmission?.attemptNumber && (
-                      <Badge variant="outline">Lần {currentSubmission.attemptNumber}</Badge>
+                      <Badge variant="outline" className="text-xs">Lần {currentSubmission.attemptNumber}</Badge>
                     )}
                     {submittedAttempts.length > 0 && (
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => setShowHistory(!showHistory)}
-                        className="h-6 px-2 text-xs"
+                        className="h-6 px-1.5 sm:px-2 text-xs"
                       >
                         📋 Lịch sử ({submittedAttempts.length})
                       </Button>
                     )}
                   </div>
                 </div>
-                <Badge className={`${isLocked ? 'bg-gray-400' : isSubmitted ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
-                  {isLocked ? '🔒 Đã khóa' : isSubmitted ? '✅ Đã nộp' : '📝 Chưa nộp'}
+                <Badge className={`${isLocked ? 'bg-gray-400' : isSubmitted ? 'bg-green-500' : 'bg-orange-500'} text-white text-xs sm:text-sm whitespace-nowrap flex-shrink-0`}>
+                  {isLocked ? '🔒 Khóa' : isSubmitted ? '✅ Nộp' : '📝 Chưa'}
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="space-y-3 sm:space-y-4">
                 {/* History section */}
                 {showHistory && submittedAttempts.length > 0 && (
-                  <div className="space-y-2 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <div className="space-y-2 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border">
+                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
                       📋 Lịch sử làm bài
                     </label>
                     <div className="space-y-2">
                       {submittedAttempts.map((attempt) => (
-                        <div key={attempt.id} className="p-3 bg-white dark:bg-gray-800 rounded border flex items-center justify-between">
-                          <div>
-                            <span className="font-medium">Lần {attempt.attemptNumber}</span>
+                        <div key={attempt.id} className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium text-sm">Lần {attempt.attemptNumber}</span>
                             {attempt.submittedAt && (
-                              <span className="text-xs text-muted-foreground ml-2">
-                                {new Date(attempt.submittedAt).toLocaleString('vi-VN')}
+                              <span className="text-xs text-muted-foreground ml-2 block sm:inline">
+                                {new Date(attempt.submittedAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             {typeof attempt.score === 'number' && (
-                              <Badge variant={attempt.score >= 0.5 ? 'default' : 'destructive'}>
+                              <Badge variant={attempt.score >= 0.5 ? 'default' : 'destructive'} className="text-xs">
                                 Điểm: {attempt.score}/1
                               </Badge>
                             )}
@@ -357,43 +366,90 @@ export default function HomeworkPage() {
                 )}
 
                 {homework.type === 'listening' && homework.audioUrl && (
-                  <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
                     <Button
                       onClick={handlePlayPause}
                       disabled={isLocked}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 h-9 sm:h-10 text-sm"
                     >
-                      {isPlaying ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                      {isPlaying ? <Pause className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> : <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />}
                       {isPlaying ? 'Dừng' : 'Phát'}
                     </Button>
-                    <audio src={homework.audioUrl} controls className="flex-1" />
+                    <audio src={homework.audioUrl} controls className="flex-1 w-full h-9 sm:h-10" />
                   </div>
                 )}
 
-                {/* Display content/promptText as read-only */}
-                {(homework.content || homework.promptText || homework.processedAnswerText) && (
+                {/* Display content/promptText as read-only for listening/reading */}
+                {homework.type !== 'speaking' && (homework.content || homework.promptText || homework.processedAnswerText) && (
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
                       Văn bản giao cho học viên (có chỗ trống)
                     </label>
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-pre-wrap text-base leading-7">
+                    <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-pre-wrap text-sm sm:text-base leading-6 sm:leading-7 overflow-x-auto">
                       {homework.content || homework.promptText || homework.processedAnswerText}
                     </div>
                   </div>
                 )}
 
-                {/* Input area for boxes or textarea */}
-                {homework.boxes && homework.boxes > 0 ? (
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                {/* Speaking homework component */}
+                {homework.type === 'speaking' && homework.speakingText && (
+                  <SpeakingHomeworkPlayer
+                    speakingText={homework.speakingText}
+                    isSubmitted={isSubmitted}
+                    isLocked={isLocked}
+                    transcribedText={currentSubmission?.transcribedText}
+                    score={currentSubmission?.score || undefined}
+                    onSubmitAction={async (audioBlob: Blob, transcribedText: string) => {
+                      setIsSubmitting(true);
+                      try {
+                        // Convert blob to base64
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = async () => {
+                          const audioBase64 = reader.result as string;
+                          
+                          const res = await fetch(`/api/homework/${homeworkId}/submit-speaking`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audioBase64, transcribedText }),
+                          });
+
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Submit failed');
+
+                          toast({
+                            title: 'Thành công!',
+                            description: `Điểm: ${Math.round((data.submission.score || 0) * 100)}%`,
+                          });
+
+                          fetchHomework(); // Refresh data
+                        };
+                      } catch (error: any) {
+                        toast({
+                          title: 'Lỗi',
+                          description: error.message || 'Không thể nộp bài',
+                          variant: 'destructive',
+                        });
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Input area for boxes or textarea (listening/reading only) */}
+                {homework.type !== 'speaking' && (homework.boxes && homework.boxes > 0 ? (
+                  <div className="space-y-2 sm:space-y-3">
+                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
                       Điền đáp án vào các ô tương ứng
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                       {boxes.map((value, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <div className="text-xs text-muted-foreground w-6">{idx + 1}.</div>
+                          <div className="text-xs text-muted-foreground w-5 sm:w-6 flex-shrink-0">{idx + 1}.</div>
                           <input
-                            className="flex-1 rounded-md border px-3 py-2 text-base bg-white dark:bg-gray-900/30"
+                            className="flex-1 rounded-md border px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base bg-white dark:bg-gray-900/30 min-w-0"
                             value={value}
                             onChange={(e) => {
                               const next = [...boxes];
@@ -405,9 +461,9 @@ export default function HomeworkPage() {
                           />
                           {boxResults && (
                             boxResults[idx] ? (
-                              <span className="text-green-600 text-sm">✔</span>
+                              <span className="text-green-600 text-sm flex-shrink-0">✔</span>
                             ) : (
-                              <span className="text-red-600 text-sm">✘</span>
+                              <span className="text-red-600 text-sm flex-shrink-0">✘</span>
                             )
                           )}
                         </div>
@@ -417,7 +473,7 @@ export default function HomeworkPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
                       Đáp án của bạn
                     </label>
                     <Textarea
@@ -425,7 +481,7 @@ export default function HomeworkPage() {
                       onChange={(e) => setAnswer(e.target.value)}
                       disabled={isLocked || isSubmitted}
                       placeholder="Nhập đáp án của bạn tại đây..."
-                      className={`min-h-[200px] w-full text-base leading-7 ${
+                      className={`min-h-[150px] sm:min-h-[200px] w-full text-sm sm:text-base leading-6 sm:leading-7 ${
                         isLocked || isSubmitted
                           ? 'bg-gray-50 dark:bg-gray-900/30'
                           : 'bg-white dark:bg-gray-900/30'
@@ -435,13 +491,13 @@ export default function HomeworkPage() {
                       <p className="text-xs text-muted-foreground">Nhập đáp án của bạn vào ô trên, sau đó nhấn Nộp bài.</p>
                     )}
                   </div>
-                )}
+                ))}
 
                 {/* Show answer key after submit */}
                 {showAnswerKey && homework.answerKey && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Đáp án chuẩn</label>
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 whitespace-pre-wrap">
+                    <label className="text-xs sm:text-sm font-medium">Đáp án chuẩn</label>
+                    <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 whitespace-pre-wrap text-sm sm:text-base overflow-x-auto">
                       {homework.answerKey}
                     </div>
                   </div>

@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         ...(promptText !== undefined && { promptText }),
         ...(hideMode !== undefined && { hideMode }),
         ...(content !== undefined && { content }),
-        ...(answerBoxes !== undefined && { answerBoxes: Array.isArray(answerBoxes) ? answerBoxes : null }),
+        ...(answerBoxes !== undefined && (Array.isArray(answerBoxes) && answerBoxes.length > 0 ? { answerBoxes } : { answerBoxes: [] })),
         ...(status !== undefined && { status }),
       }
     });

@@ -41,13 +41,17 @@ export async function POST(request: NextRequest) {
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
-    const { title, description, type, clazzId, deadline, audioUrl, answerText, promptText, hideMode, content, answerBoxes } = body;
+    const { title, description, type, clazzId, deadline, audioUrl, answerText, promptText, hideMode, content, answerBoxes, speakingText } = body;
     
     if (!title || !type || !clazzId || !deadline) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (!answerText) {
+    if (type === 'speaking' && !speakingText) {
+      return NextResponse.json({ error: 'Speaking text is required for speaking homework' }, { status: 400 });
+    }
+
+    if (type !== 'speaking' && !answerText) {
       return NextResponse.json({ error: 'Answer text is required' }, { status: 400 });
     }
 
@@ -79,7 +83,8 @@ export async function POST(request: NextRequest) {
         promptText: promptText || null,
         hideMode: hideMode || 'all',
         content: content || null,
-        answerBoxes: Array.isArray(answerBoxes) ? answerBoxes : null,
+        answerBoxes: Array.isArray(answerBoxes) && answerBoxes.length > 0 ? answerBoxes : [],
+        speakingText: speakingText || null,
         status: 'active',
       } 
     });

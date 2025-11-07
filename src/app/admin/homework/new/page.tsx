@@ -21,7 +21,7 @@ export default function NewHomeworkPage() {
   const { classes } = useAdminClasses();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState<'listening' | 'reading'>('listening');
+  const [type, setType] = useState<'listening' | 'reading' | 'speaking'>('listening');
   const [clazzId, setClazzId] = useState<string>('');
   const [deadline, setDeadline] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
@@ -30,6 +30,7 @@ export default function NewHomeworkPage() {
   const [answerBoxesText, setAnswerBoxesText] = useState('');
   const [hideMode, setHideMode] = useState<'all' | 'random'>('all');
   const [content, setContent] = useState('');
+  const [speakingText, setSpeakingText] = useState(''); // New field for speaking
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -123,7 +124,16 @@ export default function NewHomeworkPage() {
       return;
     }
 
-    if (!promptText) {
+    if (type === 'speaking' && !speakingText) {
+      toast({
+        title: 'Lỗi',
+        description: 'Vui lòng nhập văn bản cho học viên đọc',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (type !== 'speaking' && !promptText) {
       toast({
         title: 'Lỗi',
         description: 'Vui lòng nhập văn bản gửi cho học viên',
@@ -145,10 +155,11 @@ export default function NewHomeworkPage() {
           clazzId: Number(clazzId),
           deadline,
           audioUrl: type === 'listening' ? audioUrl : null,
-          promptText: promptText || null,
-          answerText,
+          promptText: type !== 'speaking' ? promptText : null,
+          answerText: type !== 'speaking' ? answerText : null,
           hideMode: type === 'listening' ? hideMode : null,
           content: type === 'reading' ? content : null,
+          speakingText: type === 'speaking' ? speakingText : null,
           answerBoxes: answerBoxesText
             .split('\n')
             .map(s => s.trim())
@@ -215,13 +226,14 @@ export default function NewHomeworkPage() {
 
             <div className="space-y-2">
               <Label>Loại bài tập *</Label>
-              <Select value={type} onValueChange={(v: 'listening' | 'reading') => setType(v)}>
+              <Select value={type} onValueChange={(v: 'listening' | 'reading' | 'speaking') => setType(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="listening">🎧 Bài tập nghe</SelectItem>
                   <SelectItem value="reading">📖 Bài tập đọc</SelectItem>
+                  <SelectItem value="speaking">🎤 Bài tập nói</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -300,43 +312,78 @@ export default function NewHomeworkPage() {
             )}
 
             {['listening', 'reading'].includes(type) && (
-              <div className="space-y-2">
-                <Label>Văn bản giao cho học viên (có chỗ trống) *</Label>
-                <Textarea
-                  placeholder="Dán đoạn văn bản với chỗ trống cho học viên..."
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  rows={6}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Đoạn văn này sẽ hiển thị cho học viên khi làm bài.
-                </p>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>Văn bản giao cho học viên (có chỗ trống) *</Label>
+                  <Textarea
+                    placeholder="Dán đoạn văn bản với chỗ trống cho học viên..."
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    rows={6}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Đoạn văn này sẽ hiển thị cho học viên khi làm bài.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Đáp án đầy đủ *</Label>
+                  <Textarea
+                    placeholder="Nhập toàn bộ đáp án chuẩn"
+                    value={answerText}
+                    onChange={(e) => setAnswerText(e.target.value)}
+                    rows={6}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Hệ thống sẽ so sánh bài làm của học viên với đáp án này.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Các đáp án dưới dạng ô (mỗi dòng một đáp án)</Label>
+                  <Textarea
+                    placeholder={"Ví dụ:\n1) Hi\n2) mean to you"}
+                    value={answerBoxesText}
+                    onChange={(e) => setAnswerBoxesText(e.target.value)}
+                    rows={5}
+                  />
+                  <p className="text-xs text-muted-foreground">Học viên sẽ thấy các ô trống tương ứng để điền. Chấm điểm theo từng ô.</p>
+                </div>
+              </>
             )}
 
-            <div className="space-y-2">
-              <Label>Đáp án đầy đủ *</Label>
-              <Textarea
-                placeholder="Nhập toàn bộ đáp án chuẩn"
-                value={answerText}
-                onChange={(e) => setAnswerText(e.target.value)}
-                rows={6}
-              />
-              <p className="text-xs text-muted-foreground">
-                Hệ thống sẽ so sánh bài làm của học viên với đáp án này.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Các đáp án dưới dạng ô (mỗi dòng một đáp án)</Label>
-              <Textarea
-                placeholder={"Ví dụ:\n1) Hi\n2) mean to you"}
-                value={answerBoxesText}
-                onChange={(e) => setAnswerBoxesText(e.target.value)}
-                rows={5}
-              />
-              <p className="text-xs text-muted-foreground">Học viên sẽ thấy các ô trống tương ứng để điền. Chấm điểm theo từng ô.</p>
-            </div>
+            {type === 'speaking' && (
+              <div className="space-y-2">
+                <Label>Văn bản cho học viên đọc *</Label>
+                <Textarea
+                  placeholder="Nhập đoạn văn bản mà học viên cần đọc to và thu âm..."
+                  value={speakingText}
+                  onChange={(e) => setSpeakingText(e.target.value)}
+                  rows={8}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  💡 Học viên sẽ nghe mẫu (Text-to-Speech), sau đó thu âm giọng đọc của mình. Hệ thống sẽ chuyển giọng nói thành văn bản và so sánh với văn bản gốc.
+                </p>
+                {speakingText && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(speakingText);
+                        utterance.lang = 'en-US';
+                        utterance.rate = 0.85;
+                        window.speechSynthesis.speak(utterance);
+                      }
+                    }}
+                  >
+                    🔊 Nghe thử giọng mẫu
+                  </Button>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Chế độ ẩn đáp án</Label>

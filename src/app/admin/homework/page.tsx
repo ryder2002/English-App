@@ -123,35 +123,35 @@ export default function AdminHomeworkPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4 md:p-6 lg:p-8">
-      <div className="mb-6 md:mb-8 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft p-4 md:p-6 border border-gray-200/50 dark:border-gray-700/50">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md shadow-glow animate-pulse-slow">
-              <span className="text-2xl md:text-3xl">📚</span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
+      <div className="mb-4 sm:mb-6 md:mb-8 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-soft p-3 sm:p-4 md:p-6 border border-gray-200/50 dark:border-gray-700/50">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md shadow-glow animate-pulse-slow flex-shrink-0">
+              <span className="text-xl sm:text-2xl md:text-3xl">📚</span>
             </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent truncate">
                 Quản lý Bài tập về nhà
               </h1>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">Quản lý bài tập nghe và đọc cho học viên</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">Quản lý bài tập nghe và đọc cho học viên</p>
             </div>
           </div>
           
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 sm:gap-3">
             <div className="relative flex-1 w-full">
               <Input
                 placeholder="🔍 Tìm theo tiêu đề, lớp"
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-                className="pl-10 border-2 border-purple-200 dark:border-purple-800 rounded-xl"
+                className="pl-9 sm:pl-10 text-sm border-2 border-purple-200 dark:border-purple-800 rounded-xl h-9 sm:h-10"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="min-w-[140px] flex-1 md:flex-none">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1 min-w-[120px]">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="border-2 border-purple-200 dark:border-purple-800 rounded-xl">
+                  <SelectTrigger className="border-2 border-purple-200 dark:border-purple-800 rounded-xl h-9 sm:h-10 text-sm">
                     <SelectValue placeholder="📚 Chọn lớp" />
                   </SelectTrigger>
                   <SelectContent>
@@ -168,9 +168,9 @@ export default function AdminHomeworkPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="min-w-[140px] flex-1 md:flex-none">
+              <div className="flex-1 min-w-[120px]">
                 <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="border-2 border-purple-200 dark:border-purple-800 rounded-xl">
+                  <SelectTrigger className="border-2 border-purple-200 dark:border-purple-800 rounded-xl h-9 sm:h-10 text-sm">
                     <SelectValue placeholder="📝 Loại bài" />
                   </SelectTrigger>
                   <SelectContent>
@@ -180,8 +180,8 @@ export default function AdminHomeworkPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Link href="/admin/homework/new" className="w-full md:w-auto">
-                <Button className="w-full md:w-auto bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl font-semibold">
+              <Link href="/admin/homework/new" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl font-semibold h-9 sm:h-10 text-sm px-3 sm:px-4">
                   ➕ Tạo bài mới
                 </Button>
               </Link>

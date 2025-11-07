@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,26 +8,24 @@ datasource db {
 }
 
 model User {
-  id               Int       @id @default(autoincrement())
-  email            String    @unique
-  password         String
-  name             String?
-  role             Role      @default(user)
-  firebaseUid      String?   @unique @map("firebase_uid")
-  resetToken       String?   @map("reset_token")
-  resetTokenExpiry DateTime? @map("reset_token_expiry")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  lastLoginAt      DateTime? @map("last_login_at")
-
-  // Relations
-  vocabulary    Vocabulary[]
-  folders       Folder[]
-  classesJoined ClassMember[]
-  classesOwned  Clazz[]       @relation("ClassTeacher")
-  quizResults   QuizResult[]
-  homeworkSubmissions HomeworkSubmission[]
+  id                    Int                    @id @default(autoincrement())
+  email                 String                 @unique
+  password              String
+  name                  String?
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  firebaseUid           String?                @unique @map("firebase_uid")
+  resetToken            String?                @map("reset_token")
+  resetTokenExpiry      DateTime?              @map("reset_token_expiry")
+  lastLoginAt           DateTime?              @map("last_login_at")
+  role                  Role                   @default(user)
   classActivitySessions ClassActivitySession[]
+  classesJoined         ClassMember[]
+  classesOwned          Clazz[]                @relation("ClassTeacher")
+  folders               Folder[]
+  homeworkSubmissions   HomeworkSubmission[]
+  quizResults           QuizResult[]
+  vocabulary            Vocabulary[]
 
   @@map("users")
 }
@@ -39,14 +34,12 @@ model Folder {
   id        Int      @id @default(autoincrement())
   name      String
   userId    Int      @map("user_id")
-  parentId  Int?     @map("parent_id")
   createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children Folder[] @relation("FolderHierarchy")
-  quizzes  Quiz[]
+  parentId  Int?     @map("parent_id")
+  parent    Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderHierarchy")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizzes   Quiz[]
 
   @@unique([name, userId, parentId])
   @@map("folders")
@@ -65,9 +58,7 @@ model Vocabulary {
   userId                Int      @map("user_id")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([folder])
@@ -76,20 +67,18 @@ model Vocabulary {
 }
 
 model Clazz {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  classCode   String   @unique @map("class_code")
-  teacherId   Int      @map("teacher_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  teacher User          @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
-  members ClassMember[]
-  quizzes Quiz[]
-  homeworks Homework[]
+  id                    Int                    @id @default(autoincrement())
+  name                  String
+  description           String?
+  classCode             String                 @unique @map("class_code")
+  teacherId             Int                    @map("teacher_id")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
   classActivitySessions ClassActivitySession[]
+  members               ClassMember[]
+  teacher               User                   @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  homeworks             Homework[]
+  quizzes               Quiz[]
 
   @@map("classes")
 }
@@ -99,10 +88,8 @@ model ClassMember {
   clazzId  Int      @map("class_id")
   userId   Int      @map("user_id")
   joinedAt DateTime @default(now()) @map("joined_at")
-
-  // Relations
-  clazz Clazz @relation(fields: [clazzId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clazz    Clazz    @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([clazzId, userId])
   @@map("class_members")
@@ -116,54 +103,126 @@ model Quiz {
   clazzId         Int           @map("class_id")
   folderId        Int           @map("folder_id")
   status          QuizStatus    @default(pending) @map("status")
-  timePerQuestion Int?          @default(0) @map("time_per_question") // Time in seconds, 0 = no auto-advance
-  direction       QuizDirection @default(en_vi) @map("direction") // Translation direction: en-vi, vi-en, random
+  timePerQuestion Int?          @default(0) @map("time_per_question")
+  direction       QuizDirection @default(en_vi) @map("direction")
   isPaused        Boolean       @default(false) @map("is_paused")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
   endedAt         DateTime?     @map("ended_at")
-
-  // Relations
-  clazz   Clazz        @relation(fields: [clazzId], references: [id], onDelete: Cascade)
-  folder  Folder       @relation(fields: [folderId], references: [id])
-  results QuizResult[]
+  results         QuizResult[]
+  clazz           Clazz         @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  folder          Folder        @relation(fields: [folderId], references: [id])
 
   @@map("tests")
 }
 
 model QuizResult {
-  id        Int              @id @default(autoincrement())
-  quizId    Int              @map("test_id")
-  userId    Int              @map("user_id")
+  id        Int                @id @default(autoincrement())
+  quizId    Int                @map("test_id")
+  userId    Int                @map("user_id")
   score     Float
-  maxScore  Float            @map("max_score")
-  startedAt DateTime         @default(now()) @map("started_at")
-  endedAt   DateTime?        @map("ended_at")
-  status    QuizResultStatus @default(in_progress) @map("status")
-
-  // Relations
-  quiz    Quiz               @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  answers QuizAnswerDetail[]
+  maxScore  Float              @map("max_score")
+  startedAt DateTime           @default(now()) @map("started_at")
+  endedAt   DateTime?          @map("ended_at")
+  status    QuizResultStatus   @default(in_progress) @map("status")
+  answers   QuizAnswerDetail[]
+  quiz      Quiz               @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("test_results")
 }
 
 model QuizAnswerDetail {
-  id             Int      @id @default(autoincrement())
-  resultId       Int      @map("result_id")
-  vocabularyId   Int?     @map("vocabulary_id")
-  questionText   String   @map("question_text")
-  questionType   String   @map("question_type") // 'word_to_meaning' | 'meaning_to_word'
-  selectedAnswer String   @map("selected_answer")
-  correctAnswer  String   @map("correct_answer")
-  isCorrect      Boolean  @map("is_correct")
-  answeredAt     DateTime @default(now()) @map("answered_at")
-
-  // Relations
-  result QuizResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  id             Int        @id @default(autoincrement())
+  resultId       Int        @map("result_id")
+  vocabularyId   Int?       @map("vocabulary_id")
+  questionText   String     @map("question_text")
+  questionType   String     @map("question_type")
+  selectedAnswer String     @map("selected_answer")
+  correctAnswer  String     @map("correct_answer")
+  isCorrect      Boolean    @map("is_correct")
+  answeredAt     DateTime   @default(now()) @map("answered_at")
+  result         QuizResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
 
   @@map("quiz_answer_details")
+}
+
+model SystemNotification {
+  id        Int              @id @default(autoincrement())
+  title     String
+  content   String
+  type      NotificationType @default(info)
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  createdBy Int?             @map("created_by")
+
+  @@map("system_notifications")
+}
+
+model Homework {
+  id           Int                  @id @default(autoincrement())
+  title        String
+  description  String?
+  type         HomeworkType
+  clazzId      Int                  @map("class_id")
+  deadline     DateTime
+  status       HomeworkStatus       @default(active)
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  audioUrl     String?              @map("audio_url")
+  answerText   String?              @map("answer_text")
+  promptText   String?              @map("prompt_text")
+  hideMode     HomeworkHideMode?    @default(all) @map("hide_mode")
+  content      String?
+  answerBoxes  Json?                @map("answer_boxes")
+  speakingText String?              @map("speaking_text")
+  clazz        Clazz                @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  submissions  HomeworkSubmission[]
+
+  @@map("homework")
+}
+
+model HomeworkSubmission {
+  id               Int                      @id @default(autoincrement())
+  homeworkId       Int                      @map("homework_id")
+  userId           Int                      @map("user_id")
+  attemptNumber    Int                      @default(1) @map("attempt_number")
+  answer           String?
+  answers          Json?                    @map("answers")
+  boxResults       Json?                    @map("box_results")
+  score            Float?
+  status           HomeworkSubmissionStatus @default(in_progress)
+  submittedAt      DateTime?                @map("submitted_at")
+  startedAt        DateTime?                @map("started_at")
+  lastActivityAt   DateTime?                @map("last_activity_at")
+  timeSpentSeconds Int                      @default(0) @map("time_spent_seconds")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+  audioData        Bytes?                   @map("audio_data")
+  transcribedText  String?                  @map("transcribed_text")
+  homework         Homework                 @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([homeworkId, userId, attemptNumber])
+  @@index([homeworkId, userId])
+  @@map("homework_submissions")
+}
+
+model ClassActivitySession {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  clazzId         Int       @map("class_id")
+  startedAt       DateTime  @default(now()) @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  durationSeconds Int?      @map("duration_seconds")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  clazz           Clazz     @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clazzId])
+  @@index([userId])
+  @@map("class_activity_sessions")
 }
 
 enum Language {
@@ -195,19 +254,6 @@ enum QuizDirection {
   random
 }
 
-model SystemNotification {
-  id        Int              @id @default(autoincrement())
-  title     String
-  content   String           @db.Text
-  type      NotificationType @default(info)
-  isActive  Boolean          @default(true) @map("is_active")
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @updatedAt @map("updated_at")
-  createdBy Int?             @map("created_by")
-
-  @@map("system_notifications")
-}
-
 enum NotificationType {
   info
   warning
@@ -216,82 +262,10 @@ enum NotificationType {
   important
 }
 
-model Homework {
-  id          Int            @id @default(autoincrement())
-  title       String
-  description String?
-  type        HomeworkType
-  clazzId     Int            @map("class_id")
-  deadline    DateTime
-  status      HomeworkStatus @default(active)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  
-  // Listening homework fields
-  audioUrl    String?        @map("audio_url")
-  answerText  String?        @db.Text @map("answer_text")
-  promptText  String?        @db.Text @map("prompt_text")
-  hideMode    HomeworkHideMode? @default(all) @map("hide_mode")
-  
-  // Reading homework fields (for future use)
-  content     String?        @db.Text
-  
-  // Box-based answers
-  answerBoxes Json?          @map("answer_boxes")
-  
-  // Relations
-  clazz       Clazz          @relation(fields: [clazzId], references: [id], onDelete: Cascade)
-  submissions HomeworkSubmission[]
-
-  @@map("homework")
-}
-
-model HomeworkSubmission {
-  id          Int                    @id @default(autoincrement())
-  homeworkId  Int                    @map("homework_id")
-  userId      Int                    @map("user_id")
-  attemptNumber Int                  @default(1) @map("attempt_number")
-  answer      String?                @db.Text
-  answers     Json?                  @map("answers")
-  boxResults  Json?                  @map("box_results")
-  score       Float?
-  status      HomeworkSubmissionStatus @default(in_progress)
-  submittedAt DateTime?              @map("submitted_at")
-  startedAt   DateTime?              @map("started_at")
-  lastActivityAt DateTime?           @map("last_activity_at")
-  timeSpentSeconds Int               @default(0) @map("time_spent_seconds")
-  createdAt   DateTime               @default(now()) @map("created_at")
-  updatedAt   DateTime               @updatedAt @map("updated_at")
-
-  // Relations
-  homework    Homework               @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
-  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([homeworkId, userId, attemptNumber])
-  @@index([homeworkId, userId])
-  @@map("homework_submissions")
-}
-
-model ClassActivitySession {
-  id             Int      @id @default(autoincrement())
-  userId         Int      @map("user_id")
-  clazzId        Int      @map("class_id")
-  startedAt      DateTime @default(now()) @map("started_at")
-  endedAt        DateTime? @map("ended_at")
-  durationSeconds Int?    @map("duration_seconds")
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clazz Clazz @relation(fields: [clazzId], references: [id], onDelete: Cascade)
-
-  @@index([clazzId])
-  @@index([userId])
-  @@map("class_activity_sessions")
-}
-
 enum HomeworkType {
   listening
   reading
+  speaking
 }
 
 enum HomeworkStatus {

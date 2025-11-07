@@ -1,5 +1,7 @@
-import { prisma } from '../src/lib/prisma';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
 
 async function main() {
   const email = process.env.ADMIN_EMAIL || 'admin@example.com';
@@ -17,6 +19,7 @@ async function main() {
     },
   });
   console.log('Admin user:', admin);
+  await prisma.$disconnect();
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

@@ -49,16 +49,31 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
 
     const now = new Date();
 
-    const submission = await prisma.homeworkSubmission.upsert({
+    // Get or create the current attempt (default to attempt 1)
+    let submission = await prisma.homeworkSubmission.findFirst({
       where: {
-        homeworkId_userId: {
+        homeworkId: Number(homeworkId),
+        userId: user.id,
+      },
+      orderBy: {
+        attemptNumber: 'desc',
+      },
+    });
+
+    const currentAttemptNumber = submission?.attemptNumber || 1;
+
+    submission = await prisma.homeworkSubmission.upsert({
+      where: {
+        homeworkId_userId_attemptNumber: {
           homeworkId: Number(homeworkId),
           userId: user.id,
+          attemptNumber: currentAttemptNumber,
         },
       },
       create: {
         homeworkId: Number(homeworkId),
         userId: user.id,
+        attemptNumber: currentAttemptNumber,
         startedAt: now,
         lastActivityAt: now,
         timeSpentSeconds: safeIncrement,
