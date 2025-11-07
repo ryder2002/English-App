@@ -2,27 +2,100 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuthService } from '@/lib/services/auth-service';
 
-// Helper function to calculate similarity score (Levenshtein distance based)
+// Enhanced similarity calculation with phonetic matching
 function calculateSimilarity(text1: string, text2: string): number {
-  const str1 = text1.toLowerCase().trim();
-  const str2 = text2.toLowerCase().trim();
+  const str1 = text1.toLowerCase().trim().replace(/[^\w\s]/g, '');
+  const str2 = text2.toLowerCase().trim().replace(/[^\w\s]/g, '');
   
-  // Simple word-based comparison
-  const words1 = str1.split(/\s+/);
-  const words2 = str2.split(/\s+/);
+  // Normalize common speech recognition errors
+  const normalizeText = (text: string) => {
+    return text
+      .replace(/\bwon't\b/g, 'will not')
+      .replace(/\bcan't\b/g, 'cannot')
+      .replace(/\bdont\b/g, 'do not')
+      .replace(/\bdoesnt\b/g, 'does not')
+      .replace(/\bwont\b/g, 'will not')
+      .replace(/\byou're\b/g, 'you are')
+      .replace(/\bthey're\b/g, 'they are')
+      .replace(/\bwe're\b/g, 'we are')
+      .replace(/\bi'm\b/g, 'i am')
+      .replace(/\bhe's\b/g, 'he is')
+      .replace(/\bshe's\b/g, 'she is')
+      .replace(/\bit's\b/g, 'it is')
+      .replace(/\bthat's\b/g, 'that is')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+  
+  const normalizedStr1 = normalizeText(str1);
+  const normalizedStr2 = normalizeText(str2);
+  
+  const words1 = normalizedStr1.split(/\s+/);
+  const words2 = normalizedStr2.split(/\s+/);
   
   let matches = 0;
   const maxLength = Math.max(words1.length, words2.length);
   
   for (let i = 0; i < Math.min(words1.length, words2.length); i++) {
-    if (words1[i] === words2[i]) {
-      matches++;
-    } else if (levenshteinDistance(words1[i], words2[i]) <= 2) {
-      matches += 0.5; // Partial credit for close matches
+    const word1 = words1[i];
+    const word2 = words2[i];
+    
+    if (word1 === word2) {
+      matches += 1;
+    } else {
+      const distance = levenshteinDistance(word1, word2);
+      const maxLen = Math.max(word1.length, word2.length);
+      
+      // More lenient scoring for speech recognition
+      if (distance <= 1 && maxLen >= 3) {
+        matches += 0.9; // Very close match
+      } else if (distance <= 2 && maxLen >= 4) {
+        matches += 0.7; // Close match
+      } else if (distance <= Math.ceil(maxLen * 0.3)) {
+        matches += 0.5; // Partial match
+      }
+      
+      // Check for phonetic similarity (common speech recognition errors)
+      if (arePhoneticallySimilar(word1, word2)) {
+        matches += 0.8;
+      }
     }
   }
   
-  return maxLength > 0 ? matches / maxLength : 0;
+  return maxLength > 0 ? Math.min(matches / maxLength, 1) : 0;
+}
+
+// Check for common phonetic errors in speech recognition
+function arePhoneticallySimilar(word1: string, word2: string): boolean {
+  const phoneticMap: { [key: string]: string[] } = {
+    'to': ['too', 'two'],
+    'there': ['their', 'they\'re'],
+    'your': ['you\'re'],
+    'its': ['it\'s'],
+    'than': ['then'],
+    'accept': ['except'],
+    'affect': ['effect'],
+    'brake': ['break'],
+    'buy': ['by', 'bye'],
+    'hear': ['here'],
+    'hour': ['our'],
+    'know': ['no'],
+    'one': ['won'],
+    'right': ['write'],
+    'sea': ['see'],
+    'week': ['weak'],
+    'wood': ['would']
+  };
+  
+  for (const [key, variants] of Object.entries(phoneticMap)) {
+    if ((word1 === key && variants.includes(word2)) || 
+        (word2 === key && variants.includes(word1)) ||
+        (variants.includes(word1) && variants.includes(word2))) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 // Levenshtein distance algorithm
@@ -81,18 +154,24 @@ export async function POST(
       );
     }
 
-    // Get homework
+    // Get homework with optimized query
     const homework = await prisma.homework.findUnique({
       where: { id: homeworkId },
-      include: {
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        speakingText: true,
         clazz: {
-          include: {
+          select: {
+            id: true,
             members: {
               where: { userId: user.id },
-            },
-          },
-        },
-      },
+              select: { userId: true }
+            }
+          }
+        }
+      }
     });
 
     if (!homework) {

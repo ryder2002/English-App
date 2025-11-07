@@ -77,16 +77,43 @@ export function SpeakingRecorder({
     }
 
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 1; // Slower for learning
-      utterance.pitch = 1;
+      // Wait for voices to load
+      const speakWithBestVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Try to find a high-quality English voice
+        const englishVoices = voices.filter(voice => 
+          voice.lang.startsWith('en-') && 
+          (voice.name.includes('Natural') || voice.name.includes('Enhanced') || voice.name.includes('Premium'))
+        );
+        
+        if (englishVoices.length > 0) {
+          utterance.voice = englishVoices[0];
+        } else {
+          // Fallback to any English voice
+          const fallbackVoice = voices.find(voice => voice.lang.startsWith('en-'));
+          if (fallbackVoice) utterance.voice = fallbackVoice;
+        }
+        
+        utterance.lang = 'en-US';
+        utterance.rate = 0.8; // Slightly slower for clear pronunciation
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        utterance.onend = () => setIsPlayingSample(false);
+        utterance.onerror = () => setIsPlayingSample(false);
+        
+        window.speechSynthesis.speak(utterance);
+        setIsPlayingSample(true);
+      };
       
-      utterance.onend = () => setIsPlayingSample(false);
-      utterance.onerror = () => setIsPlayingSample(false);
-      
-      window.speechSynthesis.speak(utterance);
-      setIsPlayingSample(true);
+      // Ensure voices are loaded
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', speakWithBestVoice, { once: true });
+      } else {
+        speakWithBestVoice();
+      }
     }
   };
 
@@ -97,7 +124,10 @@ export function SpeakingRecorder({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 44100,
+          autoGainControl: true,
+          sampleRate: 16000, // Optimized for speech recognition
+          channelCount: 1,   // Mono audio
+          sampleSize: 16,    // 16-bit depth
         } 
       });
       
@@ -144,7 +174,7 @@ export function SpeakingRecorder({
         }
       };
 
-      // Initialize Speech Recognition
+      // Initialize Speech Recognition with improved settings
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -152,6 +182,9 @@ export function SpeakingRecorder({
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+        recognition.serviceURI = 'wss://www.google.com/speech-api/full-duplex/v1/up';
+        recognition.grammars = null;
 
         let finalTranscript = '';
         let lastSpeechTime = Date.now();
@@ -160,33 +193,56 @@ export function SpeakingRecorder({
           let interimTranscript = '';
           
           for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + ' ';
+            const result = event.results[i];
+            const transcript = result[0].transcript.trim();
+            const confidence = result[0].confidence;
+            
+            // Only accept high confidence results (>0.7) or use best alternative
+            let bestTranscript = transcript;
+            if (result.length > 1) {
+              // Check alternatives if available
+              for (let j = 0; j < Math.min(result.length, 3); j++) {
+                if (result[j].confidence > 0.8) {
+                  bestTranscript = result[j].transcript.trim();
+                  break;
+                }
+              }
+            }
+            
+            if (result.isFinal) {
+              // Clean up transcript: remove extra spaces, fix common errors
+              const cleanedTranscript = bestTranscript
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .replace(/[.!?]+$/, '')
+                .trim();
+              
+              finalTranscript += cleanedTranscript + ' ';
               lastSpeechTime = Date.now();
               
               // Update ref immediately
-              transcribedTextRef.current = finalTranscript + interimTranscript;
+              transcribedTextRef.current = finalTranscript.trim();
               
               // Reset silence timer
               if (silenceTimerRef.current) {
                 clearTimeout(silenceTimerRef.current);
               }
               
-              // Auto-stop after 2 seconds of silence
+              // Auto-stop after 3 seconds of silence (increased from 2s)
               silenceTimerRef.current = setTimeout(() => {
-                if (Date.now() - lastSpeechTime >= 2000 && isRecording) {
+                if (Date.now() - lastSpeechTime >= 3000 && isRecording) {
                   console.log('Auto-stopping due to silence');
                   stopRecording();
                 }
-              }, 2000);
+              }, 3000);
               
             } else {
-              interimTranscript += transcript;
+              // Clean interim results too
+              interimTranscript += bestTranscript.toLowerCase().replace(/\s+/g, ' ').trim();
             }
           }
           
-          const fullTranscript = finalTranscript + interimTranscript;
+          const fullTranscript = (finalTranscript + interimTranscript).trim();
           transcribedTextRef.current = fullTranscript;
           setTranscribedText(fullTranscript);
         };

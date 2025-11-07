@@ -417,11 +417,9 @@ export default function HomeworkPage() {
                           description: 'Đã nộp bài thành công!',
                         });
                         
-                        // Redirect to submission detail page
+                        // Immediate redirect without delay for better UX
                         if (data.submission?.id) {
-                          setTimeout(() => {
-                            router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${data.submission.id}`);
-                          }, 500);
+                          router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${data.submission.id}`);
                         } else {
                           // Fallback: refresh data to show result display
                           await fetchHomework();
