@@ -59,6 +59,12 @@ export async function GET(request: NextRequest) {
         })
       : 0;
 
+    const homeworkCount = classIds.length > 0
+      ? await prisma.homework.count({
+          where: { clazzId: { in: classIds } },
+        })
+      : 0;
+
     // Count folders owned by admin
     const folderCount = await prisma.folder.count({
       where: {
@@ -122,6 +128,7 @@ export async function GET(request: NextRequest) {
       classCount,
       vocabCount,
       quizCount,
+      homeworkCount,
       folderCount,
       recentActivities,
     });

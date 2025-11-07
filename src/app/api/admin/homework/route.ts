@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
-    const { title, description, type, clazzId, deadline, audioUrl, answerText, promptText, hideMode, content } = body;
+    const { title, description, type, clazzId, deadline, audioUrl, answerText, promptText, hideMode, content, answerBoxes } = body;
     
     if (!title || !type || !clazzId || !deadline) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
         promptText: promptText || null,
         hideMode: hideMode || 'all',
         content: content || null,
+        answerBoxes: Array.isArray(answerBoxes) ? answerBoxes : null,
         status: 'active',
       } 
     });

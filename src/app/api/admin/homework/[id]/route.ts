@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
-    const { title, description, deadline, audioUrl, answerText, promptText, hideMode, content, status } = body;
+    const { title, description, deadline, audioUrl, answerText, promptText, hideMode, content, status, answerBoxes } = body;
 
     const homework = await prisma.homework.findUnique({
       where: { id: Number(id) },
@@ -78,6 +78,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         ...(promptText !== undefined && { promptText }),
         ...(hideMode !== undefined && { hideMode }),
         ...(content !== undefined && { content }),
+        ...(answerBoxes !== undefined && { answerBoxes: Array.isArray(answerBoxes) ? answerBoxes : null }),
         ...(status !== undefined && { status }),
       }
     });

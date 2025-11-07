@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuthService } from '@/lib/services/auth-service';
 
-export async function GET(request: NextRequest, context: { params: Promise<{ classId: string }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { classId } = await context.params;
+    const { id } = await context.params;
+    const clazzId = Number(id);
     const token = request.cookies.get('token')?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,11 +16,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ cla
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is a member of the class
+    // Check membership
     const classMember = await prisma.classMember.findUnique({
       where: {
         clazzId_userId: {
-          clazzId: Number(classId),
+          clazzId,
           userId: user.id,
         },
       },
@@ -29,41 +30,36 @@ export async function GET(request: NextRequest, context: { params: Promise<{ cla
       return NextResponse.json({ error: 'You are not a member of this class' }, { status: 403 });
     }
 
-    // Get all homework for this class
     const homework = await prisma.homework.findMany({
-      where: {
-        clazzId: Number(classId),
-      },
+      where: { clazzId },
       include: {
         clazz: { select: { id: true, name: true } },
         submissions: {
           where: { userId: user.id },
           take: 1,
-          orderBy: { createdAt: 'desc' }
-        }
+          orderBy: { createdAt: 'desc' },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Check deadlines and auto-lock expired homework
     const now = new Date();
-    const sanitizedHomework = [] as any[];
+    const sanitized = [] as any[];
     for (const hw of homework) {
       if (hw.status === 'active' && new Date(hw.deadline) < now) {
         await prisma.homework.update({
           where: { id: hw.id },
-          data: { status: 'locked' }
+          data: { status: 'locked' },
         });
         hw.status = 'locked';
       }
 
       const { answerText, ...rest } = hw;
-      sanitizedHomework.push(rest);
+      sanitized.push(rest);
     }
 
-    return NextResponse.json(sanitizedHomework);
+    return NextResponse.json(sanitized);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
   }
 }
-

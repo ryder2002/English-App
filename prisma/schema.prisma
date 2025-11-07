@@ -236,6 +236,9 @@ model Homework {
   // Reading homework fields (for future use)
   content     String?        @db.Text
   
+  // Box-based answers
+  answerBoxes Json?          @map("answer_boxes")
+  
   // Relations
   clazz       Clazz          @relation(fields: [clazzId], references: [id], onDelete: Cascade)
   submissions HomeworkSubmission[]
@@ -248,6 +251,8 @@ model HomeworkSubmission {
   homeworkId  Int                    @map("homework_id")
   userId      Int                    @map("user_id")
   answer      String?                @db.Text
+  answers     Json?                  @map("answers")
+  boxResults  Json?                  @map("box_results")
   score       Float?
   status      HomeworkSubmissionStatus @default(in_progress)
   submittedAt DateTime?              @map("submitted_at")

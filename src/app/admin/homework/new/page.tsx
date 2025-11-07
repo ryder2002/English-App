@@ -27,6 +27,7 @@ export default function NewHomeworkPage() {
   const [audioUrl, setAudioUrl] = useState('');
   const [promptText, setPromptText] = useState('');
   const [answerText, setAnswerText] = useState('');
+  const [answerBoxesText, setAnswerBoxesText] = useState('');
   const [hideMode, setHideMode] = useState<'all' | 'random'>('all');
   const [content, setContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -148,6 +149,10 @@ export default function NewHomeworkPage() {
           answerText,
           hideMode: type === 'listening' ? hideMode : null,
           content: type === 'reading' ? content : null,
+          answerBoxes: answerBoxesText
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean),
         }),
       });
 
@@ -320,6 +325,17 @@ export default function NewHomeworkPage() {
               <p className="text-xs text-muted-foreground">
                 Hệ thống sẽ so sánh bài làm của học viên với đáp án này.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Các đáp án dưới dạng ô (mỗi dòng một đáp án)</Label>
+              <Textarea
+                placeholder={"Ví dụ:\n1) Hi\n2) mean to you"}
+                value={answerBoxesText}
+                onChange={(e) => setAnswerBoxesText(e.target.value)}
+                rows={5}
+              />
+              <p className="text-xs text-muted-foreground">Học viên sẽ thấy các ô trống tương ứng để điền. Chấm điểm theo từng ô.</p>
             </div>
 
             <div className="space-y-2">

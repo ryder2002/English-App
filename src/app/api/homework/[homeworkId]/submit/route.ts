@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
     }
 
     const body = await request.json();
-    const { answer } = body;
+    const { answer, answers } = body;
 
     // Get homework
     const homework = await prisma.homework.findUnique({
@@ -54,18 +54,35 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
     const previousDuration = existingSubmission?.timeSpentSeconds ?? 0;
     const timeSpentSeconds = Math.max(previousDuration, computedDuration);
 
-    const normalize = (value: string | null | undefined) =>
-      (value ?? '')
-        .trim()
-        .replace(/\s+/g, ' ')
-        .toLowerCase();
+    const normalized = (v: any) => String(v ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
-    const normalizedAnswer = normalize(answer);
-    const normalizedKey = normalize(homework.answerText);
-    const hasAnswerKey = Boolean(homework.answerText);
-    const isCorrect = hasAnswerKey ? normalizedAnswer === normalizedKey : null;
-    const score = hasAnswerKey ? (isCorrect ? 1 : 0) : null;
-    const status = hasAnswerKey ? 'graded' : 'submitted';
+    let score: number | null = null;
+    let isCorrect: boolean | null = null;
+    let boxResults: boolean[] | null = null;
+    let saveAnswersJson: any = null;
+
+    if (Array.isArray(homework.answerBoxes) && homework.answerBoxes.length > 0 && Array.isArray(answers)) {
+      const keys = (homework.answerBoxes as any[]).map(normalized);
+      const user = answers.map(normalized);
+      const total = keys.length;
+      const results: boolean[] = [];
+      let correct = 0;
+      for (let i = 0; i < total; i++) {
+        const ok = user[i] !== undefined && user[i] === keys[i];
+        results.push(ok);
+        if (ok) correct++;
+      }
+      score = total > 0 ? correct / total : 0;
+      isCorrect = total > 0 ? correct === total : null;
+      boxResults = results;
+      saveAnswersJson = answers;
+    } else {
+      const normalizedAnswer = normalized(answer);
+      const normalizedKey = normalized(homework.answerText);
+      const hasAnswerKey = Boolean(homework.answerText);
+      isCorrect = hasAnswerKey ? normalizedAnswer === normalizedKey : null;
+      score = hasAnswerKey ? (isCorrect ? 1 : 0) : null;
+    }
 
     // Create or update submission
     const submission = await prisma.homeworkSubmission.upsert({
@@ -76,8 +93,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
         },
       },
       update: {
-        answer: answer || null,
-        status,
+        answer: Array.isArray(answers) ? null : (answer || null),
+        answers: saveAnswersJson ? saveAnswersJson : undefined,
+        boxResults: boxResults ? boxResults : undefined,
+        status: score === null ? 'submitted' : 'graded',
         submittedAt: now,
         lastActivityAt: now,
         timeSpentSeconds,
@@ -86,8 +105,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
       create: {
         homeworkId: Number(homeworkId),
         userId: user.id,
-        answer: answer || null,
-        status,
+        answer: Array.isArray(answers) ? null : (answer || null),
+        answers: saveAnswersJson ? saveAnswersJson : undefined,
+        boxResults: boxResults ? boxResults : undefined,
+        status: score === null ? 'submitted' : 'graded',
         submittedAt: now,
         startedAt,
         lastActivityAt: now,
@@ -99,6 +120,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
     return NextResponse.json({
       ...submission,
       isCorrect,
+      boxResults,
     });
   } catch (error: any) {
     console.error('Submit homework error:', error);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Layers, BookOpen, FileText, Folder } from "lucide-react";
+import { Users, Layers, BookOpen, FileText, Folder, ClipboardList } from "lucide-react";
 import { useAdminStats } from "./useAdminStats";
 import Link from "next/link";
 
@@ -62,6 +62,13 @@ export default function AdminPage() {
             icon={<FileText className="w-5 h-5 md:w-6 md:h-6 text-purple-500" />}
             href="/admin/tests"
             description="Quản lý bài kiểm tra"
+          />
+          <StatCard
+            label="Bài tập về nhà"
+            value={isLoading ? "..." : stats?.homeworkCount ?? 0}
+            icon={<ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />}
+            href="/admin/homework"
+            description="Quản lý bài tập về nhà"
           />
         </div>
 

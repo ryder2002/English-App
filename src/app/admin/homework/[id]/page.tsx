@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import {
   Table,
   TableHeader,
@@ -248,6 +249,7 @@ export default function HomeworkDetailPage() {
                       <TableHead>Trạng thái</TableHead>
                       <TableHead>Thời gian nộp</TableHead>
                       <TableHead>Đáp án</TableHead>
+                      <TableHead className="text-right">Chi tiết</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -281,6 +283,11 @@ export default function HomeworkDetailPage() {
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/admin/homework/${homework.id}/submissions/${submission.id}`}>
+                            <Button variant="outline" size="sm">Xem chi tiết</Button>
+                          </Link>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -113,7 +113,7 @@ export default function ClassDetailPage() {
 
   const fetchHomework = async () => {
     try {
-      const res = await fetch(`/api/homework/${classId}`, {
+      const res = await fetch(`/api/classes/${classId}/homework`, {
         credentials: 'include',
       });
 

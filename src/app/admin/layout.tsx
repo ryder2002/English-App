@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Layers, BookOpen, FileText, LogOut, Menu, X, Settings, Bell } from "lucide-react";
+import { Users, Layers, BookOpen, FileText, LogOut, Menu, X, Settings, ClipboardList } from "lucide-react";
 import Link from 'next/link';
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navLinks = [
     { href: "/admin", label: "Tổng quan", icon: Layers },
     { href: "/admin/classes", label: "Lớp học", icon: BookOpen },
+    { href: "/admin/homework", label: "Bài tập về nhà", icon: ClipboardList },
     { href: "/admin/folders", label: "Thư mục", icon: Layers },
     { href: "/admin/add-vocabulary", label: "Thêm từ vựng", icon: FileText },
     { href: "/admin/tests", label: "Kiểm tra", icon: Users },

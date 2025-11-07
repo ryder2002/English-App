@@ -27,6 +27,7 @@ export default function EditHomeworkPage() {
   const [audioUrl, setAudioUrl] = useState('');
   const [promptText, setPromptText] = useState('');
   const [answerText, setAnswerText] = useState('');
+  const [answerBoxesText, setAnswerBoxesText] = useState('');
   const [hideMode, setHideMode] = useState<'all' | 'random'>('all');
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<'active' | 'locked' | 'archived'>('active');
@@ -59,6 +60,7 @@ export default function EditHomeworkPage() {
       setHideMode(data.hideMode || 'all');
       setContent(data.content || '');
       setStatus(data.status);
+      setAnswerBoxesText(Array.isArray(data.answerBoxes) ? data.answerBoxes.join('\n') : '');
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -178,11 +180,15 @@ export default function EditHomeworkPage() {
           description,
           deadline,
           audioUrl: type === 'listening' ? audioUrl : null,
-          promptText: promptText || null,
+          promptText: type === 'listening' ? promptText : promptText || null,
           answerText,
           hideMode: type === 'listening' ? hideMode : null,
           content: type === 'reading' ? content : null,
           status,
+          answerBoxes: answerBoxesText
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean),
         }),
       });
 
@@ -359,6 +365,16 @@ export default function EditHomeworkPage() {
                 onChange={(e) => setAnswerText(e.target.value)}
                 rows={6}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Các đáp án dưới dạng ô (mỗi dòng một đáp án)</Label>
+              <Textarea
+                value={answerBoxesText}
+                onChange={(e) => setAnswerBoxesText(e.target.value)}
+                rows={5}
+              />
+              <p className="text-xs text-muted-foreground">Học viên sẽ điền vào các ô trống tương ứng.</p>
             </div>
 
             {type === 'listening' && (

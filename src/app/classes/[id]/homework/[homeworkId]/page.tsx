@@ -25,12 +25,16 @@ interface Homework {
   submissions: Array<{
     id: number;
     answer?: string;
+    answers?: string[];
+    boxResults?: boolean[];
     status: string;
     submittedAt?: string;
     score?: number | null;
     timeSpentSeconds?: number;
     isCorrect?: boolean;
   }>;
+  boxes?: number;
+  answerKey?: string | null;
 }
 
 export default function HomeworkPage() {
@@ -47,6 +51,30 @@ export default function HomeworkPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [lastResult, setLastResult] = useState<boolean | null>(null);
+  const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [boxes, setBoxes] = useState<string[]>([]);
+  const [boxResults, setBoxResults] = useState<boolean[] | null>(null);
+
+  const doRetry = async () => {
+    try {
+      const res = await fetch(`/api/homework/${homeworkId}/retry`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Retry failed');
+      // Reset view
+      setLastResult(null);
+      setShowAnswerKey(false);
+      if (homework?.promptText) setAnswer(homework.promptText);
+      else if (homework?.processedAnswerText) setAnswer(homework.processedAnswerText);
+      else setAnswer('');
+      // Refresh submission state
+      fetchHomework();
+    } catch (e: any) {
+      toast({ title: 'Lỗi', description: e.message || 'Không thể làm lại bài', variant: 'destructive' });
+    }
+  };
 
   useEffect(() => {
     if (!homeworkId) {
@@ -77,24 +105,40 @@ export default function HomeworkPage() {
       const data = await res.json();
       setHomework(data);
       
-      // Load existing submission if any
-      if (data.submissions && data.submissions.length > 0) {
-        setAnswer(data.submissions[0].answer || '');
-        if (typeof data.submissions[0].score === 'number') {
-          setLastResult(data.submissions[0].score > 0);
+      if (data.boxes && data.boxes > 0) {
+        // Initialize boxes from existing submission or empty strings
+        const submitted = data.submissions?.[0]?.answers || [];
+        const init = Array.from({ length: data.boxes }, (_, i) => submitted[i] || '');
+        setBoxes(init);
+        setAnswer('');
+      } else {
+        // fallback to editable text flow
+        const submissionAnswer = data.submissions?.[0]?.answer;
+        if (submissionAnswer) {
+          setAnswer(submissionAnswer);
+          if (typeof data.submissions[0].score === 'number') {
+            setLastResult(data.submissions[0].score > 0);
+          } else {
+            setLastResult(null);
+          }
         } else {
+          if (data.promptText) setAnswer(data.promptText);
+          else if (data.processedAnswerText) setAnswer(data.processedAnswerText);
+          else setAnswer('');
           setLastResult(null);
         }
-      } else {
-        setLastResult(null);
       }
 
-      // Initialize audio element
+      // audio
       if (data.type === 'listening' && data.audioUrl) {
         const audio = new Audio(data.audioUrl);
         audio.addEventListener('ended', () => setIsPlaying(false));
         setAudioElement(audio);
       }
+
+      // If backend returns answerKey after submission, allow toggling
+      if (data.answerKey) setShowAnswerKey(true); else setShowAnswerKey(false);
+      if (data.submissions?.[0]?.boxResults) setBoxResults(data.submissions[0].boxResults);
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -120,12 +164,15 @@ export default function HomeworkPage() {
   };
 
   const handleSubmit = async () => {
-    if (!answer.trim()) {
-      toast({
-        title: 'Lỗi',
-        description: 'Vui lòng nhập đáp án',
-        variant: 'destructive',
-      });
+    // If using boxes
+    const usingBoxes = Boolean(homework?.boxes && homework.boxes > 0);
+    if (usingBoxes) {
+      if (!boxes.some(b => (b || '').trim().length > 0)) {
+        toast({ title: 'Lỗi', description: 'Vui lòng điền ít nhất một ô', variant: 'destructive' });
+        return;
+      }
+    } else if (!answer.trim()) {
+      toast({ title: 'Lỗi', description: 'Vui lòng nhập đáp án', variant: 'destructive' });
       return;
     }
 
@@ -135,38 +182,18 @@ export default function HomeworkPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ answer }),
+        body: JSON.stringify(usingBoxes ? { answers: boxes } : { answer }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit');
-      }
+      if (!res.ok) throw new Error(data.error || 'Failed to submit');
 
-      if (typeof data.isCorrect === 'boolean') {
-        setLastResult(data.isCorrect);
-        toast({
-          title: data.isCorrect ? '🎉 Chính xác!' : '❌ Chưa chính xác',
-          description: data.isCorrect
-            ? 'Bạn đã hoàn thành bài tập chính xác.'
-            : 'Đáp án chưa khớp với đáp án chuẩn. Hãy kiểm tra lại và thử lần nữa.',
-          variant: data.isCorrect ? 'default' : 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Thành công',
-          description: 'Đã nộp bài tập',
-        });
-      }
+      if (Array.isArray(data.boxResults)) setBoxResults(data.boxResults);
+      if (typeof data.isCorrect === 'boolean') setLastResult(data.isCorrect);
 
-      // Refresh homework to show updated status
       fetchHomework();
     } catch (error: any) {
-      toast({
-        title: 'Lỗi',
-        description: error.message || 'Không thể nộp bài',
-        variant: 'destructive',
-      });
+      toast({ title: 'Lỗi', description: error.message || 'Không thể nộp bài', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -205,160 +232,133 @@ export default function HomeworkPage() {
   const isLocked = homework.status === 'locked' || isExpired;
   const submission = homework.submissions?.[0];
   const isSubmitted = submission?.status === 'submitted' || submission?.status === 'graded';
-  const promptForStudent = homework.promptText ?? homework.processedAnswerText ?? '';
+
+  const handleEditableInput = (e: React.FormEvent<HTMLDivElement>) => {
+    setAnswer((e.target as HTMLDivElement).innerText);
+  };
 
   return (
     <AppShell>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:p-6 lg:p-8">
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-4 sm:mb-6 flex items-center justify-between">
             <Button variant="outline" size="icon" onClick={() => router.push(`/classes/${classId}`)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
+            <div className="flex items-center gap-2">
+              {isSubmitted && !isLocked && (
+                <Button variant="outline" onClick={doRetry}>
+                  Làm lại
+                </Button>
+              )}
+              {!isLocked && !isSubmitted && (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !answer.trim()}
+                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
+                </Button>
+              )}
+            </div>
           </div>
 
-          <Card className="border-0 shadow-soft bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm mb-6">
+          <Card className="border-0 shadow-soft bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <CardTitle className="text-xl sm:text-2xl md:text-3xl mb-2">
                     {homework.title}
                   </CardTitle>
-                  {homework.description && (
-                    <CardDescription className="text-sm sm:text-base">
-                      {homework.description}
-                    </CardDescription>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                    <Badge variant="outline">{homework.type === 'listening' ? '🎧 Nghe' : '📖 Đọc'}</Badge>
+                    <Badge variant="outline">⏰ {deadline.toLocaleString('vi-VN')}</Badge>
+                    {isExpired && <Badge variant="destructive">⚠️ Đã quá hạn</Badge>}
+                    {isSubmitted && typeof submission?.score === 'number' && (
+                      <Badge variant="outline">Điểm: {submission.score}/1</Badge>
+                    )}
+                  </div>
                 </div>
-                <Badge className={`${
-                  isLocked 
-                    ? 'bg-gray-400' 
-                    : isSubmitted 
-                      ? 'bg-green-500' 
-                      : 'bg-orange-500'
-                } text-white`}>
+                <Badge className={`${isLocked ? 'bg-gray-400' : isSubmitted ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
                   {isLocked ? '🔒 Đã khóa' : isSubmitted ? '✅ Đã nộp' : '📝 Chưa nộp'}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <Badge variant="outline">{homework.type === 'listening' ? '🎧 Nghe' : '📖 Đọc'}</Badge>
-                  <Badge variant="outline">⏰ Deadline: {new Date(homework.deadline).toLocaleString('vi-VN')}</Badge>
-                  {isExpired && (
-                    <Badge variant="destructive">⚠️ Đã quá hạn</Badge>
-                  )}
-                  {typeof submission?.score === 'number' && (
-                    <Badge variant="outline">Điểm: {submission.score}/1</Badge>
-                  )}
-                </div>
-
-                {promptForStudent && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Đoạn văn giao cho bạn</label>
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 whitespace-pre-wrap">
-                      {promptForStudent}
-                    </div>
-                  </div>
-                )}
-
-                {homework.type === 'listening' && (
-                  <>
-                    {homework.audioUrl && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Audio</label>
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
-                          <Button
-                            onClick={handlePlayPause}
-                            disabled={isLocked}
-                            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                          >
-                            {isPlaying ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                            {isPlaying ? 'Dừng' : 'Phát'}
-                          </Button>
-                          <audio
-                            ref={(el) => {
-                              if (el && !audioElement) {
-                                setAudioElement(el);
-                                el.addEventListener('ended', () => setIsPlaying(false));
-                              }
-                            }}
-                            src={homework.audioUrl}
-                            controls
-                            className="flex-1"
-                            disabled={isLocked}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        {homework.hideMode === 'all' 
-                          ? 'Nghe và chép lại nội dung audio' 
-                          : 'Điền vào chỗ trống'}
-                      </label>
-                      <Textarea
-                        value={answer}
-                        onChange={(e) => setAnswer(e.target.value)}
-                        placeholder="Nhập đáp án của bạn..."
-                        rows={10}
-                        disabled={isLocked || isSubmitted}
-                        className="text-base"
-                      />
-                      {isSubmitted && submission?.answer && (
-                        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <p className="text-xs text-muted-foreground mb-1">Đáp án đã nộp:</p>
-                          <p className="text-sm whitespace-pre-wrap">{submission.answer}</p>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {homework.type === 'reading' && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nội dung bài đọc</label>
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
-                      <p className="whitespace-pre-wrap">{homework.content || 'Nội dung đang được cập nhật...'}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Tính năng bài tập đọc sẽ được phát triển thêm sau
-                    </p>
-                  </div>
-                )}
-
-                {!isLocked && !isSubmitted && (
-                  <div className="flex justify-end pt-4">
+                {homework.type === 'listening' && homework.audioUrl && (
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
                     <Button
-                      onClick={handleSubmit}
-                      disabled={isSubmitting || !answer.trim()}
-                      className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                      onClick={handlePlayPause}
+                      disabled={isLocked}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                     >
-                      <Send className="h-4 w-4 mr-2" />
-                      {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
+                      {isPlaying ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                      {isPlaying ? 'Dừng' : 'Phát'}
                     </Button>
+                    <audio src={homework.audioUrl} controls className="flex-1" disabled={isLocked} />
                   </div>
                 )}
 
-                {isSubmitted && typeof lastResult === 'boolean' && (
-                  <div className={`p-4 rounded-lg border ${
-                    lastResult
-                      ? 'bg-green-50 border-green-200 text-green-700'
-                      : 'bg-red-50 border-red-200 text-red-700'
-                  }`}>
-                    {lastResult
-                      ? 'Bạn đã nộp đáp án chính xác!'
-                      : 'Đáp án của bạn chưa khớp với đáp án chuẩn. Bạn có thể thử lại nếu được phép.'}
+                {/* Editable prompt-only area or boxes */}
+                {homework.boxes && homework.boxes > 0 ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {boxes.map((value, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground w-6">{idx + 1}.</div>
+                          <input
+                            className="flex-1 rounded-md border px-3 py-2 text-base bg-white dark:bg-gray-900/30"
+                            value={value}
+                            onChange={(e) => {
+                              const next = [...boxes];
+                              next[idx] = e.target.value;
+                              setBoxes(next);
+                            }}
+                            disabled={isLocked || isSubmitted}
+                          />
+                          {boxResults && (
+                            boxResults[idx] ? (
+                              <span className="text-green-600 text-sm">✔</span>
+                            ) : (
+                              <span className="text-red-600 text-sm">✘</span>
+                            )
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {!isSubmitted && <p className="text-xs text-muted-foreground">Điền đáp án vào các ô tương ứng, sau đó nhấn Nộp bài.</p>}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div
+                      role="textbox"
+                      aria-label="Soạn đáp án của bạn"
+                      contentEditable={!isLocked && !isSubmitted}
+                      suppressContentEditableWarning
+                      onInput={(e) => setAnswer((e.target as HTMLDivElement).innerText)}
+                      className={`min-h-[200px] w-full rounded-xl border p-4 text-base leading-7 whitespace-pre-wrap outline-none transition ${
+                        isLocked || isSubmitted
+                          ? 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700'
+                          : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 focus:ring-2 focus:ring-yellow-400'
+                      }`}
+                    >
+                      {answer}
+                    </div>
+                    {!isSubmitted && (
+                      <p className="text-xs text-muted-foreground">Gõ trực tiếp để sửa nội dung ở trên, sau đó nhấn Nộp bài.</p>
+                    )}
                   </div>
                 )}
 
-                {isLocked && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      ⚠️ Bài tập này đã bị khóa. Deadline đã qua hoặc giáo viên đã khóa bài tập.
-                    </p>
+                {/* Show answer key after submit */}
+                {showAnswerKey && homework.answerKey && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Đáp án chuẩn</label>
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 whitespace-pre-wrap">
+                      {homework.answerKey}
+                    </div>
                   </div>
                 )}
               </div>
