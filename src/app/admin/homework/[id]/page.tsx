@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import {
   Table,
@@ -89,6 +89,36 @@ export default function HomeworkDetailPage() {
       router.push('/admin/homework');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSubmission = async (submissionId: number, userName: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa bài nộp của "${userName}"? Hành động này không thể hoàn tác.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/homework/${homeworkId}/submissions/${submissionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to delete');
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã xóa bài nộp',
+      });
+
+      // Refresh homework data
+      fetchHomework();
+    } catch (e: any) {
+      toast({
+        title: 'Lỗi',
+        description: e.message || 'Không thể xóa bài nộp',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -249,7 +279,7 @@ export default function HomeworkDetailPage() {
                       <TableHead>Trạng thái</TableHead>
                       <TableHead>Thời gian nộp</TableHead>
                       <TableHead>Đáp án</TableHead>
-                      <TableHead className="text-right">Chi tiết</TableHead>
+                      <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -285,9 +315,18 @@ export default function HomeworkDetailPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/admin/homework/${homework.id}/submissions/${submission.id}`}>
-                            <Button variant="outline" size="sm">Xem chi tiết</Button>
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            <Link href={`/admin/homework/${homework.id}/submissions/${submission.id}`}>
+                              <Button variant="outline" size="sm">Xem chi tiết</Button>
+                            </Link>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteSubmission(submission.id, submission.user.name || submission.user.email)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

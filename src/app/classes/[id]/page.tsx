@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BookOpen, Users, ClipboardCheck, Calendar, Plus } from 'lucide-react';
+import { ArrowLeft, BookOpen, Users, ClipboardCheck, Calendar, Plus, Eye, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
@@ -571,16 +571,66 @@ export default function ClassDetailPage() {
                                   >
                                     🔒 Đã khóa
                                   </Button>
+                                ) : isSubmitted ? (
+                                  <>
+                                    <Button 
+                                      onClick={() => {
+                                        const submissionId = submission?.id;
+                                        if (submissionId) {
+                                          router.push(`/classes/${classId}/homework/${hw.id}/submissions/${submissionId}`);
+                                        } else {
+                                          router.push(`/classes/${classId}/homework/${hw.id}`);
+                                        }
+                                      }}
+                                      className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg sm:rounded-xl font-semibold px-4 py-2.5 sm:px-6 sm:py-6 text-sm sm:text-base"
+                                    >
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      Xem bài làm
+                                    </Button>
+                                    {!isExpired && (
+                                      <Button 
+                                        onClick={async () => {
+                                          if (confirm('Bạn có chắc muốn làm lại bài tập này?')) {
+                                            try {
+                                              const res = await fetch(`/api/homework/${hw.id}/retry`, {
+                                                method: 'POST',
+                                                credentials: 'include',
+                                              });
+                                              const data = await res.json();
+                                              if (!res.ok) throw new Error(data?.error || 'Retry failed');
+                                              
+                                              toast({
+                                                title: 'Thành công',
+                                                description: 'Bạn có thể làm lại bài tập',
+                                              });
+                                              
+                                              // Refresh homework list
+                                              fetchHomework();
+                                              
+                                              // Navigate to homework page
+                                              router.push(`/classes/${classId}/homework/${hw.id}`);
+                                            } catch (error: any) {
+                                              toast({
+                                                title: 'Lỗi',
+                                                description: error.message || 'Không thể làm lại bài',
+                                                variant: 'destructive',
+                                              });
+                                            }
+                                          }
+                                        }}
+                                        className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg sm:rounded-xl font-semibold px-4 py-2.5 sm:px-6 sm:py-6 text-sm sm:text-base border-none"
+                                      >
+                                        <RotateCcw className="h-4 w-4 mr-2" />
+                                        Làm lại
+                                      </Button>
+                                    )}
+                                  </>
                                 ) : (
                                   <Button 
                                     onClick={() => router.push(`/classes/${classId}/homework/${hw.id}`)}
-                                    className={`w-full sm:w-auto ${
-                                      isSubmitted 
-                                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
-                                        : 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700'
-                                    } text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg sm:rounded-xl font-semibold px-4 py-2.5 sm:px-6 sm:py-6 text-sm sm:text-base`}
+                                    className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg sm:rounded-xl font-semibold px-4 py-2.5 sm:px-6 sm:py-6 text-sm sm:text-base"
                                   >
-                                    {isSubmitted ? '👁️ Xem bài làm' : '📝 Làm bài'}
+                                    📝 Làm bài
                                   </Button>
                                 )}
                               </div>

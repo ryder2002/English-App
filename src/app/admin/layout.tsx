@@ -89,10 +89,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile Header & Menu */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex items-center justify-between px-3 py-2.5">
+        <div className="flex items-center px-3 py-2.5">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9">
+              <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 mr-3">
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </SheetTrigger>
@@ -105,9 +105,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <div className="flex items-center">
             <CNLogo />
+            <span className="ml-2 font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Admin
+            </span>
           </div>
-
-          <div className="w-9"></div>
         </div>
       </div>
 

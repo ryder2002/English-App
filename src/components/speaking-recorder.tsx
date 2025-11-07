@@ -13,6 +13,7 @@ interface SpeakingRecorderProps {
   maxDuration?: number; // seconds
   autoSubmit?: boolean; // If false, will not auto-submit after recording
   onRecordingFinished?: (audioBlob: Blob, transcribedText: string) => void; // Called when recording stops
+  onRecordingReset?: () => void; // Called when recording is reset
 }
 
 export function SpeakingRecorder({
@@ -22,6 +23,7 @@ export function SpeakingRecorder({
   maxDuration = 180, // 3 minutes default
   autoSubmit = false,
   onRecordingFinished,
+  onRecordingReset,
 }: SpeakingRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -40,6 +42,7 @@ export function SpeakingRecorder({
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const transcribedTextRef = useRef<string>(''); // Store latest transcribed text
 
   // Cleanup on unmount
   useEffect(() => {
@@ -76,7 +79,7 @@ export function SpeakingRecorder({
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      utterance.rate = 0.85; // Slower for learning
+      utterance.rate = 1; // Slower for learning
       utterance.pitch = 1;
       
       utterance.onend = () => setIsPlayingSample(false);
@@ -119,16 +122,20 @@ export function SpeakingRecorder({
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
 
+        // Get the latest transcribed text from ref
+        const finalTranscribedText = transcribedTextRef.current || transcribedText;
+        console.log('Recording stopped with text:', finalTranscribedText);
+
         // Notify parent that recording is finished
         if (onRecordingFinished) {
-          onRecordingFinished(blob, transcribedText);
+          onRecordingFinished(blob, finalTranscribedText);
         }
 
         // Only auto-submit if enabled
-        if (autoSubmit && transcribedText && onRecordingCompleteAction) {
+        if (autoSubmit && finalTranscribedText && onRecordingCompleteAction) {
           setIsProcessing(true);
           try {
-            await onRecordingCompleteAction(blob, transcribedText);
+            await onRecordingCompleteAction(blob, finalTranscribedText);
           } catch (error) {
             console.error('Error submitting:', error);
           } finally {
@@ -158,6 +165,9 @@ export function SpeakingRecorder({
               finalTranscript += transcript + ' ';
               lastSpeechTime = Date.now();
               
+              // Update ref immediately
+              transcribedTextRef.current = finalTranscript + interimTranscript;
+              
               // Reset silence timer
               if (silenceTimerRef.current) {
                 clearTimeout(silenceTimerRef.current);
@@ -176,7 +186,9 @@ export function SpeakingRecorder({
             }
           }
           
-          setTranscribedText(finalTranscript + interimTranscript);
+          const fullTranscript = finalTranscript + interimTranscript;
+          transcribedTextRef.current = fullTranscript;
+          setTranscribedText(fullTranscript);
         };
 
         recognition.onerror = (event: any) => {
@@ -230,6 +242,7 @@ export function SpeakingRecorder({
   // Stop recording
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
+      console.log('Stopping recording, current transcribed text:', transcribedTextRef.current);
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
@@ -252,7 +265,13 @@ export function SpeakingRecorder({
     setAudioURL(null);
     setRecordingTime(0);
     setTranscribedText('');
+    transcribedTextRef.current = '';
     chunksRef.current = [];
+    
+    // Notify parent to reset state
+    if (onRecordingReset) {
+      onRecordingReset();
+    }
   };
 
   // Play recorded audio with pause support
@@ -342,9 +361,12 @@ export function SpeakingRecorder({
                     size="lg"
                     onClick={startRecording}
                     disabled={disabled}
-                    className="h-16 w-16 sm:h-20 sm:w-20 rounded-full"
+                    className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-4 border-white"
                   >
-                    <Mic className="h-6 w-6 sm:h-8 sm:w-8" />
+                    <div className="flex flex-col items-center">
+                      <Mic className="h-8 w-8 sm:h-10 sm:w-10 mb-1" />
+                      <span className="text-xs font-bold">REC</span>
+                    </div>
                   </Button>
                 ) : (
                   <Button
@@ -352,9 +374,12 @@ export function SpeakingRecorder({
                     size="lg"
                     variant="destructive"
                     onClick={stopRecording}
-                    className="h-16 w-16 sm:h-20 sm:w-20 rounded-full animate-pulse"
+                    className="h-20 w-20 sm:h-24 sm:w-24 rounded-full animate-pulse bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg border-4 border-white"
                   >
-                    <Square className="h-6 w-6 sm:h-8 sm:w-8" />
+                    <div className="flex flex-col items-center">
+                      <Square className="h-8 w-8 sm:h-10 sm:w-10 mb-1" />
+                      <span className="text-xs font-bold">STOP</span>
+                    </div>
                   </Button>
                 )}
               </div>
@@ -362,35 +387,40 @@ export function SpeakingRecorder({
 
             {/* Playback controls */}
             {audioURL && (
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Button
                   type="button"
                   size="lg"
-                  variant={isPlayingRecorded ? "default" : "outline"}
                   onClick={playRecordedAudio}
                   disabled={disabled || isProcessing}
+                  className={cn(
+                    "flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px]",
+                    isPlayingRecorded 
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg" 
+                      : "bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-800 shadow-md"
+                  )}
                 >
                   {isPlayingRecorded ? (
                     <>
                       <Pause className="h-5 w-5 mr-2" />
-                      Pause
+                      Dừng
                     </>
                   ) : (
                     <>
                       <Play className="h-5 w-5 mr-2" />
-                      Nghe lại
+                      🎧 Nghe lại
                     </>
                   )}
                 </Button>
                 <Button
                   type="button"
                   size="lg"
-                  variant="outline"
                   onClick={resetRecording}
                   disabled={disabled || isProcessing}
+                  className="flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px] bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
                   <RotateCcw className="h-5 w-5 mr-2" />
-                  Thu lại
+                  🔄 Thu lại
                 </Button>
               </div>
             )}
@@ -419,12 +449,15 @@ export function SpeakingRecorder({
 
             {/* Instructions */}
             {!isRecording && !audioURL && (
-              <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Nhấn vào biểu tượng loa để nghe mẫu. Nhấn micro để bắt đầu thu âm.
+              <div className="text-center space-y-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm sm:text-base text-muted-foreground max-w-md font-medium">
+                  🔊 Nhấn <strong>biểu tượng loa</strong> để nghe mẫu
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  💡 Nếu không bật được mic, hãy cấp quyền trong trình duyệt
+                <p className="text-sm sm:text-base text-primary font-bold">
+                  🎤 Nhấn nút <strong>REC</strong> để bắt đầu thu âm
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  💡 <strong>Quan trọng:</strong> Cấp quyền microphone trong trình duyệt để thu âm
                 </p>
               </div>
             )}

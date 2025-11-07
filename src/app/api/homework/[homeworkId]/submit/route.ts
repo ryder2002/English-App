@@ -106,7 +106,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
     });
 
     return NextResponse.json({
-      ...submission,
+      submission: {
+        id: submission.id,
+        attemptNumber: submission.attemptNumber,
+        status: submission.status,
+        score: submission.score,
+      },
       isCorrect,
       boxResults,
     });

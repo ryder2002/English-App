@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Play, Pause, Send } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Send, Eye, RotateCcw } from 'lucide-react';
 import { SpeakingRecorder } from '@/components/speaking-recorder';
 import { SpeakingHomeworkPlayer } from '@/components/speaking-homework-player';
 
@@ -72,11 +72,11 @@ export default function HomeworkPage() {
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [boxes, setBoxes] = useState<string[]>([]);
   const [boxResults, setBoxResults] = useState<boolean[] | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  
-  // Speaking homework states
-  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
-  const [transcribedText, setTranscribedText] = useState<string>('');
+
+  // Derived states
+  const currentSubmission = homework?.currentSubmission || homework?.submissions?.[0];
+  const isSubmitted = currentSubmission?.status === 'submitted' || currentSubmission?.status === 'graded';
+  const isLocked = homework?.status === 'locked';
 
   const doRetry = async () => {
     try {
@@ -214,7 +214,21 @@ export default function HomeworkPage() {
       if (Array.isArray(data.boxResults)) setBoxResults(data.boxResults);
       if (typeof data.isCorrect === 'boolean') setLastResult(data.isCorrect);
 
-      fetchHomework();
+      // Show success toast
+      toast({
+        title: 'Thành công',
+        description: 'Đã nộp bài thành công!',
+      });
+
+      // Redirect to submission detail page if we have submission id
+      if (data.submission?.id) {
+        setTimeout(() => {
+          router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${data.submission.id}`);
+        }, 500);
+      } else {
+        // Fallback: refresh data to show results
+        await fetchHomework();
+      }
     } catch (error: any) {
       toast({ title: 'Lỗi', description: error.message || 'Không thể nộp bài', variant: 'destructive' });
     } finally {
@@ -252,9 +266,9 @@ export default function HomeworkPage() {
   const now = new Date();
   const deadline = new Date(homework.deadline);
   const isExpired = deadline < now;
-  const isLocked = homework.status === 'locked' || isExpired;
-  const currentSubmission = homework.currentSubmission || homework.submissions?.[0];
-  const isSubmitted = currentSubmission?.status === 'submitted' || currentSubmission?.status === 'graded';
+  
+  // Update derived states to include expiration
+  const finalIsLocked = isLocked || isExpired;
   
   // Get submitted attempts (exclude in_progress)
   const submittedAttempts = homework.submissions?.filter(s => s.status === 'submitted' || s.status === 'graded') || [];
@@ -272,10 +286,30 @@ export default function HomeworkPage() {
               <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {isSubmitted && !isLocked && (
-                <Button variant="outline" onClick={doRetry} className="h-8 sm:h-10 text-xs sm:text-sm px-2 sm:px-4">
-                  Làm lại
-                </Button>
+              {isSubmitted && currentSubmission && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      console.log('Current submission:', currentSubmission);
+                      console.log('Redirecting to:', `/classes/${classId}/homework/${homeworkId}/submissions/${currentSubmission.id}`);
+                      router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${currentSubmission.id}`);
+                    }}
+                    className="h-8 sm:h-10 text-xs sm:text-sm px-2 sm:px-4"
+                  >
+                    <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    Xem bài làm
+                  </Button>
+                  {!isLocked && !isExpired && (
+                    <Button 
+                      onClick={doRetry} 
+                      className="h-8 sm:h-10 text-xs sm:text-sm px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 border-none"
+                    >
+                      <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      Làm lại
+                    </Button>
+                  )}
+                </>
               )}
               {!isLocked && !isSubmitted && homework.type !== 'speaking' && (
                 <Button
@@ -311,16 +345,6 @@ export default function HomeworkPage() {
                     {currentSubmission?.attemptNumber && (
                       <Badge variant="outline" className="text-xs">Lần {currentSubmission.attemptNumber}</Badge>
                     )}
-                    {submittedAttempts.length > 0 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setShowHistory(!showHistory)}
-                        className="h-6 px-1.5 sm:px-2 text-xs"
-                      >
-                        📋 Lịch sử ({submittedAttempts.length})
-                      </Button>
-                    )}
                   </div>
                 </div>
                 <Badge className={`${isLocked ? 'bg-gray-400' : isSubmitted ? 'bg-green-500' : 'bg-orange-500'} text-white text-xs sm:text-sm whitespace-nowrap flex-shrink-0`}>
@@ -330,41 +354,6 @@ export default function HomeworkPage() {
             </CardHeader>
             <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="space-y-3 sm:space-y-4">
-                {/* History section */}
-                {showHistory && submittedAttempts.length > 0 && (
-                  <div className="space-y-2 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border">
-                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      📋 Lịch sử làm bài
-                    </label>
-                    <div className="space-y-2">
-                      {submittedAttempts.map((attempt) => (
-                        <div key={attempt.id} className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-sm">Lần {attempt.attemptNumber}</span>
-                            {attempt.submittedAt && (
-                              <span className="text-xs text-muted-foreground ml-2 block sm:inline">
-                                {new Date(attempt.submittedAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {typeof attempt.score === 'number' && (
-                              <Badge variant={attempt.score >= 0.5 ? 'default' : 'destructive'} className="text-xs">
-                                Điểm: {attempt.score}/1
-                              </Badge>
-                            )}
-                            {attempt.timeSpentSeconds && (
-                              <span className="text-xs text-muted-foreground">
-                                {Math.floor(attempt.timeSpentSeconds / 60)}:{String(attempt.timeSpentSeconds % 60).padStart(2, '0')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {homework.type === 'listening' && homework.audioUrl && (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
                     <Button
@@ -402,29 +391,41 @@ export default function HomeworkPage() {
                     onSubmitAction={async (audioBlob: Blob, transcribedText: string) => {
                       setIsSubmitting(true);
                       try {
-                        // Convert blob to base64
-                        const reader = new FileReader();
-                        reader.readAsDataURL(audioBlob);
-                        reader.onloadend = async () => {
-                          const audioBase64 = reader.result as string;
-                          
-                          const res = await fetch(`/api/homework/${homeworkId}/submit-speaking`, {
-                            method: 'POST',
-                            credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ audioBase64, transcribedText }),
-                          });
+                        // Convert blob to base64 using Promise
+                        const audioBase64 = await new Promise<string>((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => resolve(reader.result as string);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(audioBlob);
+                        });
+                        
+                        const res = await fetch(`/api/homework/${homeworkId}/submit-speaking`, {
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ audioBase64, transcribedText }),
+                        });
 
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data?.error || 'Submit failed');
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error || 'Submit failed');
 
-                          toast({
-                            title: 'Thành công!',
-                            description: `Điểm: ${Math.round((data.submission.score || 0) * 100)}%`,
-                          });
-
-                          fetchHomework(); // Refresh data
-                        };
+                        console.log('Speaking submission successful:', data);
+                        
+                        // Show success toast
+                        toast({
+                          title: 'Thành công',
+                          description: 'Đã nộp bài thành công!',
+                        });
+                        
+                        // Redirect to submission detail page
+                        if (data.submission?.id) {
+                          setTimeout(() => {
+                            router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${data.submission.id}`);
+                          }, 500);
+                        } else {
+                          // Fallback: refresh data to show result display
+                          await fetchHomework();
+                        }
                       } catch (error: any) {
                         toast({
                           title: 'Lỗi',
