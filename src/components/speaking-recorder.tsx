@@ -3,14 +3,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Mic, Square, Play, Volume2, Loader2, RotateCcw } from 'lucide-react';
+import { Mic, Square, Play, Pause, Volume2, Loader2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SpeakingRecorderProps {
   text: string;
-  onRecordingCompleteAction: (audioBlob: Blob, transcribedText: string) => void;
+  onRecordingCompleteAction?: (audioBlob: Blob, transcribedText: string) => void;
   disabled?: boolean;
   maxDuration?: number; // seconds
+  autoSubmit?: boolean; // If false, will not auto-submit after recording
+  onRecordingFinished?: (audioBlob: Blob, transcribedText: string) => void; // Called when recording stops
 }
 
 export function SpeakingRecorder({
@@ -18,11 +20,14 @@ export function SpeakingRecorder({
   onRecordingCompleteAction,
   disabled = false,
   maxDuration = 180, // 3 minutes default
+  autoSubmit = false,
+  onRecordingFinished,
 }: SpeakingRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [isPlayingSample, setIsPlayingSample] = useState(false);
+  const [isPlayingRecorded, setIsPlayingRecorded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState<string>('');
   const [showManualInput, setShowManualInput] = useState(false);
@@ -34,6 +39,7 @@ export function SpeakingRecorder({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -41,6 +47,10 @@ export function SpeakingRecorder({
       if (timerRef.current) clearInterval(timerRef.current);
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (audioURL) URL.revokeObjectURL(audioURL);
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
+      }
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -109,9 +119,21 @@ export function SpeakingRecorder({
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
 
-        // Process with Web Speech API
-        if (transcribedText) {
-          onRecordingCompleteAction(blob, transcribedText);
+        // Notify parent that recording is finished
+        if (onRecordingFinished) {
+          onRecordingFinished(blob, transcribedText);
+        }
+
+        // Only auto-submit if enabled
+        if (autoSubmit && transcribedText && onRecordingCompleteAction) {
+          setIsProcessing(true);
+          try {
+            await onRecordingCompleteAction(blob, transcribedText);
+          } catch (error) {
+            console.error('Error submitting:', error);
+          } finally {
+            setIsProcessing(false);
+          }
         }
       };
 
@@ -233,11 +255,36 @@ export function SpeakingRecorder({
     chunksRef.current = [];
   };
 
-  // Play recorded audio
+  // Play recorded audio with pause support
   const playRecordedAudio = () => {
     if (audioURL) {
-      const audio = new Audio(audioURL);
-      audio.play();
+      if (audioPlayerRef.current) {
+        if (audioPlayerRef.current.paused) {
+          audioPlayerRef.current.play();
+          setIsPlayingRecorded(true);
+        } else {
+          audioPlayerRef.current.pause();
+          setIsPlayingRecorded(false);
+        }
+      } else {
+        const audio = new Audio(audioURL);
+        audioPlayerRef.current = audio;
+        
+        audio.onended = () => {
+          setIsPlayingRecorded(false);
+          audioPlayerRef.current = null;
+        };
+        
+        audio.onpause = () => {
+          setIsPlayingRecorded(false);
+        };
+        
+        audio.onplay = () => {
+          setIsPlayingRecorded(true);
+        };
+        
+        audio.play();
+      }
     }
   };
 
@@ -319,19 +366,28 @@ export function SpeakingRecorder({
                 <Button
                   type="button"
                   size="lg"
-                  variant="outline"
+                  variant={isPlayingRecorded ? "default" : "outline"}
                   onClick={playRecordedAudio}
-                  disabled={disabled}
+                  disabled={disabled || isProcessing}
                 >
-                  <Play className="h-5 w-5 mr-2" />
-                  Nghe lại
+                  {isPlayingRecorded ? (
+                    <>
+                      <Pause className="h-5 w-5 mr-2" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-5 w-5 mr-2" />
+                      Nghe lại
+                    </>
+                  )}
                 </Button>
                 <Button
                   type="button"
                   size="lg"
                   variant="outline"
                   onClick={resetRecording}
-                  disabled={disabled}
+                  disabled={disabled || isProcessing}
                 >
                   <RotateCcw className="h-5 w-5 mr-2" />
                   Thu lại
@@ -339,8 +395,16 @@ export function SpeakingRecorder({
               </div>
             )}
 
-            {/* Transcribed text */}
-            {transcribedText && (
+            {/* Processing indicator */}
+            {isProcessing && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Đang xử lý và nộp bài...</span>
+              </div>
+            )}
+
+            {/* Transcribed text - Hidden by default, only show if autoSubmit is true */}
+            {autoSubmit && transcribedText && (
               <div className="w-full mt-4">
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">
                   Văn bản nhận dạng được:
@@ -367,7 +431,7 @@ export function SpeakingRecorder({
 
             {isRecording && (
               <p className="text-sm text-destructive text-center animate-pulse">
-                🔴 Đang ghi âm... Hãy đọc to và rõ ràng
+                🔴 Đang ghi âm... Hãy đọc to và rõ ràng. {autoSubmit && 'Sẽ tự động dừng sau 2 giây im lặng.'}
               </p>
             )}
 
@@ -394,7 +458,12 @@ export function SpeakingRecorder({
                       // Create a dummy audio blob
                       const dummyBlob = new Blob([''], { type: 'audio/webm' });
                       setTranscribedText(manualText);
-                      onRecordingCompleteAction(dummyBlob, manualText);
+                      if (onRecordingFinished) {
+                        onRecordingFinished(dummyBlob, manualText);
+                      }
+                      if (autoSubmit && onRecordingCompleteAction) {
+                        onRecordingCompleteAction(dummyBlob, manualText);
+                      }
                       setAudioURL('dummy');
                     }
                   }}

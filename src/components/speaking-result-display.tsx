@@ -148,10 +148,10 @@ export function SpeakingResultDisplay({
               {comparisonResults.map((result, index) => (
                 <span
                   key={index}
-                  className={`inline-block px-1 rounded ${
+                  className={`inline-block px-2 py-1 rounded-md ${
                     result.isCorrect
-                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                      : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 font-semibold'
+                      ? 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30'
+                      : 'text-white bg-red-500 dark:bg-red-600 font-bold'
                   }`}
                   title={
                     result.isCorrect
@@ -161,8 +161,8 @@ export function SpeakingResultDisplay({
                 >
                   {result.word}
                   {!result.isCorrect && result.originalWord && (
-                    <span className="text-xs ml-1 opacity-60">
-                      ≠{result.originalWord}
+                    <span className="text-xs ml-1 opacity-90 underline">
+                      (≠{result.originalWord})
                     </span>
                   )}
                 </span>
@@ -174,12 +174,12 @@ export function SpeakingResultDisplay({
         {/* Legend */}
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-green-200 dark:bg-green-900/40 rounded"></span>
-            <span>Đúng</span>
+            <span className="w-4 h-4 bg-green-100 dark:bg-green-900/30 border border-green-300 rounded"></span>
+            <span>Từ đúng</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-red-200 dark:bg-red-900/40 rounded"></span>
-            <span>Sai</span>
+            <span className="w-4 h-4 bg-red-500 dark:bg-red-600 rounded"></span>
+            <span>Từ sai (in đậm, bôi đỏ)</span>
           </div>
         </div>
 
@@ -200,8 +200,8 @@ export function SpeakingResultDisplay({
         </div>
 
         <div className="text-xs text-muted-foreground p-3 bg-muted rounded-md">
-          💡 <strong>Gợi ý:</strong> Các từ màu đỏ là những từ bạn phát âm sai hoặc thiếu. 
-          Hãy luyện tập những từ này để cải thiện phát âm của bạn.
+          💡 <strong>Gợi ý:</strong> Các từ được <strong className="text-red-600">in đậm và bôi đỏ</strong> là những từ bạn phát âm sai hoặc thiếu. 
+          Hãy luyện tập những từ này để cải thiện phát âm. Độ chính xác được tính dựa trên độ tương đồng với văn bản gốc.
         </div>
       </CardContent>
     </Card>
