@@ -40,18 +40,21 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
       return NextResponse.json({ error: 'This homework is locked. Deadline has passed.' }, { status: 400 });
     }
 
-    const existingSubmission = await prisma.homeworkSubmission.findUnique({
+    // Find the latest attempt number for this user and homework
+    const latestSubmission = await prisma.homeworkSubmission.findFirst({
       where: {
-        homeworkId_userId: {
-          homeworkId: Number(homeworkId),
-          userId: user.id,
-        },
+        homeworkId: Number(homeworkId),
+        userId: user.id,
+      },
+      orderBy: {
+        attemptNumber: 'desc',
       },
     });
 
-    const startedAt = existingSubmission?.startedAt ?? now;
+    const attemptNumber = latestSubmission ? latestSubmission.attemptNumber + 1 : 1;
+    const startedAt = latestSubmission?.startedAt ?? now;
     const computedDuration = Math.max(0, Math.round((now.getTime() - startedAt.getTime()) / 1000));
-    const previousDuration = existingSubmission?.timeSpentSeconds ?? 0;
+    const previousDuration = latestSubmission?.timeSpentSeconds ?? 0;
     const timeSpentSeconds = Math.max(previousDuration, computedDuration);
 
     const normalized = (v: any) => String(v ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -84,27 +87,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
       score = hasAnswerKey ? (isCorrect ? 1 : 0) : null;
     }
 
-    // Create or update submission
-    const submission = await prisma.homeworkSubmission.upsert({
-      where: {
-        homeworkId_userId: {
-          homeworkId: Number(homeworkId),
-          userId: user.id,
-        },
-      },
-      update: {
-        answer: Array.isArray(answers) ? null : (answer || null),
-        answers: saveAnswersJson ? saveAnswersJson : undefined,
-        boxResults: boxResults ? boxResults : undefined,
-        status: score === null ? 'submitted' : 'graded',
-        submittedAt: now,
-        lastActivityAt: now,
-        timeSpentSeconds,
-        score,
-      },
-      create: {
+    // Create new submission (not upsert - keep history)
+    const submission = await prisma.homeworkSubmission.create({
+      data: {
         homeworkId: Number(homeworkId),
         userId: user.id,
+        attemptNumber,
         answer: Array.isArray(answers) ? null : (answer || null),
         answers: saveAnswersJson ? saveAnswersJson : undefined,
         boxResults: boxResults ? boxResults : undefined,

@@ -250,6 +250,7 @@ model HomeworkSubmission {
   id          Int                    @id @default(autoincrement())
   homeworkId  Int                    @map("homework_id")
   userId      Int                    @map("user_id")
+  attemptNumber Int                  @default(1) @map("attempt_number")
   answer      String?                @db.Text
   answers     Json?                  @map("answers")
   boxResults  Json?                  @map("box_results")
@@ -266,7 +267,8 @@ model HomeworkSubmission {
   homework    Homework               @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
   user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([homeworkId, userId])
+  @@unique([homeworkId, userId, attemptNumber])
+  @@index([homeworkId, userId])
   @@map("homework_submissions")
 }
 

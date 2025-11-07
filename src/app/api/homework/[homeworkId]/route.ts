@@ -22,12 +22,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ hom
       include: {
         clazz: {
           include: {
-            members: { where: { userId: user.id } },
+            members: true, // Include all members, filter later
           },
         },
         submissions: {
           where: { userId: user.id },
-          take: 1,
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -37,7 +36,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ hom
       return NextResponse.json({ error: 'Homework not found' }, { status: 404 });
     }
 
-    if (homework.clazz.members.length === 0) {
+    const isMember = homework.clazz.members.some((member: any) => member.userId === user.id);
+    if (!isMember) {
       return NextResponse.json({ error: 'You are not a member of this class' }, { status: 403 });
     }
 
@@ -50,23 +50,45 @@ export async function GET(request: NextRequest, context: { params: Promise<{ hom
       homework.status = 'locked';
     }
 
-    const submission = await prisma.homeworkSubmission.upsert({
+    const submission = await prisma.homeworkSubmission.findFirst({
       where: {
-        homeworkId_userId: {
+        homeworkId: homework.id,
+        userId: user.id,
+        status: 'in_progress',
+      },
+      orderBy: { attemptNumber: 'desc' },
+    });
+
+    // If no in-progress submission exists, create a new one
+    let currentSubmission = submission;
+    if (!currentSubmission) {
+      const latestSubmission = await prisma.homeworkSubmission.findFirst({
+        where: {
           homeworkId: homework.id,
           userId: user.id,
         },
-      },
-      create: {
-        homeworkId: homework.id,
-        userId: user.id,
-        startedAt: now,
-        lastActivityAt: now,
-      },
-      update: {
-        lastActivityAt: now,
-      },
-    });
+        orderBy: { attemptNumber: 'desc' },
+      });
+      
+      const nextAttemptNumber = latestSubmission ? latestSubmission.attemptNumber + 1 : 1;
+      
+      currentSubmission = await prisma.homeworkSubmission.create({
+        data: {
+          homeworkId: homework.id,
+          userId: user.id,
+          attemptNumber: nextAttemptNumber,
+          startedAt: now,
+          lastActivityAt: now,
+          status: 'in_progress',
+        },
+      });
+    } else {
+      // Update lastActivityAt
+      currentSubmission = await prisma.homeworkSubmission.update({
+        where: { id: currentSubmission.id },
+        data: { lastActivityAt: now },
+      });
+    }
 
     let processedAnswerText: string | null = null;
     if (!homework.promptText && homework.type === 'listening' && homework.answerText) {
@@ -87,8 +109,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ hom
       }
     }
 
-    const hasSubmitted = submission.status === 'submitted' || submission.status === 'graded';
+    const hasSubmitted = currentSubmission ? (currentSubmission.status === 'submitted' || currentSubmission.status === 'graded') : false;
     const answerKey = hasSubmitted ? homework.answerText : null;
+
+    // Get all submissions for history
+    const allSubmissions = await prisma.homeworkSubmission.findMany({
+      where: {
+        homeworkId: homework.id,
+        userId: user.id,
+      },
+      orderBy: { attemptNumber: 'desc' },
+    });
 
     const { answerText, clazz, submissions, ...restHomework } = homework;
 
@@ -100,7 +131,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ hom
       },
       promptText: homework.promptText,
       processedAnswerText,
-      submissions: [submission],
+      submissions: allSubmissions, // Return all submissions for history
+      currentSubmission, // Current attempt
       answerKey,
       boxes: Array.isArray(homework.answerBoxes) ? homework.answerBoxes.length : 0,
     });

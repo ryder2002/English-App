@@ -24,6 +24,7 @@ interface Homework {
   hideMode?: 'all' | 'random';
   submissions: Array<{
     id: number;
+    attemptNumber: number;
     answer?: string;
     answers?: string[];
     boxResults?: boolean[];
@@ -33,6 +34,18 @@ interface Homework {
     timeSpentSeconds?: number;
     isCorrect?: boolean;
   }>;
+  currentSubmission?: {
+    id: number;
+    attemptNumber: number;
+    answer?: string;
+    answers?: string[];
+    boxResults?: boolean[];
+    status: string;
+    submittedAt?: string;
+    score?: number | null;
+    timeSpentSeconds?: number;
+    isCorrect?: boolean;
+  };
   boxes?: number;
   answerKey?: string | null;
 }
@@ -54,6 +67,7 @@ export default function HomeworkPage() {
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [boxes, setBoxes] = useState<string[]>([]);
   const [boxResults, setBoxResults] = useState<boolean[] | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const doRetry = async () => {
     try {
@@ -103,19 +117,22 @@ export default function HomeworkPage() {
       const data = await res.json();
       setHomework(data);
       
+      // Use currentSubmission for the current attempt
+      const currentSubmission = data.currentSubmission || data.submissions?.[0];
+      
       if (data.boxes && data.boxes > 0) {
-        // Initialize boxes from existing submission or empty strings
-        const submitted = data.submissions?.[0]?.answers || [];
+        // Initialize boxes from current submission or empty strings
+        const submitted = currentSubmission?.answers || [];
         const init = Array.from({ length: data.boxes }, (_, i) => submitted[i] || '');
         setBoxes(init);
         setAnswer('');
       } else {
         // fallback to editable text flow
-        const submissionAnswer = data.submissions?.[0]?.answer;
+        const submissionAnswer = currentSubmission?.answer;
         if (submissionAnswer) {
           setAnswer(submissionAnswer);
-          if (typeof data.submissions[0].score === 'number') {
-            setLastResult(data.submissions[0].score > 0);
+          if (typeof currentSubmission.score === 'number') {
+            setLastResult(currentSubmission.score > 0);
           } else {
             setLastResult(null);
           }
@@ -135,7 +152,7 @@ export default function HomeworkPage() {
 
       // If backend returns answerKey after submission, allow toggling
       if (data.answerKey) setShowAnswerKey(true); else setShowAnswerKey(false);
-      if (data.submissions?.[0]?.boxResults) setBoxResults(data.submissions[0].boxResults);
+      if (currentSubmission?.boxResults) setBoxResults(currentSubmission.boxResults);
     } catch (error: any) {
       toast({
         title: 'Lỗi',
@@ -227,8 +244,11 @@ export default function HomeworkPage() {
   const deadline = new Date(homework.deadline);
   const isExpired = deadline < now;
   const isLocked = homework.status === 'locked' || isExpired;
-  const submission = homework.submissions?.[0];
-  const isSubmitted = submission?.status === 'submitted' || submission?.status === 'graded';
+  const currentSubmission = homework.currentSubmission || homework.submissions?.[0];
+  const isSubmitted = currentSubmission?.status === 'submitted' || currentSubmission?.status === 'graded';
+  
+  // Get submitted attempts (exclude in_progress)
+  const submittedAttempts = homework.submissions?.filter(s => s.status === 'submitted' || s.status === 'graded') || [];
 
   const handleEditableInput = (e: React.FormEvent<HTMLDivElement>) => {
     setAnswer((e.target as HTMLDivElement).innerText);
@@ -251,7 +271,11 @@ export default function HomeworkPage() {
               {!isLocked && !isSubmitted && (
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !answer.trim()}
+                  disabled={isSubmitting || (
+                    homework?.boxes && homework.boxes > 0 
+                      ? !boxes.some(b => (b || '').trim().length > 0)
+                      : !answer.trim()
+                  )}
                   className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
                 >
                   <Send className="h-4 w-4 mr-2" />
@@ -272,8 +296,21 @@ export default function HomeworkPage() {
                     <Badge variant="outline">{homework.type === 'listening' ? '🎧 Nghe' : '📖 Đọc'}</Badge>
                     <Badge variant="outline">⏰ {deadline.toLocaleString('vi-VN')}</Badge>
                     {isExpired && <Badge variant="destructive">⚠️ Đã quá hạn</Badge>}
-                    {isSubmitted && typeof submission?.score === 'number' && (
-                      <Badge variant="outline">Điểm: {submission.score}/1</Badge>
+                    {isSubmitted && typeof currentSubmission?.score === 'number' && (
+                      <Badge variant="outline">Điểm: {currentSubmission.score}/1</Badge>
+                    )}
+                    {currentSubmission?.attemptNumber && (
+                      <Badge variant="outline">Lần {currentSubmission.attemptNumber}</Badge>
+                    )}
+                    {submittedAttempts.length > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setShowHistory(!showHistory)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        📋 Lịch sử ({submittedAttempts.length})
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -284,6 +321,41 @@ export default function HomeworkPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* History section */}
+                {showHistory && submittedAttempts.length > 0 && (
+                  <div className="space-y-2 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      📋 Lịch sử làm bài
+                    </label>
+                    <div className="space-y-2">
+                      {submittedAttempts.map((attempt) => (
+                        <div key={attempt.id} className="p-3 bg-white dark:bg-gray-800 rounded border flex items-center justify-between">
+                          <div>
+                            <span className="font-medium">Lần {attempt.attemptNumber}</span>
+                            {attempt.submittedAt && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {new Date(attempt.submittedAt).toLocaleString('vi-VN')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {typeof attempt.score === 'number' && (
+                              <Badge variant={attempt.score >= 0.5 ? 'default' : 'destructive'}>
+                                Điểm: {attempt.score}/1
+                              </Badge>
+                            )}
+                            {attempt.timeSpentSeconds && (
+                              <span className="text-xs text-muted-foreground">
+                                {Math.floor(attempt.timeSpentSeconds / 60)}:{String(attempt.timeSpentSeconds % 60).padStart(2, '0')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {homework.type === 'listening' && homework.audioUrl && (
                   <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
                     <Button
@@ -294,7 +366,7 @@ export default function HomeworkPage() {
                       {isPlaying ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
                       {isPlaying ? 'Dừng' : 'Phát'}
                     </Button>
-                    <audio src={homework.audioUrl} controls className="flex-1" disabled={isLocked} />
+                    <audio src={homework.audioUrl} controls className="flex-1" />
                   </div>
                 )}
 

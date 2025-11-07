@@ -29,26 +29,23 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
       return NextResponse.json({ error: 'Homework is locked or deadline passed' }, { status: 400 });
     }
 
-    // Reset submission back to in_progress
-    const reset = await prisma.homeworkSubmission.upsert({
+    // Find the latest submission
+    const latestSubmission = await prisma.homeworkSubmission.findFirst({
       where: {
-        homeworkId_userId: {
-          homeworkId: Number(homeworkId),
-          userId: user.id,
-        },
-      },
-      update: {
-        answer: null,
-        score: null,
-        status: 'in_progress',
-        submittedAt: null,
-        startedAt: new Date(),
-        lastActivityAt: new Date(),
-        timeSpentSeconds: 0,
-      },
-      create: {
         homeworkId: Number(homeworkId),
         userId: user.id,
+      },
+      orderBy: { attemptNumber: 'desc' },
+    });
+
+    const nextAttemptNumber = latestSubmission ? latestSubmission.attemptNumber + 1 : 1;
+
+    // Create a new attempt (don't reset previous attempts)
+    const newAttempt = await prisma.homeworkSubmission.create({
+      data: {
+        homeworkId: Number(homeworkId),
+        userId: user.id,
+        attemptNumber: nextAttemptNumber,
         status: 'in_progress',
         startedAt: new Date(),
         lastActivityAt: new Date(),
@@ -56,7 +53,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
       },
     });
 
-    return NextResponse.json(reset);
+    return NextResponse.json(newAttempt);
   } catch (error: any) {
     console.error('Retry homework error:', error);
     return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
