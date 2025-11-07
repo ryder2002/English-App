@@ -25,6 +25,21 @@ interface Quiz {
   };
 }
 
+interface Homework {
+  id: number;
+  title: string;
+  description?: string;
+  type: 'listening' | 'reading';
+  deadline: string;
+  status: string;
+  createdAt: string;
+  submissions: Array<{
+    id: number;
+    status: string;
+    submittedAt?: string;
+  }>;
+}
+
 interface ClassDetail {
   id: number;
   name: string;
@@ -58,7 +73,9 @@ export default function ClassDetailPage() {
   const classId = params?.id as string;
 
   const [classDetail, setClassDetail] = useState<ClassDetail | null>(null);
+  const [homework, setHomework] = useState<Homework[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingHomework, setIsLoadingHomework] = useState(true);
 
   useEffect(() => {
     if (!classId) {
@@ -67,6 +84,7 @@ export default function ClassDetailPage() {
     }
 
     fetchClassDetail();
+    fetchHomework();
   }, [classId]);
 
   const fetchClassDetail = async () => {
@@ -90,6 +108,25 @@ export default function ClassDetailPage() {
       router.push('/classes');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchHomework = async () => {
+    try {
+      const res = await fetch(`/api/homework/${classId}`, {
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to load homework');
+      }
+
+      const data = await res.json();
+      setHomework(data);
+    } catch (error: any) {
+      console.error('Error loading homework:', error);
+    } finally {
+      setIsLoadingHomework(false);
     }
   };
 
@@ -443,6 +480,120 @@ export default function ClassDetailPage() {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Homework Section */}
+        {!isLoadingHomework && (
+          <>
+            {homework.length > 0 && (
+              <Card className="mb-4 sm:mb-6 border-0 shadow-soft bg-gradient-to-br from-orange-50/50 via-red-50/50 to-pink-50/50 dark:from-orange-900/10 dark:via-red-900/10 dark:to-pink-900/10">
+                <CardHeader className="pb-3 sm:pb-4 p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl md:text-2xl">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md flex-shrink-0">
+                      <span className="text-xl sm:text-2xl">📚</span>
+                    </div>
+                    <span className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent font-bold">
+                      📚 Bài tập về nhà ({homework.length})
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm md:text-base mt-1 sm:mt-2">
+                    Các bài tập giáo viên đã giao cho lớp
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6 pt-0">
+                  <div className="space-y-3 sm:space-y-4">
+                    {homework.map((hw) => {
+                      const now = new Date();
+                      const deadline = new Date(hw.deadline);
+                      const isExpired = deadline < now;
+                      const isLocked = hw.status === 'locked' || isExpired;
+                      const submission = hw.submissions?.[0];
+                      const isSubmitted = submission?.status === 'submitted' || submission?.status === 'graded';
+
+                      return (
+                        <Card 
+                          key={hw.id} 
+                          className={`border-2 ${
+                            isLocked 
+                              ? 'border-gray-300 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/20 opacity-75' 
+                              : 'border-orange-300 dark:border-orange-700 bg-gradient-to-r from-orange-50/80 to-red-50/80 dark:from-orange-900/20 dark:to-red-900/20 hover:shadow-md transition-all duration-300'
+                          }`}
+                        >
+                          <CardContent className="p-4 sm:p-5">
+                            <div className="flex flex-col gap-3 sm:gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h3 className={`font-bold text-base sm:text-lg mb-1 sm:mb-2 ${
+                                  isLocked 
+                                    ? 'text-muted-foreground' 
+                                    : 'bg-gradient-to-r from-orange-700 to-red-700 bg-clip-text text-transparent'
+                                } line-clamp-2`}>
+                                  {hw.title}
+                                </h3>
+                                {hw.description && (
+                                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3 line-clamp-2">{hw.description}</p>
+                                )}
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                                  <div className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg ${
+                                    isLocked 
+                                      ? 'bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700' 
+                                      : 'bg-white/60 dark:bg-gray-800/60 border border-orange-200 dark:border-orange-800'
+                                  }`}>
+                                    <span className="text-muted-foreground">{hw.type === 'listening' ? '🎧' : '📖'}</span>
+                                    <span className="font-semibold">{hw.type === 'listening' ? 'Nghe' : 'Đọc'}</span>
+                                  </div>
+                                  <div className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg ${
+                                    isLocked 
+                                      ? 'bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700' 
+                                      : 'bg-white/60 dark:bg-gray-800/60 border border-orange-200 dark:border-orange-800'
+                                  }`}>
+                                    <span className="text-muted-foreground">⏰</span>
+                                    <span className="font-semibold">{new Date(hw.deadline).toLocaleDateString('vi-VN')}</span>
+                                  </div>
+                                </div>
+                                <div className="mt-2 sm:mt-3">
+                                  <Badge className={`${
+                                    isLocked 
+                                      ? 'bg-gray-400' 
+                                      : isSubmitted 
+                                        ? 'bg-green-500' 
+                                        : 'bg-orange-500'
+                                  } text-white px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-semibold shadow-sm`}>
+                                    {isLocked ? '🔒 Đã khóa' : isSubmitted ? '✅ Đã nộp' : '📝 Chưa làm'}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                {isLocked ? (
+                                  <Button 
+                                    variant="outline" 
+                                    disabled
+                                    className="w-full sm:w-auto opacity-50"
+                                  >
+                                    🔒 Đã khóa
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    onClick={() => router.push(`/classes/${classId}/homework/${hw.id}`)}
+                                    className={`w-full sm:w-auto ${
+                                      isSubmitted 
+                                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
+                                        : 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700'
+                                    } text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg sm:rounded-xl font-semibold px-4 py-2.5 sm:px-6 sm:py-6 text-sm sm:text-base`}
+                                  >
+                                    {isSubmitted ? '👁️ Xem bài làm' : '📝 Làm bài'}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
         </div>
       </div>

@@ -21,6 +21,7 @@ model User {
   resetTokenExpiry DateTime? @map("reset_token_expiry")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
+  lastLoginAt      DateTime? @map("last_login_at")
 
   // Relations
   vocabulary    Vocabulary[]
@@ -28,6 +29,8 @@ model User {
   classesJoined ClassMember[]
   classesOwned  Clazz[]       @relation("ClassTeacher")
   quizResults   QuizResult[]
+  homeworkSubmissions HomeworkSubmission[]
+  classActivitySessions ClassActivitySession[]
 
   @@map("users")
 }
@@ -85,6 +88,8 @@ model Clazz {
   teacher User          @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
   members ClassMember[]
   quizzes Quiz[]
+  homeworks Homework[]
+  classActivitySessions ClassActivitySession[]
 
   @@map("classes")
 }
@@ -209,4 +214,92 @@ enum NotificationType {
   maintenance
   update
   important
+}
+
+model Homework {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  type        HomeworkType
+  clazzId     Int            @map("class_id")
+  deadline    DateTime
+  status      HomeworkStatus @default(active)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  
+  // Listening homework fields
+  audioUrl    String?        @map("audio_url")
+  answerText  String?        @db.Text @map("answer_text")
+  promptText  String?        @db.Text @map("prompt_text")
+  hideMode    HomeworkHideMode? @default(all) @map("hide_mode")
+  
+  // Reading homework fields (for future use)
+  content     String?        @db.Text
+  
+  // Relations
+  clazz       Clazz          @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  submissions HomeworkSubmission[]
+
+  @@map("homework")
+}
+
+model HomeworkSubmission {
+  id          Int                    @id @default(autoincrement())
+  homeworkId  Int                    @map("homework_id")
+  userId      Int                    @map("user_id")
+  answer      String?                @db.Text
+  score       Float?
+  status      HomeworkSubmissionStatus @default(in_progress)
+  submittedAt DateTime?              @map("submitted_at")
+  startedAt   DateTime?              @map("started_at")
+  lastActivityAt DateTime?           @map("last_activity_at")
+  timeSpentSeconds Int               @default(0) @map("time_spent_seconds")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  // Relations
+  homework    Homework               @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([homeworkId, userId])
+  @@map("homework_submissions")
+}
+
+model ClassActivitySession {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  clazzId        Int      @map("class_id")
+  startedAt      DateTime @default(now()) @map("started_at")
+  endedAt        DateTime? @map("ended_at")
+  durationSeconds Int?    @map("duration_seconds")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clazz Clazz @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+
+  @@index([clazzId])
+  @@index([userId])
+  @@map("class_activity_sessions")
+}
+
+enum HomeworkType {
+  listening
+  reading
+}
+
+enum HomeworkStatus {
+  active
+  locked
+  archived
+}
+
+enum HomeworkHideMode {
+  all
+  random
+}
+
+enum HomeworkSubmissionStatus {
+  in_progress
+  submitted
+  graded
 }

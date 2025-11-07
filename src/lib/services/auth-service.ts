@@ -39,14 +39,16 @@ export class AuthService {
       data: {
         email,
         password: hashedPassword,
-        name
+        name,
+        lastLoginAt: new Date()
       },
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
-        createdAt: true
+        createdAt: true,
+        lastLoginAt: true
       }
     })
 
@@ -91,6 +93,12 @@ export class AuthService {
       this.JWT_SECRET,
       { expiresIn: this.JWT_EXPIRES_IN }
     )
+
+    // Update last login timestamp
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    })
 
     return {
       user: {
