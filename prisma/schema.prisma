@@ -200,6 +200,7 @@ model HomeworkSubmission {
   createdAt        DateTime                 @default(now()) @map("created_at")
   updatedAt        DateTime                 @updatedAt @map("updated_at")
   audioData        Bytes?                   @map("audio_data")
+  audioUrl         String?                  @map("audio_url")
   transcribedText  String?                  @map("transcribed_text")
   homework         Homework                 @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
   user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)

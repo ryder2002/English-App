@@ -29,23 +29,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
       return NextResponse.json({ error: 'Homework is locked or deadline passed' }, { status: 400 });
     }
 
-    // Find the latest submission
-    const latestSubmission = await prisma.homeworkSubmission.findFirst({
+    // DELETE ALL previous submissions and start fresh from attempt 1
+    await prisma.homeworkSubmission.deleteMany({
       where: {
         homeworkId: Number(homeworkId),
         userId: user.id,
       },
-      orderBy: { attemptNumber: 'desc' },
     });
 
-    const nextAttemptNumber = latestSubmission ? latestSubmission.attemptNumber + 1 : 1;
-
-    // Create a new attempt (don't reset previous attempts)
+    // Create a fresh attempt starting from attempt 1
     const newAttempt = await prisma.homeworkSubmission.create({
       data: {
         homeworkId: Number(homeworkId),
         userId: user.id,
-        attemptNumber: nextAttemptNumber,
+        attemptNumber: 1, // Always start from 1 after reset
         status: 'in_progress',
         startedAt: new Date(),
         lastActivityAt: new Date(),

@@ -37,9 +37,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     // Ownership: only teacher of the class can view
     if (submission.homework.clazz.teacherId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    // Convert audio data to base64 URL if exists
+    // Use audioUrl from R2 if available, fallback to audioData for legacy submissions
     let audioDataUrl: string | undefined;
-    if (submission.audioData) {
+    if (submission.audioUrl) {
+      // New R2 URL - direct usage
+      audioDataUrl = submission.audioUrl;
+    } else if (submission.audioData) {
+      // Legacy base64 conversion for old submissions
       const base64 = Buffer.from(submission.audioData).toString('base64');
       audioDataUrl = `data:audio/webm;base64,${base64}`;
     }

@@ -43,14 +43,29 @@ export function SpeakingHomeworkPlayer({
   };
 
   const handleSubmit = async () => {
-    if (!recordedAudio || !transcribedText) {
+    console.log('Submit button clicked:', { 
+      hasRecordedAudio: !!recordedAudio, 
+      hasTranscribedText: !!transcribedText,
+      transcribedTextLength: transcribedText?.length || 0,
+      hasRecording,
+      isSubmitting 
+    });
+
+    if (!recordedAudio) {
       alert('Vui lòng thu âm trước khi nộp bài');
+      return;
+    }
+
+    if (!transcribedText || transcribedText.trim().length === 0) {
+      alert('Không thể nhận dạng giọng nói. Vui lòng thử thu âm lại với giọng to và rõ ràng hơn.');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      console.log('Calling onSubmitAction...');
       await onSubmitAction(recordedAudio, transcribedText);
+      console.log('onSubmitAction completed successfully');
     } catch (error) {
       console.error('Submit error:', error);
       alert('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
@@ -78,15 +93,32 @@ export function SpeakingHomeworkPlayer({
               <p className="text-sm text-muted-foreground">
                 ✅ Thu âm hoàn tất! Bạn có thể nghe lại hoặc nộp bài ngay.
               </p>
+              
+              {/* Debug info */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs bg-gray-100 p-2 rounded text-gray-600">
+                  Debug: Audio={!!recordedAudio ? 'Yes' : 'No'}, 
+                  Text={transcribedText ? `"${transcribedText.substring(0, 20)}..."` : 'None'}, 
+                  Length={transcribedText?.length || 0}
+                </div>
+              )}
+              
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !recordedAudio || !transcribedText}
+                disabled={isSubmitting || !recordedAudio}
                 className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                 size="lg"
               >
                 <Send className="h-5 w-5 mr-2" />
                 {isSubmitting ? 'Đang nộp bài...' : '📝 Nộp bài'}
               </Button>
+              
+              {/* Warning if no transcription */}
+              {recordedAudio && (!transcribedText || transcribedText.trim().length === 0) && (
+                <p className="text-xs text-amber-600 text-center">
+                  ⚠️ Chưa nhận dạng được giọng nói. Vẫn có thể nộp bài nhưng điểm có thể thấp.
+                </p>
+              )}
             </div>
           )}
         </>

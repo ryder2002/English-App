@@ -31,23 +31,35 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return NextResponse.json({ error: 'You are not a member of this class' }, { status: 403 });
     }
 
-    // Get class details with all members for display
+    // Optimized class details query - only essential data
     const clazz = await prisma.clazz.findUnique({
       where: { id: classId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        classCode: true,
         teacher: {
           select: { id: true, email: true, name: true },
         },
         quizzes: {
           orderBy: { createdAt: 'desc' },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            quizCode: true,
+            status: true,
+            createdAt: true,
             folder: {
               select: { id: true, name: true },
             },
           },
         },
         members: {
-          include: {
+          select: {
+            id: true,
+            joinedAt: true,
             user: {
               select: { id: true, email: true, name: true },
             },

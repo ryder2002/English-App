@@ -25,7 +25,20 @@ export async function GET(
     // Get submission with homework details
     const submission = await prisma.homeworkSubmission.findUnique({
       where: { id: subId },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        homeworkId: true,
+        answer: true,
+        transcribedText: true,
+        audioUrl: true,        // ← Include R2 URL
+        audioData: true,       // ← Keep for legacy submissions (column: audio_data)
+        score: true,
+        status: true,
+        attemptNumber: true,
+        startedAt: true,
+        submittedAt: true,
+        timeSpentSeconds: true,
         homework: {
           select: {
             id: true,
@@ -52,9 +65,13 @@ export async function GET(
       return NextResponse.json({ error: 'Submission not in this homework' }, { status: 400 });
     }
 
-    // Convert audio data to base64 URL if exists
+    // Use audioUrl from R2 if available, fallback to audio_data for legacy submissions
     let audioDataUrl: string | undefined;
-    if (submission.audioData) {
+    if (submission.audioUrl) {
+      // New R2 URL - direct usage
+      audioDataUrl = submission.audioUrl;
+    } else if (submission.audioData) {
+      // Legacy base64 conversion for old submissions (column is audio_data)
       const base64 = Buffer.from(submission.audioData).toString('base64');
       audioDataUrl = `data:audio/webm;base64,${base64}`;
     }

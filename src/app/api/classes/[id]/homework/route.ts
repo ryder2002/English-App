@@ -30,12 +30,26 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       return NextResponse.json({ error: 'You are not a member of this class' }, { status: 403 });
     }
 
+    // Optimized homework query - only essential fields
     const homework = await prisma.homework.findMany({
       where: { clazzId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        type: true,
+        deadline: true,
+        status: true,
+        createdAt: true,
         clazz: { select: { id: true, name: true } },
         submissions: {
           where: { userId: user.id },
+          select: {
+            id: true,
+            status: true,
+            submittedAt: true,
+            attemptNumber: true,
+          },
           take: 1,
           orderBy: { createdAt: 'desc' },
         },
@@ -54,8 +68,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         hw.status = 'locked';
       }
 
-      const { answerText, ...rest } = hw;
-      sanitized.push(rest);
+      // No need to destructure since answerText is not selected
+      sanitized.push(hw);
     }
 
     return NextResponse.json(sanitized);

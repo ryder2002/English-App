@@ -83,14 +83,19 @@ export default function ClassDetailPage() {
       return;
     }
 
-    fetchClassDetail();
-    fetchHomework();
+    // Load both data in parallel for better performance
+    Promise.all([
+      fetchClassDetail(),
+      fetchHomework()
+    ]);
   }, [classId]);
 
   const fetchClassDetail = async () => {
     try {
       const res = await fetch(`/api/classes/${classId}`, {
         credentials: 'include',
+        cache: 'force-cache', // Cache for better performance
+        next: { revalidate: 60 }, // Revalidate every 60 seconds
       });
 
       if (!res.ok) {
@@ -115,6 +120,7 @@ export default function ClassDetailPage() {
     try {
       const res = await fetch(`/api/classes/${classId}/homework`, {
         credentials: 'include',
+        cache: 'no-cache', // Don't cache homework as it changes frequently
       });
 
       if (!res.ok) {

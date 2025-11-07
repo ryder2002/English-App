@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuthService } from '@/lib/services/auth-service';
+import { R2AudioStorage } from '@/lib/r2-storage';
 
 // Enhanced similarity calculation with phonetic matching
 function calculateSimilarity(text1: string, text2: string): number {
@@ -132,26 +133,46 @@ export async function POST(
   props: { params: Promise<{ homeworkId: string }> }
 ) {
   try {
+    console.log('🎤 Submit speaking API called');
     const params = await props.params;
+    const homeworkId = parseInt(params.homeworkId);
+    console.log('HomeworkId:', homeworkId);
+    
     const token = request.cookies.get('token')?.value;
     if (!token) {
+      console.log('❌ No token found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await AuthService.verifyToken(token);
     if (!user) {
+      console.log('❌ Invalid token');
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
+    console.log('✅ User authenticated:', user.email);
 
-    const homeworkId = parseInt(params.homeworkId);
     const body = await request.json();
     const { audioBase64, transcribedText } = body;
+    
+    console.log('📦 Request data:', {
+      hasAudioBase64: !!audioBase64,
+      audioBase64Length: audioBase64?.length || 0,
+      transcribedText: transcribedText,
+      transcribedTextLength: transcribedText?.length || 0
+    });
 
-    if (!audioBase64 || !transcribedText) {
+    if (!audioBase64) {
+      console.log('❌ Missing audio data');
       return NextResponse.json(
-        { error: 'Audio and transcribed text are required' },
+        { error: 'Audio data is required' },
         { status: 400 }
       );
+    }
+
+    if (!transcribedText || transcribedText.trim().length === 0) {
+      console.log('⚠️ Missing or empty transcribed text, but proceeding with audio only');
+      // Allow submission with empty transcription but log it
+      // This can happen if speech recognition fails
     }
 
     // Get homework with optimized query
@@ -209,7 +230,7 @@ export async function POST(
     // Calculate score based on text similarity
     const score = calculateSimilarity(homework.speakingText, transcribedText);
 
-    // Convert base64 to buffer
+    // Convert base64 to buffer for R2 upload
     const audioBuffer = Buffer.from(
       audioBase64.replace(/^data:audio\/\w+;base64,/, ''),
       'base64'
@@ -231,7 +252,17 @@ export async function POST(
       ? existingSubmissions[0].attemptNumber + 1
       : 1;
 
-    // Create submission
+    console.log(`📤 Uploading audio to R2...`);
+    // Upload audio to R2 instead of storing in database
+    const audioUrl = await R2AudioStorage.uploadAudio(
+      audioBuffer,
+      user.id,
+      homeworkId,
+      attemptNumber
+    );
+    console.log(`✅ Audio uploaded to R2: ${audioUrl}`);
+
+    // Create submission with audioUrl instead of audioData
     const submission = await prisma.homeworkSubmission.create({
       data: {
         homeworkId,
@@ -239,7 +270,7 @@ export async function POST(
         attemptNumber,
         status: 'submitted',
         score,
-        audioData: audioBuffer,
+        audioUrl, // Store R2 URL instead of binary data
         transcribedText,
         submittedAt: new Date(),
       },
