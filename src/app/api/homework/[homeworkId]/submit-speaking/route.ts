@@ -3,19 +3,29 @@ import { prisma } from '@/lib/prisma';
 import { AuthService } from '@/lib/services/auth-service';
 import { R2AudioStorage } from '@/lib/r2-storage';
 
-// Enhanced similarity calculation with phonetic matching
+// Enhanced similarity calculation - IGNORE ALL PUNCTUATION
 function calculateSimilarity(text1: string, text2: string): number {
-  const str1 = text1.toLowerCase().trim().replace(/[^\w\s]/g, '');
-  const str2 = text2.toLowerCase().trim().replace(/[^\w\s]/g, '');
-  
-  // Normalize common speech recognition errors
-  const normalizeText = (text: string) => {
+  // Comprehensive normalization - remove ALL punctuation and special characters
+  const normalizeForComparison = (text: string) => {
     return text
+      .toLowerCase()
+      .trim()
+      // Remove ALL punctuation marks: . , ; : ! ? ' " ( ) [ ] { } - _ + = * & ^ % $ # @ ~ ` | \ / < >
+      .replace(/[.,;:!?'"(){}\[\]\-_+=*&^%$#@~`|\\/<>]/g, '')
+      .replace(/[^\w\s]/g, '') // Remove any remaining special characters
+      .replace(/\s+/g, ' ') // Multiple spaces to single space
+      .trim();
+  };
+  
+  // Normalize contractions and common speech variations
+  const normalizeContractions = (text: string) => {
+    return text
+      // Contractions WITH apostrophe
       .replace(/\bwon't\b/g, 'will not')
       .replace(/\bcan't\b/g, 'cannot')
-      .replace(/\bdont\b/g, 'do not')
-      .replace(/\bdoesnt\b/g, 'does not')
-      .replace(/\bwont\b/g, 'will not')
+      .replace(/\bdon't\b/g, 'do not')
+      .replace(/\bdoesn't\b/g, 'does not')
+      .replace(/\bdidn't\b/g, 'did not')
       .replace(/\byou're\b/g, 'you are')
       .replace(/\bthey're\b/g, 'they are')
       .replace(/\bwe're\b/g, 'we are')
@@ -24,12 +34,66 @@ function calculateSimilarity(text1: string, text2: string): number {
       .replace(/\bshe's\b/g, 'she is')
       .replace(/\bit's\b/g, 'it is')
       .replace(/\bthat's\b/g, 'that is')
+      .replace(/\bisn't\b/g, 'is not')
+      .replace(/\baren't\b/g, 'are not')
+      .replace(/\bwasn't\b/g, 'was not')
+      .replace(/\bweren't\b/g, 'were not')
+      .replace(/\bhaven't\b/g, 'have not')
+      .replace(/\bhasn't\b/g, 'has not')
+      .replace(/\bhadn't\b/g, 'had not')
+      .replace(/\bwouldn't\b/g, 'would not')
+      .replace(/\bcouldn't\b/g, 'could not')
+      .replace(/\bshouldn't\b/g, 'should not')
+      
+      // Contractions WITHOUT apostrophe (speech recognition often misses apostrophes)
+      .replace(/\bwont\b/g, 'will not')
+      .replace(/\bcant\b/g, 'cannot')
+      .replace(/\bdont\b/g, 'do not')
+      .replace(/\bdoesnt\b/g, 'does not')
+      .replace(/\bdidnt\b/g, 'did not')
+      .replace(/\byoure\b/g, 'you are')
+      .replace(/\btheyre\b/g, 'they are')
+      .replace(/\bwere\b/g, 'we are') // Common misheard "we're"
+      .replace(/\bim\b/g, 'i am')
+      .replace(/\bhes\b/g, 'he is')
+      .replace(/\bshes\b/g, 'she is')
+      .replace(/\bits\b/g, 'it is')
+      .replace(/\bthats\b/g, 'that is')
+      .replace(/\bisnt\b/g, 'is not')
+      .replace(/\barent\b/g, 'are not')
+      .replace(/\bwasnt\b/g, 'was not')
+      .replace(/\bwerent\b/g, 'were not')
+      .replace(/\bhavent\b/g, 'have not')
+      .replace(/\bhasnt\b/g, 'has not')
+      .replace(/\bhadnt\b/g, 'had not')
+      .replace(/\bwouldnt\b/g, 'would not')
+      .replace(/\bcouldnt\b/g, 'could not')
+      .replace(/\bshouldnt\b/g, 'should not')
       .replace(/\s+/g, ' ')
       .trim();
   };
   
-  const normalizedStr1 = normalizeText(str1);
-  const normalizedStr2 = normalizeText(str2);
+  // Apply all normalizations
+  let str1 = normalizeForComparison(text1);
+  let str2 = normalizeForComparison(text2);
+  
+  str1 = normalizeContractions(str1);
+  str2 = normalizeContractions(str2);
+  
+  console.log('🔍 Text comparison (ignoring punctuation):');
+  console.log(`  📝 Original: "${text1}"`);
+  console.log(`  📝 Transcribed: "${text2}"`);
+  console.log(`  ✨ Normalized original: "${str1}"`);
+  console.log(`  ✨ Normalized transcribed: "${str2}"`);
+  
+  // Perfect match after normalization
+  if (str1 === str2) {
+    console.log('  🎉 PERFECT MATCH after removing punctuation!');
+    return 1.0;
+  }
+  
+  const normalizedStr1 = str1;
+  const normalizedStr2 = str2;
   
   const words1 = normalizedStr1.split(/\s+/);
   const words2 = normalizedStr2.split(/\s+/);

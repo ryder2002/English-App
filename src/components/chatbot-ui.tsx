@@ -10,13 +10,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, Send, User, Volume2 } from "lucide-react";
+import { Bot, Loader2, Send, User, Volume2, Mic } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import type { Language } from "@/lib/types";
 import { useSettings } from "@/contexts/settings-context";
+import SpeechRecognition from "./speech-recognition";
 
 const formSchema = z.object({
   query: z.string().min(1),
@@ -39,6 +40,7 @@ interface ChatbotUIProps {
 export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProps) {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [showSpeechInput, setShowSpeechInput] = useState(false);
   const { selectedVoices } = useSettings();
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -187,6 +189,34 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
             </div>
         </ScrollArea>
         <div className="p-3 sm:p-4 md:p-6 border-t bg-card/30 backdrop-blur-sm flex-shrink-0 rounded-b-lg sm:rounded-b-xl">
+            {/* Speech Recognition Interface */}
+            {showSpeechInput && (
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-card/50 rounded-lg border">
+                <SpeechRecognition
+                  onTranscript={(transcript, language) => {
+                    form.setValue('query', transcript);
+                    setShowSpeechInput(false);
+                  }}
+                  placeholder="Click microphone and speak your question..."
+                  supportedLanguages={[
+                    { code: 'en-US', name: 'English', flag: '🇺🇸' },
+                    { code: 'vi-VN', name: 'Tiếng Việt', flag: '🇻🇳' },
+                    { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
+                  ]}
+                />
+                <div className="flex justify-end mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSpeechInput(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <FormField
@@ -206,6 +236,17 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
                     </FormItem>
                 )}
                 />
+                {/* Microphone Button */}
+                <Button 
+                  type="button"
+                  size="icon" 
+                  variant="outline"
+                  onClick={() => setShowSpeechInput(!showSpeechInput)}
+                  className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0"
+                  disabled={isLoading}
+                >
+                  <Mic className={`h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 ${showSpeechInput ? 'text-red-500' : ''}`} />
+                </Button>
                 <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0 bg-primary hover:bg-primary/90">
                     <Send className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
                 </Button>

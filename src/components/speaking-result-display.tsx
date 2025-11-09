@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import AudioPlayer from './audio-player';
 
 interface WordComparisonResult {
   word: string;
@@ -14,6 +15,7 @@ interface SpeakingResultDisplayProps {
   originalText: string;
   transcribedText: string;
   score: number;
+  submissionId?: number; // Add submission ID for audio playback
 }
 
 function compareTexts(original: string, transcribed: string): WordComparisonResult[] {
@@ -101,6 +103,7 @@ export function SpeakingResultDisplay({
   originalText,
   transcribedText,
   score,
+  submissionId,
 }: SpeakingResultDisplayProps) {
   const comparisonResults = compareTexts(originalText, transcribedText);
   const correctWords = comparisonResults.filter(r => r.isCorrect).length;
@@ -198,6 +201,20 @@ export function SpeakingResultDisplay({
               : '📚 Hãy luyện tập thêm'}
           </Badge>
         </div>
+
+        {/* Audio Playback */}
+        {submissionId && (
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">
+              🎵 Nghe lại bài đọc của bạn:
+            </h3>
+            <AudioPlayer 
+              submissionId={submissionId} 
+              autoLoad={true}
+              className="bg-white dark:bg-gray-900"
+            />
+          </div>
+        )}
 
         <div className="text-xs text-muted-foreground p-3 bg-muted rounded-md">
           💡 <strong>Gợi ý:</strong> Các từ được <strong className="text-red-600">in đậm và bôi đỏ</strong> là những từ bạn phát âm sai hoặc thiếu. 
