@@ -32,24 +32,38 @@ export default function AudioPlayer({
     setError('');
 
     try {
-      const response = await fetch(`/api/homework/submission/${submissionId}/audio`);
+      console.log('🔄 Loading audio for submission:', submissionId);
+      
+      const response = await fetch(`/api/homework/submission/${submissionId}/audio`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for authentication
+      });
+      
+      console.log('📡 Audio API response status:', response.status);
       
       if (!response.ok) {
-        throw new Error('Failed to load audio');
+        const errorText = await response.text();
+        console.error('❌ Audio API error:', response.status, errorText);
+        throw new Error(`Failed to load audio: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('📦 Audio API response data:', data);
       
       if (data.success && data.audioUrl) {
         setAudioUrl(data.audioUrl);
-        console.log('🎵 Audio loaded:', data.type, data.audioUrl.substring(0, 100) + '...');
+        console.log('✅ Audio loaded successfully:', data.type, data.audioUrl.substring(0, 100) + '...');
       } else {
+        console.error('❌ Invalid audio response:', data);
         throw new Error(data.error || 'No audio available');
       }
 
     } catch (error: any) {
-      console.error('Audio loading error:', error);
-      setError(error.message || 'Failed to load audio');
+      console.error('💥 Audio loading error:', error);
+      setError(`Audio loading failed: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -58,35 +72,91 @@ export default function AudioPlayer({
   // Initialize audio element when URL is available
   useEffect(() => {
     if (audioUrl && !audioRef.current) {
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      console.log('🎵 Initializing audio element with URL:', audioUrl.substring(0, 100) + '...');
+      
+      try {
+        const audio = new Audio();
+        
+        // Set CORS for external URLs (R2 storage)
+        if (audioUrl.startsWith('http')) {
+          audio.crossOrigin = 'anonymous';
+        }
+        
+        audioRef.current = audio;
 
-      audio.addEventListener('loadedmetadata', () => {
-        setDuration(audio.duration);
-      });
+        audio.addEventListener('loadedmetadata', () => {
+          console.log('📊 Audio metadata loaded, duration:', audio.duration);
+          setDuration(audio.duration);
+        });
 
-      audio.addEventListener('timeupdate', () => {
-        setCurrentTime(audio.currentTime);
-      });
+        audio.addEventListener('timeupdate', () => {
+          setCurrentTime(audio.currentTime);
+        });
 
-      audio.addEventListener('ended', () => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-      });
+        audio.addEventListener('ended', () => {
+          console.log('🏁 Audio playback ended');
+          setIsPlaying(false);
+          setCurrentTime(0);
+        });
 
-      audio.addEventListener('error', (e) => {
-        console.error('Audio playback error:', e);
-        setError('Failed to play audio');
-        setIsPlaying(false);
-      });
+        audio.addEventListener('error', (e) => {
+          console.error('💥 Audio playback error:', e);
+          const audioError = audio.error;
+          let errorMessage = 'Failed to play audio';
+          
+          if (audioError) {
+            switch (audioError.code) {
+              case MediaError.MEDIA_ERR_ABORTED:
+                errorMessage = 'Audio playback was aborted';
+                break;
+              case MediaError.MEDIA_ERR_NETWORK:
+                errorMessage = 'Network error occurred while loading audio';
+                break;
+              case MediaError.MEDIA_ERR_DECODE:
+                errorMessage = 'Audio file is corrupted or unsupported format';
+                break;
+              case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                errorMessage = 'Audio format not supported by browser';
+                break;
+              default:
+                errorMessage = `Audio error: ${audioError.message || 'Unknown error'}`;
+            }
+          }
+          
+          setError(errorMessage);
+          setIsPlaying(false);
+        });
 
-      audio.volume = volume;
-      audio.muted = isMuted;
+        audio.addEventListener('canplay', () => {
+          console.log('✅ Audio can start playing');
+        });
+
+        audio.addEventListener('loadstart', () => {
+          console.log('🔄 Audio loading started');
+        });
+
+        audio.addEventListener('progress', () => {
+          console.log('📈 Audio loading progress');
+        });
+
+        audio.volume = volume;
+        audio.muted = isMuted;
+        
+        // Load the audio source
+        audio.src = audioUrl;
+        audio.load();
+        
+      } catch (err) {
+        console.error('💥 Error initializing audio:', err);
+        setError('Failed to initialize audio player');
+      }
     }
 
     return () => {
       if (audioRef.current) {
+        console.log('🧹 Cleaning up audio element');
         audioRef.current.pause();
+        audioRef.current.src = '';
         audioRef.current = null;
       }
     };
@@ -102,23 +172,86 @@ export default function AudioPlayer({
   // Play/pause toggle
   const togglePlayback = async () => {
     if (!audioUrl) {
+      console.log('🔄 No audio URL, loading audio first...');
       await loadAudio();
       return;
     }
 
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      console.log('❌ No audio element available');
+      setError('Audio player not initialized');
+      return;
+    }
 
     try {
       if (isPlaying) {
+        console.log('⏸️ Pausing audio');
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        await audioRef.current.play();
+        console.log('▶️ Starting audio playback');
+        
+        // Clear any previous errors
+        setError('');
+        
+        // Check if audio is ready
+        if (audioRef.current.readyState < 2) {
+          console.log('⏳ Audio not ready, waiting...');
+          setError('Audio is loading, please wait...');
+          
+          // Wait for audio to be ready
+          await new Promise((resolve, reject) => {
+            const audio = audioRef.current!;
+            
+            const onCanPlay = () => {
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
+              resolve(void 0);
+            };
+            
+            const onError = (e: Event) => {
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
+              reject(new Error('Audio failed to load'));
+            };
+            
+            audio.addEventListener('canplay', onCanPlay);
+            audio.addEventListener('error', onError);
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
+              reject(new Error('Audio loading timeout'));
+            }, 10000);
+          });
+        }
+        
+        // Try to play
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise;
+        }
+        
         setIsPlaying(true);
+        setError('');
+        console.log('✅ Audio playback started successfully');
       }
-    } catch (error) {
-      console.error('Playback error:', error);
-      setError('Failed to play audio');
+    } catch (error: any) {
+      console.error('💥 Playback error:', error);
+      
+      let errorMessage = 'Failed to play audio';
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Browser blocked audio playback. Please interact with the page first.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = 'Audio format not supported by your browser';
+      } else if (error.message) {
+        errorMessage = `Playback error: ${error.message}`;
+      }
+      
+      setError(errorMessage);
+      setIsPlaying(false);
     }
   };
 
@@ -172,7 +305,32 @@ export default function AudioPlayer({
       {/* Error Display */}
       {error && (
         <div className="text-red-500 text-sm mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-          {error}
+          <div className="font-medium">Audio Error:</div>
+          <div>{error}</div>
+          {!audioUrl && (
+            <Button
+              onClick={loadAudio}
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              disabled={isLoading}
+            >
+              Retry Loading
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Debug Info (Development only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded">
+          <div>Submission ID: {submissionId}</div>
+          <div>Audio URL: {audioUrl ? (audioUrl.length > 100 ? audioUrl.substring(0, 100) + '...' : audioUrl) : 'None'}</div>
+          <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
+          <div>Audio Element: {audioRef.current ? 'Ready' : 'Not Ready'}</div>
+          {audioRef.current && (
+            <div>Ready State: {audioRef.current.readyState} / 4</div>
+          )}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { SpeakingRecorder } from '@/components/speaking-recorder';
 import { SpeakingResultDisplay } from '@/components/speaking-result-display';
+import { AdvancedSpeechRecognition } from '@/components/advanced-speech-recognition';
 import { Send } from 'lucide-react';
 
 interface SpeakingHomeworkPlayerProps {
@@ -12,7 +13,8 @@ interface SpeakingHomeworkPlayerProps {
   isLocked: boolean;
   transcribedText?: string;
   score?: number;
-  onSubmitAction: (audioBlob: Blob, transcribedText: string) => Promise<void>;
+  submissionId?: number;
+  onSubmitAction: (audioBlob: Blob, transcribedText: string, voiceAnalysis?: any) => Promise<void>;
 }
 
 export function SpeakingHomeworkPlayer({
@@ -21,12 +23,15 @@ export function SpeakingHomeworkPlayer({
   isLocked,
   transcribedText: savedTranscribedText,
   score,
+  submissionId,
   onSubmitAction,
 }: SpeakingHomeworkPlayerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [transcribedText, setTranscribedText] = useState<string>('');
   const [hasRecording, setHasRecording] = useState(false);
+  const [voiceAnalysis, setVoiceAnalysis] = useState<any>(null);
+  const [useAdvancedRecognition, setUseAdvancedRecognition] = useState(true);
 
   const handleRecordingFinished = (audioBlob: Blob, text: string) => {
     console.log('Recording finished:', { audioBlob, text, textLength: text.length });
@@ -74,18 +79,57 @@ export function SpeakingHomeworkPlayer({
     }
   };
 
+  const handleAdvancedRecognitionResult = (transcript: string, confidence: number, analysis?: any) => {
+    console.log('Advanced recognition result:', { transcript, confidence, analysis });
+    setTranscribedText(transcript);
+    setVoiceAnalysis(analysis);
+    setHasRecording(true);
+  };
+
+  const handleAdvancedRecognitionError = (error: string) => {
+    console.error('Advanced recognition error:', error);
+  };
+
   return (
     <div className="space-y-4">
       {!isSubmitted && !isLocked && (
         <>
-          <SpeakingRecorder
-            text={speakingText}
-            onRecordingFinished={handleRecordingFinished}
-            onRecordingReset={handleRecordingReset}
-            disabled={isSubmitted || isLocked || isSubmitting}
-            maxDuration={180}
-            autoSubmit={false}
-          />
+          {/* Toggle between recognition modes */}
+          <div className="flex items-center justify-center space-x-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <span className="text-sm font-medium">Recording Mode:</span>
+            <Button
+              variant={useAdvancedRecognition ? "default" : "outline"}
+              size="sm"
+              onClick={() => setUseAdvancedRecognition(true)}
+            >
+              🚀 Advanced AI
+            </Button>
+            <Button
+              variant={!useAdvancedRecognition ? "default" : "outline"}
+              size="sm"
+              onClick={() => setUseAdvancedRecognition(false)}
+            >
+              📱 Basic
+            </Button>
+          </div>
+
+          {useAdvancedRecognition ? (
+            <AdvancedSpeechRecognition
+              targetText={speakingText}
+              onResult={handleAdvancedRecognitionResult}
+              onError={handleAdvancedRecognitionError}
+              showAdvancedAnalysis={true}
+            />
+          ) : (
+            <SpeakingRecorder
+              text={speakingText}
+              onRecordingFinished={handleRecordingFinished}
+              onRecordingReset={handleRecordingReset}
+              disabled={isSubmitted || isLocked || isSubmitting}
+              maxDuration={180}
+              autoSubmit={false}
+            />
+          )}
           
           {/* Submit button - show only when recording is done */}
           {hasRecording && (
@@ -129,6 +173,8 @@ export function SpeakingHomeworkPlayer({
           originalText={speakingText}
           transcribedText={savedTranscribedText || ''}
           score={score || 0}
+          submissionId={submissionId}
+          voiceAnalysis={voiceAnalysis}
         />
       )}
     </div>

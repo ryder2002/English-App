@@ -57,6 +57,15 @@ export default function SpeechRecognition({
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = selectedLanguage;
+      recognition.maxAlternatives = 3; // Get multiple alternatives
+      recognition.serviceURI = ''; // Use default service
+      
+      // Enhanced recognition settings
+      if ('webkitSpeechRecognition' in window) {
+        (recognition as any).continuous = true;
+        (recognition as any).interimResults = true;
+        (recognition as any).maxAlternatives = 3;
+      }
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -67,13 +76,23 @@ export default function SpeechRecognition({
       recognition.onresult = (event: any) => {
         let finalTranscript = '';
         let interimTranscript = '';
+        let alternatives: string[] = [];
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
+          const result = event.results[i];
+          
+          // Collect alternatives for better accuracy
+          for (let j = 0; j < result.length; j++) {
+            if (j === 0) {
+              const transcript = result[j].transcript;
+              if (result.isFinal) {
+                finalTranscript += transcript;
+              } else {
+                interimTranscript += transcript;
+              }
+            } else {
+              alternatives.push(result[j].transcript);
+            }
           }
         }
 
@@ -81,8 +100,11 @@ export default function SpeechRecognition({
         setTranscript(fullTranscript);
         
         if (finalTranscript) {
-          onTranscript(finalTranscript.trim(), selectedLanguage);
-          console.log('🗣️ Final transcript:', finalTranscript);
+          // Enhanced transcript processing
+          const processedTranscript = enhanceTranscript(finalTranscript, alternatives);
+          onTranscript(processedTranscript, selectedLanguage);
+          console.log('🗣️ Final transcript:', processedTranscript);
+          console.log('🔄 Alternatives:', alternatives);
         }
       };
 
@@ -130,7 +152,10 @@ export default function SpeechRecognition({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 44100,
+          sampleSize: 16,
+          channelCount: 1
         } 
       });
 
@@ -208,6 +233,51 @@ export default function SpeechRecognition({
       setError('');
       startRecording();
     }
+  };
+
+  // Enhanced transcript processing
+  const enhanceTranscript = (transcript: string, alternatives: string[]): string => {
+    // Basic cleaning
+    let enhanced = transcript
+      .trim()
+      .toLowerCase()
+      // Fix common recognition errors
+      .replace(/\bdot\b/g, '.')
+      .replace(/\bcomma\b/g, ',')
+      .replace(/\bquestion mark\b/g, '?')
+      .replace(/\bexclamation mark\b/g, '!')
+      .replace(/\bperiod\b/g, '.')
+      // Fix numbers
+      .replace(/\bone\b/g, '1')
+      .replace(/\btwo\b/g, '2')
+      .replace(/\bthree\b/g, '3')
+      .replace(/\bfour\b/g, '4')
+      .replace(/\bfive\b/g, '5')
+      .replace(/\bsix\b/g, '6')
+      .replace(/\bseven\b/g, '7')
+      .replace(/\beight\b/g, '8')
+      .replace(/\bnine\b/g, '9')
+      .replace(/\bten\b/g, '10');
+    
+    // If we have alternatives, use the most common words
+    if (alternatives.length > 0) {
+      const words = enhanced.split(' ');
+      const enhancedWords = words.map(word => {
+        // Check if any alternative has a better version of this word
+        for (const alt of alternatives) {
+          const altWords = alt.toLowerCase().split(' ');
+          for (const altWord of altWords) {
+            if (altWord.length > word.length && altWord.includes(word)) {
+              return altWord;
+            }
+          }
+        }
+        return word;
+      });
+      enhanced = enhancedWords.join(' ');
+    }
+    
+    return enhanced;
   };
 
   return (

@@ -291,8 +291,26 @@ export async function POST(
       );
     }
 
-    // Calculate score based on text similarity
-    const score = calculateSimilarity(homework.speakingText, transcribedText);
+    // Import intelligent speech processor
+    const { IntelligentSpeechProcessor } = await import('@/lib/intelligent-speech-processor');
+    
+    // Calculate enhanced score using intelligent processor
+    const score = IntelligentSpeechProcessor.calculateAdvancedSimilarity(
+      homework.speakingText, 
+      transcribedText
+    );
+    
+    // Process the speech result for additional insights
+    const processedResult = IntelligentSpeechProcessor.processSpeechResult(
+      transcribedText,
+      homework.speakingText
+    );
+    
+    console.log('🎯 Enhanced scoring result:', {
+      originalScore: score,
+      processedConfidence: processedResult.confidence,
+      suggestions: processedResult.suggestions
+    });
 
     // Convert base64 to buffer for R2 upload
     const audioBuffer = Buffer.from(
