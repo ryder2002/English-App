@@ -24,6 +24,7 @@ model User {
   classesOwned          Clazz[]                @relation("ClassTeacher")
   folders               Folder[]
   homeworkSubmissions   HomeworkSubmission[]
+  speakingSubmissions   SpeakingSubmission[]
   quizResults           QuizResult[]
   vocabulary            Vocabulary[]
 
@@ -176,9 +177,10 @@ model Homework {
   hideMode     HomeworkHideMode?    @default(all) @map("hide_mode")
   content      String?
   answerBoxes  Json?                @map("answer_boxes")
-  speakingText String?              @map("speaking_text")
-  clazz        Clazz                @relation(fields: [clazzId], references: [id], onDelete: Cascade)
-  submissions  HomeworkSubmission[]
+  speakingText        String?              @map("speaking_text")
+  clazz               Clazz                @relation(fields: [clazzId], references: [id], onDelete: Cascade)
+  submissions         HomeworkSubmission[]
+  speakingSubmissions SpeakingSubmission[]
 
   @@map("homework")
 }
@@ -208,6 +210,26 @@ model HomeworkSubmission {
   @@unique([homeworkId, userId, attemptNumber])
   @@index([homeworkId, userId])
   @@map("homework_submissions")
+}
+
+model SpeakingSubmission {
+  id              Int      @id @default(autoincrement())
+  homeworkId      Int      @map("homework_id")
+  userId          Int      @map("user_id")
+  transcribedText String?  @map("transcribed_text")
+  score           Float    @default(0)
+  audioUrl        String?  @map("audio_url")
+  voiceAnalysis   Json?    @map("voice_analysis")
+  submittedAt     DateTime @default(now()) @map("submitted_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+
+  @@index([homeworkId])
+  @@index([userId])
+  @@map("speaking_submissions")
 }
 
 model ClassActivitySession {

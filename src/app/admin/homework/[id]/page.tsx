@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { HomeworkSubmissions } from '@/components/homework-submissions';
 import {
   Table,
   TableHeader,
@@ -33,11 +34,12 @@ interface Homework {
   id: number;
   title: string;
   description?: string;
-  type: 'listening' | 'reading';
+  type: 'listening' | 'reading' | 'speaking';
   deadline: string;
   status: string;
   audioUrl?: string;
   answerText?: string;
+  speakingText?: string;
   hideMode?: 'all' | 'random';
   promptText?: string;
   clazz: {
@@ -222,6 +224,15 @@ export default function HomeworkDetailPage() {
                   </div>
                 )}
 
+                {homework.type === 'speaking' && homework.speakingText && (
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium">Văn bản để đọc (Speaking):</span>
+                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <p className="text-sm whitespace-pre-wrap">{homework.speakingText}</p>
+                    </div>
+                  </div>
+                )}
+
                 {homework.answerText && (
                   <div className="space-y-2">
                     <span className="text-sm font-medium">Đáp án đầy đủ:</span>
@@ -261,81 +272,90 @@ export default function HomeworkDetailPage() {
           </Card>
         </div>
 
-        <Card className="border-0 shadow-soft bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Danh sách bài nộp ({homework.submissions.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {homework.submissions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Chưa có học viên nào nộp bài
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Học viên</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead>Thời gian nộp</TableHead>
-                      <TableHead>Đáp án</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {homework.submissions.map((submission) => (
-                      <TableRow key={submission.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{submission.user.name || submission.user.email}</div>
-                            <div className="text-xs text-muted-foreground">{submission.user.email}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={
-                            submission.status === 'submitted' || submission.status === 'graded'
-                              ? 'bg-green-500'
-                              : 'bg-yellow-500'
-                          }>
-                            {submission.status === 'submitted' ? '✅ Đã nộp' : submission.status === 'graded' ? '✅ Đã chấm' : '📝 Đang làm'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {submission.submittedAt
-                            ? new Date(submission.submittedAt).toLocaleString('vi-VN')
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {submission.answer ? (
-                            <div className="max-w-md">
-                              <p className="text-sm whitespace-pre-wrap line-clamp-3">{submission.answer}</p>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Link href={`/admin/homework/${homework.id}/submissions/${submission.id}`}>
-                              <Button variant="outline" size="sm">Xem chi tiết</Button>
-                            </Link>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteSubmission(submission.id, submission.user.name || submission.user.email)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+        {/* Regular Homework Submissions */}
+        {homework.type !== 'speaking' && (
+          <Card className="border-0 shadow-soft bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle>Danh sách bài nộp ({homework.submissions.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {homework.submissions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Chưa có học viên nào nộp bài
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Học viên</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Thời gian nộp</TableHead>
+                        <TableHead>Đáp án</TableHead>
+                        <TableHead className="text-right">Thao tác</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {homework.submissions.map((submission) => (
+                        <TableRow key={submission.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{submission.user.name || submission.user.email}</div>
+                              <div className="text-xs text-muted-foreground">{submission.user.email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={
+                              submission.status === 'submitted' || submission.status === 'graded'
+                                ? 'bg-green-500'
+                                : 'bg-yellow-500'
+                            }>
+                              {submission.status === 'submitted' ? '✅ Đã nộp' : submission.status === 'graded' ? '✅ Đã chấm' : '📝 Đang làm'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {submission.submittedAt
+                              ? new Date(submission.submittedAt).toLocaleString('vi-VN')
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {submission.answer ? (
+                              <div className="max-w-md">
+                                <p className="text-sm whitespace-pre-wrap line-clamp-3">{submission.answer}</p>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link href={`/admin/homework/${homework.id}/submissions/${submission.id}`}>
+                                <Button variant="outline" size="sm">Xem chi tiết</Button>
+                              </Link>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteSubmission(submission.id, submission.user.name || submission.user.email)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Speaking Homework Submissions */}
+        <HomeworkSubmissions 
+          homeworkId={homework.id} 
+          homeworkType={homework.type}
+        />
       </div>
     </div>
   );

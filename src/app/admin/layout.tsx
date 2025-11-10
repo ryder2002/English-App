@@ -21,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/classes", label: "Lớp học", icon: BookOpen },
     { href: "/admin/homework", label: "Bài tập về nhà", icon: ClipboardList },
     { href: "/admin/folders", label: "Thư mục", icon: Layers },
-    { href: "/admin/add-vocabulary", label: "Thêm từ vựng", icon: FileText },
+    { href: "/admin/add-vocabulary", label: "Thêm từ vựng", icon: Users },
     { href: "/admin/tests", label: "Kiểm tra", icon: Users },
     { href: "/admin/settings", label: "Cài đặt", icon: Settings },
   ];

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { SpeakingResultDisplay } from '@/components/speaking-result-display';
 import { SmartSpeechRecorder } from '@/components/smart-speech-recorder';
+import { AISpeechRecorder } from '@/components/ai-speech-recorder';
 import { Send } from 'lucide-react';
 
 interface SpeakingHomeworkPlayerProps {
@@ -26,47 +27,69 @@ export function SpeakingHomeworkPlayer({
   onSubmitAction,
 }: SpeakingHomeworkPlayerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Always use AI Enhanced mode - removed Basic mode and its states
+  const [aiAssessment, setAiAssessment] = useState<any>(null);
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [transcribedText, setTranscribedText] = useState<string>('');
-  const [hasRecording, setHasRecording] = useState(false);
   const [wordResults, setWordResults] = useState<any[]>([]);
+  const [hasRecording, setHasRecording] = useState(false);
 
-  const handleSmartRecorderComplete = async (audioBlob: Blob, transcribedText: string, wordResults: any[]) => {
-    console.log('Smart recorder complete:', { audioBlob, transcribedText, wordResults });
+  const handleAIRecorderComplete = async (assessment: any, audioBlob: Blob) => {
+    console.log('AI recorder complete:', { assessment, audioBlob });
     setRecordedAudio(audioBlob);
-    setTranscribedText(transcribedText);
-    setWordResults(wordResults);
+    setTranscribedText(assessment.transcription);
+    setAiAssessment(assessment);
     setHasRecording(true);
-    
-    // Auto-submit
-    setIsSubmitting(true);
+
+    // Auto-submit with AI assessment
     try {
-      await onSubmitAction(audioBlob, transcribedText, { wordResults });
+      setIsSubmitting(true);
+      await onSubmitAction(audioBlob, assessment.transcription, assessment);
+      console.log('AI assessment submission successful:', assessment);
     } catch (error) {
-      console.error('Submit error:', error);
-      alert('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
+      console.error('AI assessment submission failed:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSmartRecorderReset = () => {
-    console.log('Smart recorder reset');
+  const handleAIRecorderReset = () => {
+    console.log('AI recorder reset');
     setRecordedAudio(null);
     setTranscribedText('');
     setWordResults([]);
+    setAiAssessment(null);
     setHasRecording(false);
   };
 
   return (
     <div className="space-y-4">
       {!isSubmitted && !isLocked && (
-        <SmartSpeechRecorder
-          originalText={speakingText}
-          onCompleteAction={handleSmartRecorderComplete}
-          onResetAction={handleSmartRecorderReset}
-          disabled={isSubmitting}
-        />
+        <div className="space-y-4">
+          {/* AI Enhanced Only - Removed Basic Mode */}
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-lg font-semibold">🧠 AI Enhanced Recording</div>
+                <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                  Advanced Analysis
+                </div>
+              </div>
+              <div className="text-sm text-purple-600 font-medium">
+                ✨ Intelligent pronunciation assessment with detailed feedback
+              </div>
+            </div>
+          </div>
+
+          {/* AI Recording Interface Only */}
+          <AISpeechRecorder
+            originalText={speakingText}
+            language="en"
+            onComplete={handleAIRecorderComplete}
+            onReset={handleAIRecorderReset}
+            disabled={isSubmitting}
+          />
+        </div>
       )}
 
       {isSubmitted && (
@@ -75,6 +98,7 @@ export function SpeakingHomeworkPlayer({
           transcribedText={savedTranscribedText || ''}
           score={score || 0}
           submissionId={submissionId}
+          voiceAnalysis={aiAssessment}
         />
       )}
     </div>
