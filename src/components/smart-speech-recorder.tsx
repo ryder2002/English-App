@@ -131,20 +131,43 @@ export function SmartSpeechRecorder({
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error:', event.error);
-      if (event.error === 'no-speech') {
-        // Continue listening
-        return;
+      
+      // Handle different error types
+      switch (event.error) {
+        case 'no-speech':
+          // Continue listening, don't stop
+          return;
+        case 'network':
+          console.warn('Network error in speech recognition, continuing...');
+          // Try to continue, don't stop
+          return;
+        case 'not-allowed':
+          console.error('Microphone permission denied');
+          setIsListening(false);
+          break;
+        case 'service-not-allowed':
+          console.error('Speech recognition service not allowed');
+          setIsListening(false);
+          break;
+        default:
+          console.warn('Speech recognition error, but continuing:', event.error);
+          // For other errors, try to continue
+          return;
       }
-      setIsListening(false);
     };
 
     recognition.onend = () => {
-      if (isRecording) {
-        // Restart recognition if still recording
+      if (isRecording && isListening) {
+        // Restart recognition if still recording and listening
         try {
-          recognition.start();
+          setTimeout(() => {
+            if (isRecording && isListening && recognitionRef.current) {
+              recognitionRef.current.start();
+            }
+          }, 100); // Small delay to prevent rapid restarts
         } catch (e) {
           console.error('Error restarting recognition:', e);
+          // Don't stop completely, just log the error
         }
       }
     };
@@ -158,22 +181,52 @@ export function SmartSpeechRecorder({
     };
   }, [originalText, isRecording, detectedLanguage]);
 
-  const processSpokenText = (spokenText: string) => {
-    const spokenWords = splitTextIntoWords(spokenText, detectedLanguage);
-    const lastSpokenWord = spokenWords[spokenWords.length - 1];
-
-    if (!lastSpokenWord) return;
+  const processSpokenWord = (spokenWord: string) => {
+    if (!spokenWord) return;
 
     setWordStatuses(prevStatuses => {
       const newStatuses = [...prevStatuses];
       
-      // Find the current word to check
-      let checkIndex = currentWordIndex;
+      // Check if current word matches
+      if (currentWordIndex < newStatuses.length) {
+        const currentWord = newStatuses[currentWordIndex].word;
+        const similarity = calculateWordSimilarityForLanguage(spokenWord, currentWord, detectedLanguage);
+        
+        if (similarity > 0.7) {
+          // Exact match with current word
+          newStatuses[currentWordIndex] = {
+            ...newStatuses[currentWordIndex],
+            status: 'correct',
+            confidence: similarity,
+            spokenWord: spokenWord
+          };
+          
+          // Move to next word
+          const nextIndex = currentWordIndex + 1;
+          setCurrentWordIndex(nextIndex);
+          
+          // Mark next word as current
+          if (nextIndex < newStatuses.length && newStatuses[nextIndex].status === 'pending') {
+            newStatuses[nextIndex] = {
+              ...newStatuses[nextIndex],
+              status: 'current'
+            };
+          }
+          
+          return newStatuses;
+        }
+      }
       
-      // Look for the spoken word in the remaining words
-      for (let i = checkIndex; i < newStatuses.length; i++) {
+      // If current word doesn't match, check next 2 words only
+      const maxLookAhead = 2;
+      const startIndex = currentWordIndex;
+      const endIndex = Math.min(startIndex + maxLookAhead, newStatuses.length);
+      
+      for (let i = startIndex; i < endIndex; i++) {
+        if (newStatuses[i].status === 'correct') continue;
+        
         const originalWord = newStatuses[i].word;
-        const similarity = calculateWordSimilarityForLanguage(lastSpokenWord, originalWord, detectedLanguage);
+        const similarity = calculateWordSimilarityForLanguage(spokenWord, originalWord, detectedLanguage);
         
         if (similarity > 0.7) {
           // Mark as correct
@@ -181,11 +234,11 @@ export function SmartSpeechRecorder({
             ...newStatuses[i],
             status: 'correct',
             confidence: similarity,
-            spokenWord: lastSpokenWord
+            spokenWord: spokenWord
           };
           
-          // Mark previous unmatched words as incorrect if we skipped them
-          for (let j = checkIndex; j < i; j++) {
+          // Mark skipped words as incorrect only if we're sure
+          for (let j = currentWordIndex; j < i; j++) {
             if (newStatuses[j].status === 'pending' || newStatuses[j].status === 'current') {
               newStatuses[j] = {
                 ...newStatuses[j],
@@ -197,12 +250,13 @@ export function SmartSpeechRecorder({
           }
           
           // Move to next word
-          setCurrentWordIndex(i + 1);
+          const nextIndex = i + 1;
+          setCurrentWordIndex(nextIndex);
           
-          // Mark next word as current if exists
-          if (i + 1 < newStatuses.length) {
-            newStatuses[i + 1] = {
-              ...newStatuses[i + 1],
+          // Mark next word as current
+          if (nextIndex < newStatuses.length && newStatuses[nextIndex].status === 'pending') {
+            newStatuses[nextIndex] = {
+              ...newStatuses[nextIndex],
               status: 'current'
             };
           }
@@ -213,6 +267,16 @@ export function SmartSpeechRecorder({
       
       return newStatuses;
     });
+  };
+
+  const processSpokenText = (spokenText: string) => {
+    const spokenWords = splitTextIntoWords(spokenText, detectedLanguage);
+    
+    // Process only the last word to avoid duplicates and maintain order
+    if (spokenWords.length > 0) {
+      const lastWord = spokenWords[spokenWords.length - 1];
+      processSpokenWord(lastWord);
+    }
   };
 
   const startRecording = async () => {

@@ -90,6 +90,7 @@ export default function AudioPlayer({
         const audio = new Audio();
         
         // Set CORS for external URLs (R2 storage)
+        // Try anonymous first, then fallback
         if (audioUrl.startsWith('http')) {
           audio.crossOrigin = 'anonymous';
         }
@@ -111,7 +112,7 @@ export default function AudioPlayer({
           setCurrentTime(0);
         });
 
-        audio.addEventListener('error', (e) => {
+        audio.addEventListener('error', async (e) => {
           console.error('💥 Audio playback error:', e);
           const audioError = audio.error;
           let errorMessage = 'Failed to play audio';
@@ -122,7 +123,27 @@ export default function AudioPlayer({
                 errorMessage = 'Audio playback was aborted';
                 break;
               case MediaError.MEDIA_ERR_NETWORK:
-                errorMessage = 'Network error occurred while loading audio';
+                errorMessage = 'Network error - trying fallback method';
+                // Try different approaches to fix CORS
+                if (audioUrl.startsWith('http')) {
+                  console.log('🔄 Trying fallback methods...');
+                  try {
+                    // First try without CORS
+                    if (audio.crossOrigin) {
+                      console.log('🔄 Retrying without CORS...');
+                      audio.crossOrigin = null;
+                      audio.load();
+                      return;
+                    } else {
+                      // If that fails, try to fetch via our API proxy
+                      console.log('🔄 Trying API proxy...');
+                      setAudioUrl(`/api/homework/submission/${submissionId}/audio/proxy`);
+                      return;
+                    }
+                  } catch (retryError) {
+                    console.error('💥 Retry failed:', retryError);
+                  }
+                }
                 break;
               case MediaError.MEDIA_ERR_DECODE:
                 errorMessage = 'Audio file is corrupted or unsupported format';
