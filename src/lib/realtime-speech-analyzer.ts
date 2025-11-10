@@ -39,67 +39,78 @@ export class RealTimeSpeechAnalyzer {
     this.speechTimings = [];
   }
 
-  // Analyze interim transcript (real-time feedback)
+  // Analyze interim transcript (real-time feedback) - IMPROVED ALGORITHM
   analyzeInterimTranscript(interimTranscript: string): RealTimeFeedback[] {
     if (!interimTranscript.trim()) return [];
 
-    const spokenWords = IntelligentSpeechProcessor.normalizeText(interimTranscript).split(' ');
+    const spokenWords = IntelligentSpeechProcessor.normalizeText(interimTranscript).split(' ').filter(w => w.length > 0);
     const feedback: RealTimeFeedback[] = [];
 
-    // Analyze each spoken word
-    spokenWords.forEach((spokenWord, index) => {
-      const targetWord = this.targetWords[index];
+    // IMPROVED: Use best-match algorithm instead of position-based comparison
+    const usedTargetIndices = new Set<number>();
+    
+    // First pass: Find exact and near-exact matches
+    spokenWords.forEach((spokenWord, spokenIndex) => {
+      let bestMatch = { targetIndex: -1, similarity: 0, targetWord: '' };
       
-      if (!targetWord) {
-        // Extra word
-        feedback.push({
-          word: spokenWord,
-          status: 'extra',
-          confidence: 0.3,
-          position: index
-        });
-        return;
-      }
+      // Find best matching target word (not just by position)
+      this.targetWords.forEach((targetWord, targetIndex) => {
+        if (usedTargetIndices.has(targetIndex)) return;
+        
+        const similarity = IntelligentSpeechProcessor.calculateWordSimilarity(spokenWord, targetWord);
+        if (similarity > bestMatch.similarity) {
+          bestMatch = { targetIndex, similarity, targetWord };
+        }
+      });
 
-      // Calculate similarity
-      const similarity = IntelligentSpeechProcessor.calculateWordSimilarity(spokenWord, targetWord);
-      
       let status: RealTimeFeedback['status'];
-      let confidence = similarity;
+      let confidence = bestMatch.similarity;
+      let suggestion: string | undefined;
 
-      if (similarity >= 0.9) {
+      if (bestMatch.similarity >= 0.9) {
         status = 'correct';
-      } else if (similarity >= 0.7) {
+        usedTargetIndices.add(bestMatch.targetIndex);
+      } else if (bestMatch.similarity >= 0.7) {
         status = 'partial';
-        confidence = similarity * 0.8; // Reduce confidence for partial matches
-      } else {
+        confidence = bestMatch.similarity * 0.8;
+        suggestion = bestMatch.targetWord;
+        usedTargetIndices.add(bestMatch.targetIndex);
+      } else if (bestMatch.similarity >= 0.5) {
         status = 'incorrect';
-        confidence = Math.max(similarity * 0.5, 0.1);
+        confidence = Math.max(bestMatch.similarity * 0.6, 0.2);
+        suggestion = bestMatch.targetWord;
+        usedTargetIndices.add(bestMatch.targetIndex);
+      } else {
+        // Word doesn't match well with any target word
+        status = 'extra';
+        confidence = 0.3;
+        suggestion = undefined;
       }
 
       feedback.push({
         word: spokenWord,
         status,
         confidence,
-        suggestion: status !== 'correct' ? targetWord : undefined,
-        position: index
+        suggestion,
+        position: spokenIndex
       });
     });
 
-    // Check for missing words
-    if (spokenWords.length < this.targetWords.length) {
-      for (let i = spokenWords.length; i < this.targetWords.length; i++) {
+    // Second pass: Add missing words that weren't matched
+    this.targetWords.forEach((targetWord, targetIndex) => {
+      if (!usedTargetIndices.has(targetIndex)) {
         feedback.push({
           word: '',
           status: 'missing',
           confidence: 0,
-          suggestion: this.targetWords[i],
-          position: i
+          suggestion: targetWord,
+          position: targetIndex
         });
       }
-    }
+    });
 
-    return feedback;
+    // Sort feedback by position for display
+    return feedback.sort((a, b) => a.position - b.position);
   }
 
   // Record word timing

@@ -114,106 +114,133 @@ function compareTexts(original: string, transcribed: string): WordComparisonResu
   return results;
 }
 
-// Advanced word alignment using dynamic programming
+// IMPROVED: Smart word matching algorithm (không bị ảnh hưởng bởi 1 từ sai)
 function alignWords(originalWords: string[], transcribedWords: string[]): WordComparisonResult[] {
   const results: WordComparisonResult[] = [];
-  const m = originalWords.length;
-  const n = transcribedWords.length;
   
-  // Create DP matrix for word alignment
-  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-  const actions: string[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(''));
+  // Create arrays to track used words
+  const usedOriginalIndices = new Set<number>();
+  const usedTranscribedIndices = new Set<number>();
   
-  // Initialize base cases
-  for (let i = 0; i <= m; i++) {
-    dp[i][0] = i;
-    actions[i][0] = 'delete';
-  }
-  for (let j = 0; j <= n; j++) {
-    dp[0][j] = j;
-    actions[0][j] = 'insert';
-  }
-  
-  // Fill DP matrix
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const originalWord = originalWords[i - 1];
-      const transcribedWord = transcribedWords[j - 1];
-      const similarity = calculateEnhancedWordSimilarity(originalWord, transcribedWord);
+  // Phase 1: Find exact matches first
+  transcribedWords.forEach((transcribedWord, tIndex) => {
+    originalWords.forEach((originalWord, oIndex) => {
+      if (usedOriginalIndices.has(oIndex) || usedTranscribedIndices.has(tIndex)) return;
       
-      const substituteCost = similarity > 0.6 ? 0 : 1;
-      const deleteCost = dp[i - 1][j] + 1;
-      const insertCost = dp[i][j - 1] + 1;
-      const substituteCostTotal = dp[i - 1][j - 1] + substituteCost;
-      
-      if (substituteCostTotal <= deleteCost && substituteCostTotal <= insertCost) {
-        dp[i][j] = substituteCostTotal;
-        actions[i][j] = 'substitute';
-      } else if (deleteCost <= insertCost) {
-        dp[i][j] = deleteCost;
-        actions[i][j] = 'delete';
-      } else {
-        dp[i][j] = insertCost;
-        actions[i][j] = 'insert';
+      if (transcribedWord === originalWord) {
+        results.push({
+          word: transcribedWord,
+          isCorrect: true,
+          similarity: 1.0,
+          originalWord: originalWord,
+        });
+        usedOriginalIndices.add(oIndex);
+        usedTranscribedIndices.add(tIndex);
       }
-    }
-  }
+    });
+  });
   
-  // Backtrack to find alignment
-  let i = m, j = n;
-  const alignment: Array<{action: string, original?: string, transcribed?: string}> = [];
-  
-  while (i > 0 || j > 0) {
-    const action = actions[i][j];
+  // Phase 2: Find high similarity matches (>= 0.8)
+  transcribedWords.forEach((transcribedWord, tIndex) => {
+    if (usedTranscribedIndices.has(tIndex)) return;
     
-    if (action === 'substitute') {
-      alignment.unshift({
-        action: 'substitute',
-        original: originalWords[i - 1],
-        transcribed: transcribedWords[j - 1]
+    let bestMatch = { similarity: 0, originalIndex: -1, originalWord: '' };
+    
+    originalWords.forEach((originalWord, oIndex) => {
+      if (usedOriginalIndices.has(oIndex)) return;
+      
+      const similarity = calculateEnhancedWordSimilarity(transcribedWord, originalWord);
+      if (similarity > bestMatch.similarity && similarity >= 0.8) {
+        bestMatch = { similarity, originalIndex: oIndex, originalWord };
+      }
+    });
+    
+    if (bestMatch.similarity >= 0.8) {
+      results.push({
+        word: transcribedWord,
+        isCorrect: true,
+        similarity: bestMatch.similarity,
+        originalWord: bestMatch.originalWord,
       });
-      i--; j--;
-    } else if (action === 'delete') {
-      alignment.unshift({
-        action: 'delete',
-        original: originalWords[i - 1]
-      });
-      i--;
-    } else {
-      alignment.unshift({
-        action: 'insert',
-        transcribed: transcribedWords[j - 1]
-      });
-      j--;
+      usedOriginalIndices.add(bestMatch.originalIndex);
+      usedTranscribedIndices.add(tIndex);
     }
-  }
+  });
   
-  // Convert alignment to results
-  for (const align of alignment) {
-    if (align.action === 'substitute') {
-      const similarity = calculateEnhancedWordSimilarity(align.original!, align.transcribed!);
+  // Phase 3: Find moderate similarity matches (0.6 - 0.8)
+  transcribedWords.forEach((transcribedWord, tIndex) => {
+    if (usedTranscribedIndices.has(tIndex)) return;
+    
+    let bestMatch = { similarity: 0, originalIndex: -1, originalWord: '' };
+    
+    originalWords.forEach((originalWord, oIndex) => {
+      if (usedOriginalIndices.has(oIndex)) return;
+      
+      const similarity = calculateEnhancedWordSimilarity(transcribedWord, originalWord);
+      if (similarity > bestMatch.similarity && similarity >= 0.6) {
+        bestMatch = { similarity, originalIndex: oIndex, originalWord };
+      }
+    });
+    
+    if (bestMatch.similarity >= 0.6) {
       results.push({
-        word: align.transcribed!,
-        isCorrect: similarity > 0.7, // More lenient threshold
-        similarity,
-        originalWord: align.original!,
+        word: transcribedWord,
+        isCorrect: bestMatch.similarity > 0.75, // Partially correct if high enough
+        similarity: bestMatch.similarity,
+        originalWord: bestMatch.originalWord,
       });
-    } else if (align.action === 'delete') {
+      usedOriginalIndices.add(bestMatch.originalIndex);
+      usedTranscribedIndices.add(tIndex);
+    }
+  });
+  
+  // Phase 4: Handle remaining transcribed words (low similarity or extra words)
+  transcribedWords.forEach((transcribedWord, tIndex) => {
+    if (usedTranscribedIndices.has(tIndex)) return;
+    
+    let bestMatch = { similarity: 0, originalIndex: -1, originalWord: '' };
+    
+    originalWords.forEach((originalWord, oIndex) => {
+      if (usedOriginalIndices.has(oIndex)) return;
+      
+      const similarity = calculateEnhancedWordSimilarity(transcribedWord, originalWord);
+      if (similarity > bestMatch.similarity) {
+        bestMatch = { similarity, originalIndex: oIndex, originalWord };
+      }
+    });
+    
+    if (bestMatch.similarity > 0.3) {
+      // Low similarity match
       results.push({
-        word: '___',
+        word: transcribedWord,
         isCorrect: false,
-        similarity: 0,
-        originalWord: align.original!,
+        similarity: bestMatch.similarity,
+        originalWord: bestMatch.originalWord,
       });
-    } else if (align.action === 'insert') {
+      usedOriginalIndices.add(bestMatch.originalIndex);
+    } else {
+      // Extra word (not in original)
       results.push({
-        word: align.transcribed!,
+        word: transcribedWord,
         isCorrect: false,
         similarity: 0,
         originalWord: '',
       });
     }
-  }
+    usedTranscribedIndices.add(tIndex);
+  });
+  
+  // Phase 5: Add missing words (from original that weren't matched)
+  originalWords.forEach((originalWord, oIndex) => {
+    if (!usedOriginalIndices.has(oIndex)) {
+      results.push({
+        word: '___',
+        isCorrect: false,
+        similarity: 0,
+        originalWord: originalWord,
+      });
+    }
+  });
   
   return results;
 }

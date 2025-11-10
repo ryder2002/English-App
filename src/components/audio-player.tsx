@@ -42,12 +42,24 @@ export default function AudioPlayer({
         credentials: 'include', // Include cookies for authentication
       });
       
-      console.log('📡 Audio API response status:', response.status);
+      console.log('📡 Audio API response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url
+      });
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Audio API error:', response.status, errorText);
-        throw new Error(`Failed to load audio: ${response.status} ${response.statusText}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          const errorText = await response.text();
+          if (errorText) errorMessage = errorText;
+        }
+        console.error('❌ Audio API error:', response.status, errorMessage);
+        throw new Error(`Failed to load audio: ${errorMessage}`);
       }
 
       const data = await response.json();

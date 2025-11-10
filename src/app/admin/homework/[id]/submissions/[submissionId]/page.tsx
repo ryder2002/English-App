@@ -160,17 +160,8 @@ export default function SubmissionDetailPage() {
                   originalText={detail.homework.speakingText}
                   transcribedText={detail.transcribedText}
                   score={detail.score || 0}
+                  submissionId={detail.id}
                 />
-
-                {detail.audioDataUrl && (
-                  <div className="space-y-2 mt-4">
-                    <div className="text-sm font-medium">🔊 Audio thu âm của học viên:</div>
-                    <audio controls className="w-full">
-                      <source src={detail.audioDataUrl} type="audio/webm" />
-                      Trình duyệt không hỗ trợ phát audio.
-                    </audio>
-                  </div>
-                )}
               </div>
             )}
 

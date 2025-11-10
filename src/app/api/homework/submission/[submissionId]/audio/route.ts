@@ -58,14 +58,23 @@ export async function GET(
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
     }
 
-    // Check if user is owner or teacher
+    // Check if user is owner, teacher, or admin
     const isOwner = submission.userId === user.id;
     const isTeacher = submission.homework?.clazz?.teacherId === user.id;
     const isMember = (submission.homework?.clazz?.members?.length || 0) > 0;
+    const isAdmin = user.role === 'admin';
     
-    console.log('🔐 Access check:', { isOwner, isTeacher, isMember, userId: user.id, submissionUserId: submission.userId });
+    console.log('🔐 Access check:', { 
+      isOwner, 
+      isTeacher, 
+      isMember, 
+      isAdmin,
+      userRole: user.role,
+      userId: user.id, 
+      submissionUserId: submission.userId 
+    });
     
-    if (!isOwner && !isTeacher && !isMember) {
+    if (!isOwner && !isTeacher && !isMember && !isAdmin) {
       console.error('❌ Access denied for user:', user.id);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -75,7 +84,11 @@ export async function GET(
       hasAudioUrl: !!submission.audioUrl, 
       hasAudioData: !!submission.audioData,
       audioUrlType: typeof submission.audioUrl,
-      audioDataType: typeof submission.audioData 
+      audioDataType: typeof submission.audioData,
+      audioUrlLength: submission.audioUrl?.length || 0,
+      audioDataLength: submission.audioData?.length || 0,
+      submissionStatus: submission.status,
+      submissionType: submission.homework?.type
     });
     
     if (submission.audioUrl) {
