@@ -391,40 +391,58 @@ export default function HomeworkPage() {
                     onSubmitAction={async (audioBlob: Blob, transcribedText: string) => {
                       setIsSubmitting(true);
                       try {
-                        // Convert blob to base64 using Promise
-                        const audioBase64 = await new Promise<string>((resolve, reject) => {
-                          const reader = new FileReader();
-                          reader.onloadend = () => resolve(reader.result as string);
-                          reader.onerror = reject;
-                          reader.readAsDataURL(audioBlob);
-                        });
-                        
-                        const res = await fetch(`/api/homework/${homeworkId}/submit-speaking`, {
+                        // 1. Get signed URL from our server
+                        const urlRes = await fetch('/api/homework/submission/generate-upload-url', {
                           method: 'POST',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ audioBase64, transcribedText }),
+                          body: JSON.stringify({
+                            homeworkId: homework.id,
+                            fileType: audioBlob.type,
+                          }),
+                        });
+                        if (!urlRes.ok) throw new Error('Could not get upload URL.');
+                        const { signedUrl, audioUrl } = await urlRes.json();
+
+                        // 2. Upload audio directly to R2
+                        await fetch(signedUrl, {
+                          method: 'PUT',
+                          body: audioBlob,
+                          headers: { 'Content-Type': audioBlob.type },
                         });
 
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error || 'Submit failed');
+                        // 3. Create the submission record in our database
+                        const createSubRes = await fetch('/api/homework/submission/create', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                homeworkId: homework.id,
+                                audioUrl,
+                                transcribedText,
+                            }),
+                        });
+                        if (!createSubRes.ok) throw new Error('Could not create submission.');
+                        const { submissionId } = await createSubRes.json();
 
-                        console.log('Speaking submission successful:', data);
-                        
-                        // Show success toast
+                        // 4. Trigger AI assessment (fire and forget)
+                        fetch(`/api/homework/submission/${submissionId}/assess`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audioUrl, transcribedText }),
+                        });
+
                         toast({
-                          title: 'Thành công',
-                          description: 'Đã nộp bài thành công!',
+                          title: 'Nộp bài thành công!',
+                          description: 'Bài của bạn đang được AI phân tích. Kết quả sẽ có sau vài giây.',
                         });
-                        
-                        // Immediate redirect without delay for better UX
-                        if (data.submission?.id) {
-                          router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${data.submission.id}`);
-                        } else {
-                          // Fallback: refresh data to show result display
-                          await fetchHomework();
-                        }
+
+                        // 5. Redirect to the submission page to see results
+                        router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${submissionId}`);
+
                       } catch (error: any) {
+                        console.error('Submission process failed:', error);
                         toast({
                           title: 'Lỗi',
                           description: error.message || 'Không thể nộp bài',
