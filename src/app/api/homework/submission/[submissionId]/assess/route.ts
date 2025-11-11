@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuthService } from '@/lib/services/auth-service';
-import { assessSpeech } from '@/ai/flows/assess-speech';
+import { assessSpeech } from '@/ai/flows/speech-assessment';
 
 export async function POST(
   request: NextRequest,
