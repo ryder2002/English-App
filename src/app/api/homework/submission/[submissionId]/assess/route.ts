@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AuthService } from '@/lib/services/auth-service';
-import { assessSpeech } from '@/ai/flows/speech-assessment';
+import { assessSpeechTraditional } from '@/ai/flows/assess-speech-traditional';
 
 export async function POST(
   request: NextRequest,
@@ -20,13 +20,12 @@ export async function POST(
 
     const { submissionId: submissionIdStr } = await params;
     const submissionId = parseInt(submissionIdStr, 10);
-    const { audioUrl, transcribedText } = await request.json();
+    const { audioUrl, transcript } = await request.json();
 
-    if (!audioUrl || !transcribedText) {
-      return NextResponse.json({ error: 'audioUrl and transcribedText are required' }, { status: 400 });
+    if (!audioUrl) {
+      return NextResponse.json({ error: 'audioUrl is required' }, { status: 400 });
     }
 
-    // Find the original homework to get the reference text
     const submission = await prisma.speakingSubmission.findUnique({
       where: { id: submissionId },
       include: { homework: true },
@@ -38,18 +37,67 @@ export async function POST(
 
     const referenceText = submission.homework.speakingText;
     if (!referenceText) {
-      return NextResponse.json({ error: 'Reference text not found for this homework' }, { status: 400 });
+      return NextResponse.json({ error: 'Reference text not found' }, { status: 400 });
     }
 
-    // Call AI for assessment
-    const assessment = await assessSpeech(referenceText, transcribedText);
+    let transcribedText: string;
+    
+    // Use browser transcript (Speech Recognition API)
+    if (transcript && transcript.trim().length > 0) {
+      console.log('⚡ Using browser transcript', {
+        submissionId,
+        userId: user.id,
+        transcriptLength: transcript.length
+      });
+      transcribedText = transcript.trim();
+    } else {
+      // No transcript available - mark as failed
+      console.warn('❌ No transcript provided', {
+        submissionId,
+        audioUrl,
+        userId: user.id
+      });
+      
+      await prisma.speakingSubmission.update({
+        where: { id: submissionId },
+        data: {
+          voiceAnalysis: { 
+            status: 'transcription_failed',
+            error: 'No transcript provided. Please ensure Speech Recognition is working in your browser.'
+          },
+        },
+      });
+      
+      return NextResponse.json({ 
+        error: 'No transcript provided', 
+        details: 'Speech Recognition did not capture any text. Please try again and speak clearly.'
+      }, { status: 400 });
+    }
 
-    // Update submission with AI results
+    console.log('🤖 Step 2: Assessing pronunciation with traditional comparison...', {
+      submissionId,
+      referenceText,
+      transcribedText
+    });
+
+    const assessment = await assessSpeechTraditional(referenceText, transcribedText);
+    
+    console.log('✅ Assessment completed:', {
+      submissionId,
+      overallScore: assessment.overallScore,
+      accuracyScore: assessment.accuracyScore,
+      completenessScore: assessment.completenessScore,
+      correctCount: assessment.correctCount,
+      incorrectCount: assessment.incorrectCount
+    });
+
     const updatedSubmission = await prisma.speakingSubmission.update({
       where: { id: submissionId },
       data: {
+        transcribedText,
         voiceAnalysis: assessment as any,
-        score: assessment.overallScore,
+        score: assessment.overallScore / 100,
+        status: 'graded',
       },
     });
 

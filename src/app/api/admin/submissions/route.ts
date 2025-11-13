@@ -28,17 +28,9 @@ export async function GET(request: NextRequest) {
     if (userId) where.userId = parseInt(userId);
     if (homeworkId) where.homeworkId = parseInt(homeworkId);
 
-    // Add filter for speaking homework only
-    const speakingWhere = {
-      ...where,
-      homework: {
-        type: 'speaking'
-      }
-    };
-
-    // Get submissions with full details (using HomeworkSubmission for now)
-    const submissions = await prisma.homeworkSubmission.findMany({
-      where: speakingWhere,
+    // Query speaking submissions from the correct table
+    const submissions = await prisma.speakingSubmission.findMany({
+      where,
       include: {
         user: {
           select: {
@@ -64,7 +56,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Get total count
-    const totalCount = await prisma.homeworkSubmission.count({ where: speakingWhere });
+    const totalCount = await prisma.speakingSubmission.count({ where });
 
     // Format response with additional details
     const formattedSubmissions = submissions.map((submission: any) => ({
@@ -82,14 +74,11 @@ export async function GET(request: NextRequest) {
       transcribedText: submission.transcribedText,
       score: submission.score,
       audioUrl: submission.audioUrl,
-      voiceAnalysis: submission.answers, // Use answers field to store voice analysis
+      voiceAnalysis: submission.voiceAnalysis, // AI assessment results
       submittedAt: submission.submittedAt,
-      metadata: {
-        audioSize: submission.audioUrl ? 'Available' : 'N/A',
-        hasTranscription: !!submission.transcribedText,
-        hasAIAnalysis: !!submission.answers,
-        method: submission.answers?.method || 'ai-enhanced'
-      }
+      attemptNumber: submission.attemptNumber, // Show which attempt this is
+      status: submission.status,
+      method: submission.voiceAnalysis?.method || 'ai-enhanced'
     }));
 
     console.log(`✅ Retrieved ${submissions.length} submissions for admin`);
@@ -139,8 +128,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get detailed submission (using HomeworkSubmission)
-    const submission = await prisma.homeworkSubmission.findUnique({
+    // Get detailed speaking submission
+    const submission = await prisma.speakingSubmission.findUnique({
       where: {
         id: parseInt(submissionId)
       },
@@ -171,13 +160,13 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Parse voice analysis if exists (stored in answers field)
+    // Parse voice analysis
     let analysisDetails = null;
-    if (submission.answers) {
+    if (submission.voiceAnalysis) {
       try {
-        analysisDetails = typeof submission.answers === 'string' 
-          ? JSON.parse(submission.answers)
-          : submission.answers;
+        analysisDetails = typeof submission.voiceAnalysis === 'string' 
+          ? JSON.parse(submission.voiceAnalysis)
+          : submission.voiceAnalysis;
       } catch (e) {
         console.warn('Failed to parse voice analysis:', e);
       }
@@ -191,17 +180,17 @@ export async function POST(request: NextRequest) {
       score: submission.score,
       audioUrl: submission.audioUrl,
       submittedAt: submission.submittedAt,
+      attemptNumber: submission.attemptNumber,
+      status: submission.status,
       analysis: {
         raw: analysisDetails,
-        method: analysisDetails?.method || 'basic',
-        overallScore: analysisDetails?.assessment?.overallScore || submission.score,
-        accuracy: analysisDetails?.assessment?.accuracy || null,
-        fluency: analysisDetails?.assessment?.fluency || null,
-        completeness: analysisDetails?.assessment?.completeness || null,
-        prosody: analysisDetails?.assessment?.prosody || null,
-        feedback: analysisDetails?.assessment?.feedback || [],
-        suggestions: analysisDetails?.assessment?.suggestions || [],
-        wordAssessments: analysisDetails?.assessment?.wordAssessments || []
+        overallScore: analysisDetails?.overallScore || submission.score || 0,
+        accuracyScore: analysisDetails?.accuracyScore || null,
+        fluencyScore: analysisDetails?.fluencyScore || null,
+        completenessScore: analysisDetails?.completenessScore || null,
+        prosodyScore: analysisDetails?.prosodyScore || null,
+        feedback: analysisDetails?.feedback || '',
+        words: analysisDetails?.words || []
       },
       statistics: {
         wordsSpoken: submission.transcribedText?.split(' ').length || 0,

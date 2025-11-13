@@ -63,7 +63,7 @@ export function getLanguageConfig(languageCode: string): LanguageConfig {
 export function isSpeechRecognitionSupported(languageCode?: string): boolean {
   if (typeof window === 'undefined') return false;
   
-  const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   if (!SpeechRecognition) return false;
   
   // If no language specified, just check if API exists

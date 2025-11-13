@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import type { Language } from "@/lib/types";
 import { useSettings } from "@/contexts/settings-context";
-import SpeechRecognition from "./speech-recognition";
+import { SpeechRecognition } from "./speech-recognition";
 
 const formSchema = z.object({
   query: z.string().min(1),
@@ -191,29 +191,14 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
         <div className="p-3 sm:p-4 md:p-6 border-t bg-card/30 backdrop-blur-sm flex-shrink-0 rounded-b-lg sm:rounded-b-xl">
             {/* Speech Recognition Interface */}
             {showSpeechInput && (
-              <div className="mb-4 p-4 bg-gray-50 dark:bg-card/50 rounded-lg border">
+              <div className="mb-4">
                 <SpeechRecognition
-                  onTranscript={(transcript, language) => {
+                  onTranscript={(transcript) => {
                     form.setValue('query', transcript);
                     setShowSpeechInput(false);
                   }}
-                  placeholder="Click microphone and speak your question..."
-                  supportedLanguages={[
-                    { code: 'en-US', name: 'English', flag: '🇺🇸' },
-                    { code: 'vi-VN', name: 'Tiếng Việt', flag: '🇻🇳' },
-                    { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
-                  ]}
+                  onClose={() => setShowSpeechInput(false)}
                 />
-                <div className="flex justify-end mt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSpeechInput(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
               </div>
             )}
 

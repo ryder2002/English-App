@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.926.0",
-    "@aws-sdk/s3-request-presigner": "^3.926.0",
+    "@aws-sdk/s3-request-presigner": "^3.930.0",
     "@ducanh2912/next-pwa": "^10.2.7",
     "@genkit-ai/flow": "^0.5.17",
     "@genkit-ai/googleai": "^1.14.1",

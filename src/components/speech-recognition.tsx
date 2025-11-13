@@ -1,372 +1,311 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Volume2, Square } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Mic, X, Languages } from 'lucide-react';
+import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
 
 interface SpeechRecognitionProps {
-  onTranscript: (transcript: string, language: string) => void;
-  onAudioData?: (audioBlob: Blob) => void;
-  placeholder?: string;
-  className?: string;
-  supportedLanguages?: Array<{
-    code: string;
-    name: string;
-    flag: string;
-  }>;
+  onTranscript: (transcript: string) => void;
+  onClose: () => void;
 }
 
-// Language configurations for speech recognition
-const LANGUAGE_CONFIGS = {
-  'en-US': { name: 'English', flag: '🇺🇸', continuous: true },
-  'vi-VN': { name: 'Tiếng Việt', flag: '🇻🇳', continuous: true },
-  'zh-CN': { name: '中文', flag: '🇨🇳', continuous: true },
-};
+interface LanguageOption {
+  code: string;
+  name: string;
+  flag: string;
+}
 
-export default function SpeechRecognition({
-  onTranscript,
-  onAudioData,
-  placeholder = "Click microphone to start speaking...",
-  className = "",
-  supportedLanguages = [
-    { code: 'en-US', name: 'English', flag: '🇺🇸' },
-    { code: 'vi-VN', name: 'Tiếng Việt', flag: '🇻🇳' },
-    { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
-  ]
-}: SpeechRecognitionProps) {
+const SUPPORTED_LANGUAGES: LanguageOption[] = [
+  { code: 'en-US', name: 'English', flag: '🇺🇸' },
+  { code: 'vi-VN', name: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
+];
+
+export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionProps) {
   const [isListening, setIsListening] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('en-US');
-  const [error, setError] = useState('');
-  const [audioLevel, setAudioLevel] = useState(0);
-
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageOption>(SUPPORTED_LANGUAGES[1]); // Default: Vietnamese
+  const [error, setError] = useState<string | null>(null);
+  const [isSupported, setIsSupported] = useState(true);
+  
   const recognitionRef = useRef<any>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number>();
-  const audioChunksRef = useRef<Blob[]>([]);
+  const finalTranscriptRef = useRef('');
 
-  // Initialize speech recognition
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      
-      const recognition = recognitionRef.current;
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = selectedLanguage;
-      recognition.maxAlternatives = 3; // Get multiple alternatives
-      recognition.serviceURI = ''; // Use default service
-      
-      // Enhanced recognition settings
-      if ('webkitSpeechRecognition' in window) {
-        (recognition as any).continuous = true;
-        (recognition as any).interimResults = true;
-        (recognition as any).maxAlternatives = 3;
-      }
+    // Check if Speech Recognition is supported
+    const SpeechRecognition = 
+      (window as any).SpeechRecognition || 
+      (window as any).webkitSpeechRecognition;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        setError('');
-        console.log('🎤 Speech recognition started');
-      };
-
-      recognition.onresult = (event: any) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-        let alternatives: string[] = [];
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          
-          // Collect alternatives for better accuracy
-          for (let j = 0; j < result.length; j++) {
-            if (j === 0) {
-              const transcript = result[j].transcript;
-              if (result.isFinal) {
-                finalTranscript += transcript;
-              } else {
-                interimTranscript += transcript;
-              }
-            } else {
-              alternatives.push(result[j].transcript);
-            }
-          }
-        }
-
-        const fullTranscript = finalTranscript || interimTranscript;
-        setTranscript(fullTranscript);
-        
-        if (finalTranscript) {
-          // Enhanced transcript processing
-          const processedTranscript = enhanceTranscript(finalTranscript, alternatives);
-          onTranscript(processedTranscript, selectedLanguage);
-          console.log('🗣️ Final transcript:', processedTranscript);
-          console.log('🔄 Alternatives:', alternatives);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setError(`Recognition error: ${event.error}`);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        console.log('🎤 Speech recognition ended');
-      };
-    } else {
-      setError('Speech recognition not supported in this browser');
+    if (!SpeechRecognition) {
+      setIsSupported(false);
+      setError('Trình duyệt không hỗ trợ Speech Recognition. Vui lòng dùng Chrome hoặc Edge.');
+      return;
     }
+
+    setIsSupported(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isSupported) return;
+
+    const SpeechRecognition = 
+      (window as any).SpeechRecognition || 
+      (window as any).webkitSpeechRecognition;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = selectedLanguage.code;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcriptPart = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += transcriptPart + ' ';
+          setTranscript(finalTranscriptRef.current.trim());
+          setInterimTranscript('');
+        } else {
+          interim += transcriptPart;
+        }
+      }
+      
+      if (interim) {
+        setInterimTranscript(interim);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      
+      switch (event.error) {
+        case 'no-speech':
+          setError('Không phát hiện giọng nói');
+          break;
+        case 'not-allowed':
+          setError('Quyền truy cập microphone bị từ chối');
+          setIsListening(false);
+          break;
+        case 'network':
+          setError('Lỗi kết nối mạng');
+          break;
+        default:
+          setError(`Lỗi: ${event.error}`);
+      }
+    };
+
+    recognition.onend = () => {
+      if (isListening) {
+        try {
+          recognition.start();
+        } catch (error) {
+          console.error('Failed to restart recognition:', error);
+          setIsListening(false);
+        }
+      }
+    };
+
+    recognitionRef.current = recognition;
 
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
     };
-  }, [selectedLanguage, onTranscript]);
+  }, [selectedLanguage, isListening, isSupported]);
 
-  // Audio level monitoring
-  const monitorAudioLevel = () => {
-    if (analyserRef.current) {
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      analyserRef.current.getByteFrequencyData(dataArray);
-      
-      const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-      setAudioLevel(average);
-      
-      animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
-    }
-  };
-
-  // Start recording and recognition
-  const startRecording = async () => {
+  const startListening = () => {
+    if (!recognitionRef.current) return;
+    
+    setError(null);
+    finalTranscriptRef.current = '';
+    setTranscript('');
+    setInterimTranscript('');
+    setIsListening(true);
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100,
-          sampleSize: 16,
-          channelCount: 1
-        } 
-      });
-
-      // Setup audio recording
-      mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (onAudioData) {
-          onAudioData(audioBlob);
-        }
-      };
-
-      // Setup audio level monitoring
-      audioContextRef.current = new AudioContext();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      source.connect(analyserRef.current);
-      analyserRef.current.fftSize = 256;
-
-      setIsRecording(true);
-      mediaRecorderRef.current.start();
-      monitorAudioLevel();
-
-      // Start speech recognition
-      if (recognitionRef.current) {
-        recognitionRef.current.lang = selectedLanguage;
-        recognitionRef.current.start();
-      }
-
+      recognitionRef.current.start();
     } catch (error) {
-      console.error('Error starting recording:', error);
-      setError('Failed to access microphone');
+      console.error('Failed to start recognition:', error);
+      setError('Không thể bắt đầu ghi âm');
     }
   };
 
-  // Stop recording and recognition
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-
-    if (recognitionRef.current && isListening) {
+  const stopListening = () => {
+    if (!recognitionRef.current) return;
+    
+    setIsListening(false);
+    
+    try {
       recognitionRef.current.stop();
-    }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-
-    setAudioLevel(0);
-  };
-
-  const toggleRecording = () => {
-    if (isListening || isRecording) {
-      stopRecording();
-    } else {
-      setTranscript('');
-      setError('');
-      startRecording();
+    } catch (error) {
+      console.error('Failed to stop recognition:', error);
     }
   };
 
-  // Enhanced transcript processing
-  const enhanceTranscript = (transcript: string, alternatives: string[]): string => {
-    // Basic cleaning
-    let enhanced = transcript
-      .trim()
-      .toLowerCase()
-      // Fix common recognition errors
-      .replace(/\bdot\b/g, '.')
-      .replace(/\bcomma\b/g, ',')
-      .replace(/\bquestion mark\b/g, '?')
-      .replace(/\bexclamation mark\b/g, '!')
-      .replace(/\bperiod\b/g, '.')
-      // Fix numbers
-      .replace(/\bone\b/g, '1')
-      .replace(/\btwo\b/g, '2')
-      .replace(/\bthree\b/g, '3')
-      .replace(/\bfour\b/g, '4')
-      .replace(/\bfive\b/g, '5')
-      .replace(/\bsix\b/g, '6')
-      .replace(/\bseven\b/g, '7')
-      .replace(/\beight\b/g, '8')
-      .replace(/\bnine\b/g, '9')
-      .replace(/\bten\b/g, '10');
-    
-    // If we have alternatives, use the most common words
-    if (alternatives.length > 0) {
-      const words = enhanced.split(' ');
-      const enhancedWords = words.map(word => {
-        // Check if any alternative has a better version of this word
-        for (const alt of alternatives) {
-          const altWords = alt.toLowerCase().split(' ');
-          for (const altWord of altWords) {
-            if (altWord.length > word.length && altWord.includes(word)) {
-              return altWord;
-            }
-          }
-        }
-        return word;
-      });
-      enhanced = enhancedWords.join(' ');
+  const handleDone = () => {
+    if (transcript) {
+      onTranscript(transcript);
+      onClose();
     }
-    
-    return enhanced;
   };
+
+  const handleChangeLanguage = (lang: LanguageOption) => {
+    const wasListening = isListening;
+    if (wasListening) {
+      stopListening();
+    }
+    setSelectedLanguage(lang);
+    if (wasListening) {
+      setTimeout(() => startListening(), 100);
+    }
+  };
+
+  if (!isSupported) {
+    return (
+      <Card className="border-2 border-red-200 bg-red-50">
+        <CardContent className="p-4">
+          <div className="text-center text-red-600">
+            <p className="font-semibold">Trình duyệt không hỗ trợ Speech Recognition</p>
+            <p className="text-sm mt-1">Vui lòng sử dụng Chrome hoặc Edge</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className={`speech-recognition-container ${className}`}>
-      {/* Language Selector */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {supportedLanguages.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => setSelectedLanguage(lang.code)}
-            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-              selectedLanguage === lang.code
-                ? 'bg-blue-500 text-white border-blue-500'
-                : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-            }`}
+    <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <CardContent className="p-6 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <Mic className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-900">Voice Input</h3>
+              <p className="text-xs text-blue-700">Speak your question</p>
+            </div>
+          </div>
+          <Button
+            onClick={onClose}
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 rounded-full hover:bg-blue-100"
           >
-            <span className="mr-1">{lang.flag}</span>
-            {lang.name}
-          </button>
-        ))}
-      </div>
+            <X className="h-4 w-4 text-blue-900" />
+          </Button>
+        </div>
 
-      {/* Recording Interface */}
-      <div className="relative">
-        <div className="flex items-center gap-4">
-          {/* Microphone Button */}
-          <button
-            onClick={toggleRecording}
-            disabled={!!error}
-            className={`relative p-4 rounded-full transition-all duration-200 ${
-              isListening || isRecording
-                ? 'bg-red-500 text-white animate-pulse shadow-lg scale-110'
-                : 'bg-blue-500 text-white hover:bg-blue-600 shadow-md hover:scale-105'
-            } ${error ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isListening || isRecording ? (
-              <Square className="w-6 h-6" />
-            ) : (
-              <Mic className="w-6 h-6" />
-            )}
-            
-            {/* Audio Level Indicator */}
-            {(isListening || isRecording) && (
-              <div className="absolute inset-0 rounded-full">
-                <div 
-                  className="absolute inset-0 rounded-full bg-red-300 opacity-30 animate-ping"
-                  style={{
-                    transform: `scale(${1 + audioLevel / 100})`,
-                    transition: 'transform 0.1s ease-out'
-                  }}
-                />
-              </div>
-            )}
-          </button>
-
-          {/* Status Display */}
-          <div className="flex-1">
-            {error ? (
-              <div className="text-red-500 text-sm">{error}</div>
-            ) : isListening ? (
-              <div className="text-blue-500 text-sm animate-pulse">
-                🎤 Listening in {LANGUAGE_CONFIGS[selectedLanguage as keyof typeof LANGUAGE_CONFIGS]?.name}...
-              </div>
-            ) : (
-              <div className="text-gray-500 text-sm">{placeholder}</div>
-            )}
+        {/* Language Selector */}
+        <div className="flex items-center gap-2">
+          <Languages className="h-4 w-4 text-blue-700" />
+          <div className="flex gap-2 flex-wrap">
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <Button
+                key={lang.code}
+                onClick={() => handleChangeLanguage(lang)}
+                size="sm"
+                variant={selectedLanguage.code === lang.code ? "default" : "outline"}
+                className={`${
+                  selectedLanguage.code === lang.code 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'border-blue-300 hover:bg-blue-100'
+                }`}
+              >
+                <span className="mr-1">{lang.flag}</span>
+                {lang.name}
+              </Button>
+            ))}
           </div>
         </div>
 
+        {/* Recording Status */}
+        <div className="min-h-[100px] bg-white rounded-lg p-4 border-2 border-blue-200">
+          {isListening ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <div className="relative">
+                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                    <Mic className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="absolute inset-0 w-12 h-12 bg-red-400 rounded-full animate-ping opacity-75"></div>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-red-600">Listening...</p>
+                <p className="text-xs text-gray-600 mt-1">Speak clearly in {selectedLanguage.name}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Mic className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Click Start to begin</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Transcript Display */}
-        {transcript && (
-          <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="text-sm text-gray-600 mb-1">Transcript:</div>
-            <div className="text-gray-800">{transcript}</div>
+        {(transcript || interimTranscript) && (
+          <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+            <p className="text-sm font-semibold text-green-800 mb-2">Transcript:</p>
+            <p className="text-base text-gray-900">
+              {transcript}
+              {interimTranscript && (
+                <span className="text-gray-400 italic"> {interimTranscript}</span>
+              )}
+            </p>
           </div>
         )}
 
-        {/* Audio Level Visualizer */}
-        {(isListening || isRecording) && (
-          <div className="mt-4">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-500 h-2 rounded-full transition-all duration-100 ease-out"
-                style={{ width: `${Math.min(audioLevel * 2, 100)}%` }}
-              />
-            </div>
+        {/* Error Message */}
+        {error && (
+          <div className="bg-orange-100 border border-orange-300 rounded-lg p-3">
+            <p className="text-sm text-orange-800">{error}</p>
           </div>
         )}
-      </div>
-    </div>
+
+        {/* Control Buttons */}
+        <div className="flex gap-2 justify-center">
+          {!isListening ? (
+            <Button
+              onClick={startListening}
+              size="lg"
+              className="px-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg"
+            >
+              <Mic className="w-5 h-5 mr-2" />
+              Start Listening
+            </Button>
+          ) : (
+            <Button
+              onClick={stopListening}
+              size="lg"
+              variant="outline"
+              className="px-8 border-2 border-gray-400 hover:bg-gray-100"
+            >
+              Stop
+            </Button>
+          )}
+          
+          {transcript && (
+            <Button
+              onClick={handleDone}
+              size="lg"
+              className="px-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg"
+            >
+              Done
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

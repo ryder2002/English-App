@@ -50,6 +50,47 @@ export async function GET(request: NextRequest, context: { params: Promise<{ hom
       homework.status = 'locked';
     }
 
+    // Check if this is a speaking homework - query speakingSubmission table
+    if (homework.type === 'speaking') {
+      const speakingSubmissions = await prisma.speakingSubmission.findMany({
+        where: {
+          homeworkId: homework.id,
+          userId: user.id,
+        },
+        orderBy: { attemptNumber: 'desc' },
+      });
+
+      const currentSpeakingSubmission = speakingSubmissions.find(s => s.status === 'graded' || s.status === 'submitted') || speakingSubmissions[0];
+
+      // Parse voiceAnalysis if it's a JSON string
+      const parsedSubmissions = speakingSubmissions.map(sub => ({
+        ...sub,
+        voiceAnalysis: typeof sub.voiceAnalysis === 'string' && sub.voiceAnalysis 
+          ? JSON.parse(sub.voiceAnalysis) 
+          : sub.voiceAnalysis,
+      }));
+
+      const parsedCurrentSubmission = currentSpeakingSubmission ? {
+        ...currentSpeakingSubmission,
+        voiceAnalysis: typeof currentSpeakingSubmission.voiceAnalysis === 'string' && currentSpeakingSubmission.voiceAnalysis
+          ? JSON.parse(currentSpeakingSubmission.voiceAnalysis)
+          : currentSpeakingSubmission.voiceAnalysis,
+      } : null;
+
+      const { answerText, clazz, submissions, ...restHomework } = homework;
+
+      return NextResponse.json({
+        ...restHomework,
+        clazz: {
+          id: clazz.id,
+          name: clazz.name,
+        },
+        submissions: parsedSubmissions,
+        currentSubmission: parsedCurrentSubmission,
+      });
+    }
+
+    // For non-speaking homework, use regular submission table
     const submission = await prisma.homeworkSubmission.findFirst({
       where: {
         homeworkId: homework.id,

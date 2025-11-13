@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Play, Pause, Send, Eye, RotateCcw } from 'lucide-react';
-import { SpeakingRecorder } from '@/components/speaking-recorder';
 import { SpeakingHomeworkPlayer } from '@/components/speaking-homework-player';
 
 interface Homework {
@@ -37,6 +36,7 @@ interface Homework {
     timeSpentSeconds?: number;
     isCorrect?: boolean;
     transcribedText?: string;
+    voiceAnalysis?: any;
   }>;
   currentSubmission?: {
     id: number;
@@ -50,6 +50,7 @@ interface Homework {
     timeSpentSeconds?: number;
     isCorrect?: boolean;
     transcribedText?: string;
+    voiceAnalysis?: any;
   };
   boxes?: number;
   answerKey?: string | null;
@@ -388,30 +389,36 @@ export default function HomeworkPage() {
                     isLocked={isLocked}
                     transcribedText={currentSubmission?.transcribedText}
                     score={currentSubmission?.score || undefined}
-                    onSubmitAction={async (audioBlob: Blob, transcribedText: string) => {
+                    submissionId={currentSubmission?.id}
+                    voiceAnalysis={currentSubmission?.voiceAnalysis}
+                    onSubmitAction={async (audioBlob: Blob, transcript: string) => {
                       setIsSubmitting(true);
                       try {
-                        // 1. Get signed URL from our server
-                        const urlRes = await fetch('/api/homework/submission/generate-upload-url', {
+                        console.log('📤 Submitting speaking homework...', {
+                          hasTranscript: !!transcript,
+                          transcriptLength: transcript?.length || 0
+                        });
+
+                        // 1. Upload audio via server proxy (fixes CORS issue)
+                        const formData = new FormData();
+                        formData.append('audio', audioBlob, 'recording.webm');
+                        formData.append('homeworkId', homework.id.toString());
+
+                        const uploadRes = await fetch('/api/homework/submission/upload-proxy', {
                           method: 'POST',
                           credentials: 'include',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            homeworkId: homework.id,
-                            fileType: audioBlob.type,
-                          }),
-                        });
-                        if (!urlRes.ok) throw new Error('Could not get upload URL.');
-                        const { signedUrl, audioUrl } = await urlRes.json();
-
-                        // 2. Upload audio directly to R2
-                        await fetch(signedUrl, {
-                          method: 'PUT',
-                          body: audioBlob,
-                          headers: { 'Content-Type': audioBlob.type },
+                          body: formData,
                         });
 
-                        // 3. Create the submission record in our database
+                        if (!uploadRes.ok) {
+                          const errorData = await uploadRes.json();
+                          throw new Error(errorData.error || 'Upload failed');
+                        }
+
+                        const { audioUrl } = await uploadRes.json();
+                        console.log('✅ Audio uploaded:', audioUrl);
+
+                        // 2. Create the submission record with transcript
                         const createSubRes = await fetch('/api/homework/submission/create', {
                             method: 'POST',
                             credentials: 'include',
@@ -419,26 +426,35 @@ export default function HomeworkPage() {
                             body: JSON.stringify({
                                 homeworkId: homework.id,
                                 audioUrl,
-                                transcribedText,
+                                transcript: transcript || '', // Include browser transcript
                             }),
                         });
                         if (!createSubRes.ok) throw new Error('Could not create submission.');
                         const { submissionId } = await createSubRes.json();
 
-                        // 4. Trigger AI assessment (fire and forget)
+                        // 3. Trigger AI assessment (with transcript if available)
+                        const hasTranscript = transcript && transcript.trim().length > 0;
                         fetch(`/api/homework/submission/${submissionId}/assess`, {
                             method: 'POST',
                             credentials: 'include',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ audioUrl, transcribedText }),
+                            body: JSON.stringify({ 
+                              audioUrl,
+                              transcript: transcript || undefined, // Send transcript if available
+                            }),
+                        }).catch(err => {
+                          console.error('AI assessment failed:', err);
+                          // Don't block user, continue anyway
                         });
 
                         toast({
                           title: 'Nộp bài thành công!',
-                          description: 'Bài của bạn đang được AI phân tích. Kết quả sẽ có sau vài giây.',
+                          description: hasTranscript 
+                            ? 'AI đang chấm điểm (3-5 giây)...' 
+                            : 'AI đang transcribe + chấm điểm (10-20 giây)...',
                         });
 
-                        // 5. Redirect to the submission page to see results
+                        // 4. Redirect to the submission page to see results
                         router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${submissionId}`);
 
                       } catch (error: any) {

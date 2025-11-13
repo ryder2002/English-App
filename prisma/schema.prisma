@@ -204,6 +204,7 @@ model HomeworkSubmission {
   audioData        Bytes?                   @map("audio_data")
   audioUrl         String?                  @map("audio_url")
   transcribedText  String?                  @map("transcribed_text")
+  voiceAnalysis    Json?                    @map("voice_analysis")
   homework         Homework                 @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
   user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -220,6 +221,8 @@ model SpeakingSubmission {
   score           Float    @default(0)
   audioUrl        String?  @map("audio_url")
   voiceAnalysis   Json?    @map("voice_analysis")
+  status          String   @default("submitted") // submitted, graded, processing
+  attemptNumber   Int      @default(1) @map("attempt_number")
   submittedAt     DateTime @default(now()) @map("submitted_at")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

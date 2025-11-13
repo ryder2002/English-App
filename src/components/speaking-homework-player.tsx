@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { SpeakingResultDisplay } from '@/components/speaking-result-display';
-import { SmartSpeechRecorder } from '@/components/smart-speech-recorder';
-import { AISpeechRecorder } from '@/components/ai-speech-recorder';
+import { TraditionalSpeakingResult } from '@/components/traditional-speaking-result';
+import { HybridAudioRecorder } from '@/components/hybrid-audio-recorder';
 import { Send } from 'lucide-react';
 
 interface SpeakingHomeworkPlayerProps {
@@ -14,7 +13,8 @@ interface SpeakingHomeworkPlayerProps {
   transcribedText?: string;
   score?: number;
   submissionId?: number;
-  onSubmitAction: (audioBlob: Blob, transcribedText: string, voiceAnalysis?: any) => Promise<void>;
+  voiceAnalysis?: any;
+  onSubmitAction: (audioBlob: Blob, transcript: string) => Promise<void>;
 }
 
 export function SpeakingHomeworkPlayer({
@@ -24,82 +24,71 @@ export function SpeakingHomeworkPlayer({
   transcribedText: savedTranscribedText,
   score,
   submissionId,
+  voiceAnalysis,
   onSubmitAction,
 }: SpeakingHomeworkPlayerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Always use AI Enhanced mode - removed Basic mode and its states
   const [aiAssessment, setAiAssessment] = useState<any>(null);
-  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
-  const [transcribedText, setTranscribedText] = useState<string>('');
-  const [wordResults, setWordResults] = useState<any[]>([]);
-  const [hasRecording, setHasRecording] = useState(false);
 
-  const handleAIRecorderComplete = async (assessment: any, audioBlob: Blob) => {
-    console.log('AI recorder complete:', { assessment, audioBlob });
-    setRecordedAudio(audioBlob);
-    setTranscribedText(assessment.transcription);
-    setAiAssessment(assessment);
-    setHasRecording(true);
-
-    // Auto-submit with AI assessment
+  const handleAudioComplete = async (audioBlob: Blob, transcript: string) => {
+    console.log('✅ Audio recorded:', {
+      size: audioBlob.size,
+      type: audioBlob.type,
+      hasTranscript: !!transcript,
+      transcriptLength: transcript?.length || 0
+    });
+    
     try {
       setIsSubmitting(true);
-      await onSubmitAction(audioBlob, assessment.transcription, assessment);
-      console.log('AI assessment submission successful:', assessment);
+      await onSubmitAction(audioBlob, transcript);
+      console.log('✅ Submission successful');
     } catch (error) {
-      console.error('AI assessment submission failed:', error);
+      console.error('❌ Submission failed:', error);
+      alert('Failed to submit audio. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleAIRecorderReset = () => {
-    console.log('AI recorder reset');
-    setRecordedAudio(null);
-    setTranscribedText('');
-    setWordResults([]);
+  const handleReset = () => {
+    console.log('🔄 Reset recorder');
     setAiAssessment(null);
-    setHasRecording(false);
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {!isSubmitted && !isLocked && (
-        <div className="space-y-4">
-          {/* AI Enhanced Only - Removed Basic Mode */}
-          <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="text-lg font-semibold">🧠 AI Enhanced Recording</div>
-                <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                  Advanced Analysis
-                </div>
-              </div>
-              <div className="text-sm text-purple-600 font-medium">
-                ✨ Intelligent pronunciation assessment with detailed feedback
-              </div>
-            </div>
-          </div>
-
-          {/* AI Recording Interface Only */}
-          <AISpeechRecorder
-            originalText={speakingText}
-            language="en"
-            onComplete={handleAIRecorderComplete}
-            onReset={handleAIRecorderReset}
-            disabled={isSubmitting}
-          />
-        </div>
+        <HybridAudioRecorder
+          referenceText={speakingText}
+          onCompleteAction={handleAudioComplete}
+          onResetAction={handleReset}
+          disabled={isSubmitting}
+          language="en-US"
+        />
       )}
 
       {isSubmitted && (
-        <SpeakingResultDisplay
-          originalText={speakingText}
-          transcribedText={savedTranscribedText || ''}
-          score={score || 0}
-          submissionId={submissionId}
-          voiceAnalysis={aiAssessment}
-        />
+        <div className="space-y-6">
+          {voiceAnalysis ? (
+            <TraditionalSpeakingResult
+              referenceText={speakingText}
+              transcribedText={savedTranscribedText || ''}
+              assessment={voiceAnalysis}
+            />
+          ) : (
+            <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-lg">
+              <div className="text-center space-y-3">
+                <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-xl font-bold text-blue-900">✅ Submitted Successfully!</p>
+                <p className="text-sm text-blue-700">Đang chấm điểm, vui lòng đợi vài giây...</p>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

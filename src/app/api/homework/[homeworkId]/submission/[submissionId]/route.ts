@@ -22,7 +22,79 @@ export async function GET(
     const hwId = Number(homeworkId);
     const subId = Number(submissionId);
 
-    // Get submission with homework details
+    // First, check if this is a speaking homework
+    const homework = await prisma.homework.findUnique({
+      where: { id: hwId },
+      select: { type: true }
+    });
+
+    if (!homework) {
+      return NextResponse.json({ error: 'Homework not found' }, { status: 404 });
+    }
+
+    // Check speaking submission table if it's a speaking homework
+    if (homework.type === 'speaking') {
+      const speakingSubmission = await prisma.speakingSubmission.findUnique({
+        where: { id: subId },
+        select: {
+          id: true,
+          userId: true,
+          homeworkId: true,
+          transcribedText: true,
+          audioUrl: true,
+          score: true,
+          status: true,
+          attemptNumber: true,
+          submittedAt: true,
+          voiceAnalysis: true,
+          homework: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              speakingText: true,
+              deadline: true,
+              status: true,
+            }
+          }
+        }
+      });
+
+      if (!speakingSubmission) {
+        return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+      }
+
+      // Verify ownership
+      if (speakingSubmission.userId !== user.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      if (speakingSubmission.homeworkId !== hwId) {
+        return NextResponse.json({ error: 'Submission not in this homework' }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        id: speakingSubmission.id,
+        homework: {
+          id: speakingSubmission.homework.id,
+          title: speakingSubmission.homework.title,
+          type: speakingSubmission.homework.type,
+          speakingText: speakingSubmission.homework.speakingText,
+          deadline: speakingSubmission.homework.deadline,
+          status: speakingSubmission.homework.status,
+        },
+        transcribedText: speakingSubmission.transcribedText,
+        audioUrl: speakingSubmission.audioUrl,
+        audioDataUrl: speakingSubmission.audioUrl, // For compatibility
+        score: speakingSubmission.score,
+        status: speakingSubmission.status,
+        attemptNumber: speakingSubmission.attemptNumber,
+        submittedAt: speakingSubmission.submittedAt,
+        voiceAnalysis: speakingSubmission.voiceAnalysis,
+      });
+    }
+
+    // Get regular homework submission
     const submission = await prisma.homeworkSubmission.findUnique({
       where: { id: subId },
       select: {
@@ -31,8 +103,8 @@ export async function GET(
         homeworkId: true,
         answer: true,
         transcribedText: true,
-        audioUrl: true,        // ← Include R2 URL
-        audioData: true,       // ← Keep for legacy submissions (column: audio_data)
+        audioUrl: true,
+        audioData: true,
         score: true,
         status: true,
         attemptNumber: true,

@@ -19,6 +19,64 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const homeworkId = Number(id);
     const subId = Number(submissionId);
 
+    // First, check if this is a speaking homework
+    const homework = await prisma.homework.findUnique({
+      where: { id: homeworkId },
+      select: { type: true, clazz: { select: { teacherId: true } } }
+    });
+
+    if (!homework) {
+      return NextResponse.json({ error: 'Homework not found' }, { status: 404 });
+    }
+
+    // Check ownership first
+    if (homework.clazz.teacherId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Check speaking submission table if it's a speaking homework
+    if (homework.type === 'speaking') {
+      const speakingSubmission = await prisma.speakingSubmission.findUnique({
+        where: { id: subId },
+        include: {
+          homework: { 
+            include: { 
+              clazz: true 
+            }
+          },
+          user: { select: { id: true, name: true, email: true } },
+        },
+      });
+
+      if (!speakingSubmission) {
+        return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+      }
+
+      if (speakingSubmission.homeworkId !== homeworkId) {
+        return NextResponse.json({ error: 'Submission not in this homework' }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        id: speakingSubmission.id,
+        user: speakingSubmission.user,
+        homework: {
+          id: speakingSubmission.homework.id,
+          title: speakingSubmission.homework.title,
+          type: speakingSubmission.homework.type,
+          speakingText: speakingSubmission.homework.speakingText,
+        },
+        transcribedText: speakingSubmission.transcribedText,
+        audioUrl: speakingSubmission.audioUrl,
+        audioDataUrl: speakingSubmission.audioUrl, // For compatibility
+        score: speakingSubmission.score,
+        voiceAnalysis: speakingSubmission.voiceAnalysis,
+        status: speakingSubmission.status,
+        attemptNumber: speakingSubmission.attemptNumber,
+        submittedAt: speakingSubmission.submittedAt, // Exact submission time
+      });
+    }
+
+    // Get regular homework submission
     const submission = await prisma.homeworkSubmission.findUnique({
       where: { id: subId },
       include: {
@@ -34,16 +92,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     if (!submission) return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
     if (submission.homeworkId !== homeworkId) return NextResponse.json({ error: 'Submission not in this homework' }, { status: 400 });
 
-    // Ownership: only teacher of the class can view
-    if (submission.homework.clazz.teacherId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
     // Use audioUrl from R2 if available, fallback to audioData for legacy submissions
     let audioDataUrl: string | undefined;
     if (submission.audioUrl) {
-      // New R2 URL - direct usage
       audioDataUrl = submission.audioUrl;
     } else if (submission.audioData) {
-      // Legacy base64 conversion for old submissions
       const base64 = Buffer.from(submission.audioData).toString('base64');
       audioDataUrl = `data:audio/webm;base64,${base64}`;
     }
@@ -60,8 +113,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       answer: submission.answer,
       transcribedText: submission.transcribedText,
       audioDataUrl,
+      audioUrl: submission.audioUrl,
       score: submission.score,
+      voiceAnalysis: submission.voiceAnalysis,
       status: submission.status,
+      attemptNumber: submission.attemptNumber,
       startedAt: submission.startedAt,
       submittedAt: submission.submittedAt,
       lastActivityAt: submission.lastActivityAt,
@@ -82,23 +138,52 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     const homeworkId = Number(id);
     const subId = Number(submissionId);
 
-    // Check if submission exists and belongs to the homework
+    // First, check if this is a speaking homework
+    const homework = await prisma.homework.findUnique({
+      where: { id: homeworkId },
+      select: { type: true, clazz: { select: { teacherId: true } } }
+    });
+
+    if (!homework) {
+      return NextResponse.json({ error: 'Homework not found' }, { status: 404 });
+    }
+
+    // Check ownership first
+    if (homework.clazz.teacherId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Check speaking submission table if it's a speaking homework
+    if (homework.type === 'speaking') {
+      const speakingSubmission = await prisma.speakingSubmission.findUnique({
+        where: { id: subId },
+        select: { id: true, homeworkId: true }
+      });
+
+      if (!speakingSubmission) {
+        return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+      }
+
+      if (speakingSubmission.homeworkId !== homeworkId) {
+        return NextResponse.json({ error: 'Submission not in this homework' }, { status: 400 });
+      }
+
+      // Delete the speaking submission
+      await prisma.speakingSubmission.delete({
+        where: { id: subId }
+      });
+
+      return NextResponse.json({ success: true, message: 'Submission deleted successfully' });
+    }
+
+    // Check if regular submission exists and belongs to the homework
     const submission = await prisma.homeworkSubmission.findUnique({
       where: { id: subId },
-      include: {
-        homework: {
-          include: {
-            clazz: true
-          }
-        }
-      }
+      select: { id: true, homeworkId: true }
     });
 
     if (!submission) return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
     if (submission.homeworkId !== homeworkId) return NextResponse.json({ error: 'Submission not in this homework' }, { status: 400 });
-
-    // Ownership: only teacher of the class can delete
-    if (submission.homework.clazz.teacherId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // Delete the submission
     await prisma.homeworkSubmission.delete({

@@ -6,8 +6,8 @@ import { AppShell } from '@/components/app-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { SpeakingResultDisplay } from '@/components/speaking-result-display';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { TraditionalSpeakingResult } from '@/components/traditional-speaking-result';
+import { ArrowLeft, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SubmissionDetail {
@@ -27,6 +27,8 @@ interface SubmissionDetail {
   submittedAt?: string;
   timeSpentSeconds?: number;
   audioDataUrl?: string;
+  audioUrl?: string; // R2 audio URL
+  voiceAnalysis?: any; // AI assessment results for speaking homework
 }
 
 export default function StudentSubmissionDetailPage() {
@@ -41,6 +43,8 @@ export default function StudentSubmissionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -50,7 +54,21 @@ export default function StudentSubmissionDetailPage() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Failed to load');
-        setDetail(data);
+        
+        // Parse voiceAnalysis if it's a JSON string
+        let parsedVoiceAnalysis = data.voiceAnalysis;
+        if (typeof data.voiceAnalysis === 'string') {
+          try {
+            parsedVoiceAnalysis = JSON.parse(data.voiceAnalysis);
+          } catch (e) {
+            console.error('Failed to parse voiceAnalysis:', e);
+          }
+        }
+        
+        setDetail({
+          ...data,
+          voiceAnalysis: parsedVoiceAnalysis
+        });
       } catch (e: any) {
         setError(e.message || 'Error');
       } finally {
@@ -91,6 +109,49 @@ export default function StudentSubmissionDetailPage() {
       setIsRetrying(false);
     }
   };
+
+  const handlePlayAudio = () => {
+    if (!detail?.audioUrl && !detail?.audioDataUrl) {
+      toast({
+        title: "Không có audio",
+        description: "Bài nộp này không có file âm thanh",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const audioUrl = detail.audioUrl || detail.audioDataUrl;
+    if (!audioUrl) return;
+
+    if (isPlaying && audioElement) {
+      audioElement.pause();
+      setIsPlaying(false);
+    } else {
+      const audio = new Audio(audioUrl);
+      audio.onended = () => setIsPlaying(false);
+      audio.onerror = () => {
+        toast({
+          title: "Lỗi phát audio",
+          description: "Không thể phát file âm thanh. Vui lòng thử lại.",
+          variant: "destructive",
+        });
+        setIsPlaying(false);
+      };
+      audio.play();
+      setAudioElement(audio);
+      setIsPlaying(true);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      // Cleanup audio on unmount
+      if (audioElement) {
+        audioElement.pause();
+        setAudioElement(null);
+      }
+    };
+  }, [audioElement]);
 
   if (loading) {
     return (
@@ -192,12 +253,38 @@ export default function StudentSubmissionDetailPage() {
               {/* Speaking homework - show detailed comparison */}
               {detail.homework?.type === 'speaking' && detail.homework.speakingText && detail.transcribedText && (
                 <div className="space-y-4">
+                  {/* Audio Player */}
+                  {(detail.audioUrl || detail.audioDataUrl) && (
+                    <div className="flex items-center gap-3 p-4 rounded-lg border bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                      <Button
+                        variant={isPlaying ? "default" : "outline"}
+                        size="sm"
+                        onClick={handlePlayAudio}
+                        className="gap-2"
+                      >
+                        {isPlaying ? (
+                          <>
+                            <VolumeX className="h-4 w-4" />
+                            Dừng phát
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="h-4 w-4" />
+                            Nghe lại audio
+                          </>
+                        )}
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Nghe lại bài thu âm của bạn
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="text-sm font-medium">🎯 Phân tích chi tiết:</div>
-                  <SpeakingResultDisplay
-                    originalText={detail.homework.speakingText}
+                  <TraditionalSpeakingResult
+                    referenceText={detail.homework.speakingText}
                     transcribedText={detail.transcribedText}
-                    score={detail.score || 0}
-                    submissionId={detail.id}
+                    assessment={detail.voiceAnalysis}
                   />
                 </div>
               )}
@@ -209,6 +296,19 @@ export default function StudentSubmissionDetailPage() {
                   <div className="p-4 rounded-lg border bg-white dark:bg-gray-900/30 whitespace-pre-wrap">
                     {detail.answer || <span className="text-muted-foreground">(Trống)</span>}
                   </div>
+                </div>
+              )}
+
+              {/* Audio playback for speaking homework */}
+              {detail.homework?.type === 'speaking' && (detail.audioUrl || detail.audioDataUrl) && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">🔊 Phát lại âm thanh:</div>
+                  <Button
+                    onClick={handlePlayAudio}
+                    className="w-full bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600"
+                  >
+                    {isPlaying ? '⏸️ Tạm dừng' : '▶️ Phát âm thanh'}
+                  </Button>
                 </div>
               )}
 

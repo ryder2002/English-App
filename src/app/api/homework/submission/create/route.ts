@@ -14,21 +14,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const { homeworkId, audioUrl, transcribedText } = await request.json();
+    const { homeworkId, audioUrl } = await request.json();
 
-    if (!homeworkId || !audioUrl || !transcribedText) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!homeworkId || !audioUrl) {
+      return NextResponse.json({ error: 'Missing required fields: homeworkId and audioUrl' }, { status: 400 });
     }
+
+    console.log('📝 Creating speaking submission...', {
+      homeworkId,
+      userId: user.id,
+      audioUrl: audioUrl.substring(0, 50) + '...'
+    });
+
+    // Count existing submissions for this homework by this user
+    const existingCount = await prisma.speakingSubmission.count({
+      where: {
+        homeworkId: parseInt(homeworkId, 10),
+        userId: user.id,
+      },
+    });
+
+    const attemptNumber = existingCount + 1;
 
     const submission = await prisma.speakingSubmission.create({
       data: {
         homeworkId: parseInt(homeworkId, 10),
         userId: user.id,
         audioUrl,
-        transcribedText,
-        score: 0, // Initial score, will be updated by AI
-        voiceAnalysis: { status: 'processing' }, // Initial status
+        transcribedText: '', // Will be filled by AI transcription
+        score: 0, // Will be updated after AI assessment
+        voiceAnalysis: { status: 'processing' } as any,
+        attemptNumber,
+        submittedAt: new Date(), // IMPORTANT: Set exact submission time
       },
+    });
+
+    console.log('✅ Submission created:', {
+      submissionId: submission.id,
+      attemptNumber,
+      submittedAt: submission.submittedAt
     });
 
     return NextResponse.json({
