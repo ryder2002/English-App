@@ -57,7 +57,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
     const previousDuration = latestSubmission?.timeSpentSeconds ?? 0;
     const timeSpentSeconds = Math.max(previousDuration, computedDuration);
 
-    const normalized = (v: any) => String(v ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+    // Normalize function - remove punctuation and standardize text
+    const normalized = (v: any) => {
+      return String(v ?? '')
+        .trim()
+        .toLowerCase()
+        // Remove ALL punctuation: . , ; : ! ? ' " ( ) [ ] { } - _ + = * & ^ % $ # @ ~ ` | \ / < >
+        .replace(/[.,;:!?'"()\[\]{}\-_+=*&^%$#@~`|\\/<>]/g, '')
+        // Normalize whitespace
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
 
     let score: number | null = null;
     let isCorrect: boolean | null = null;

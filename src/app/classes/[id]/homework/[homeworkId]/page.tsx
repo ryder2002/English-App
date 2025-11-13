@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Play, Pause, Send, Eye, RotateCcw } from 'lucide-react';
 import { SpeakingHomeworkPlayer } from '@/components/speaking-homework-player';
+import { ListeningHomeworkPlayer } from '@/components/listening-homework-player';
 
 interface Homework {
   id: number;
@@ -37,6 +38,7 @@ interface Homework {
     isCorrect?: boolean;
     transcribedText?: string;
     voiceAnalysis?: any;
+    audioUrl?: string;
   }>;
   currentSubmission?: {
     id: number;
@@ -51,6 +53,7 @@ interface Homework {
     isCorrect?: boolean;
     transcribedText?: string;
     voiceAnalysis?: any;
+    audioUrl?: string;
   };
   boxes?: number;
   answerKey?: string | null;
@@ -355,7 +358,53 @@ export default function HomeworkPage() {
             </CardHeader>
             <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="space-y-3 sm:space-y-4">
-                {homework.type === 'listening' && homework.audioUrl && (
+                {/* Listening homework component */}
+                {homework.type === 'listening' && homework.audioUrl && homework.boxes && homework.boxes > 0 && (
+                  <ListeningHomeworkPlayer
+                    audioUrl={homework.audioUrl}
+                    promptText={homework.content || homework.promptText || homework.processedAnswerText || undefined}
+                    boxes={homework.boxes}
+                    answerKey={homework.answerKey}
+                    isSubmitted={isSubmitted}
+                    isLocked={isLocked}
+                    submittedAnswers={currentSubmission?.answers as string[] | undefined}
+                    boxResults={boxResults || undefined}
+                    onRedoAction={doRetry}
+                    onSubmitAction={async (answers: string[]) => {
+                      try {
+                        const res = await fetch(`/api/homework/${homeworkId}/submit`, {
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ answers }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error || 'Submit failed');
+                        
+                        if (Array.isArray(data.boxResults)) {
+                          setBoxResults(data.boxResults);
+                        }
+                        
+                        toast({
+                          title: 'Nộp bài thành công!',
+                          description: `Bạn đã làm đúng ${data.boxResults?.filter((r: boolean) => r).length || 0}/${answers.length} câu`,
+                        });
+                        
+                        fetchHomework();
+                      } catch (error: any) {
+                        toast({
+                          title: 'Lỗi',
+                          description: error.message || 'Không thể nộp bài',
+                          variant: 'destructive',
+                        });
+                        throw error;
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Old listening UI - only show if not using boxes */}
+                {homework.type === 'listening' && homework.audioUrl && (!homework.boxes || homework.boxes === 0) && (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
                     <Button
                       onClick={handlePlayPause}
@@ -391,6 +440,8 @@ export default function HomeworkPage() {
                     score={currentSubmission?.score || undefined}
                     submissionId={currentSubmission?.id}
                     voiceAnalysis={currentSubmission?.voiceAnalysis}
+                    audioUrl={currentSubmission?.audioUrl}
+                    onRedoAction={doRetry}
                     onSubmitAction={async (audioBlob: Blob, transcript: string) => {
                       setIsSubmitting(true);
                       try {

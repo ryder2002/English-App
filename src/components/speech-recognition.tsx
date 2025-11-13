@@ -126,14 +126,23 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
     finalTranscriptRef.current = '';
     setTranscript('');
     setInterimTranscript('');
-    setIsListening(true);
     
-    try {
-      recognitionRef.current.start();
-    } catch (error) {
-      console.error('Failed to start recognition:', error);
-      setError('Không thể bắt đầu ghi âm');
-    }
+    // Request microphone permission first
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => {
+        setIsListening(true);
+        try {
+          recognitionRef.current.start();
+        } catch (error) {
+          console.error('Failed to start recognition:', error);
+          setError('Không thể bắt đầu ghi âm');
+          setIsListening(false);
+        }
+      })
+      .catch((error) => {
+        console.error('Microphone permission denied:', error);
+        setError('Vui lòng cấp quyền truy cập microphone');
+      });
   };
 
   const stopListening = () => {
@@ -168,11 +177,11 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
 
   if (!isSupported) {
     return (
-      <Card className="border-2 border-red-200 bg-red-50">
-        <CardContent className="p-4">
+      <Card className="border border-red-200 bg-red-50">
+        <CardContent className="p-3">
           <div className="text-center text-red-600">
-            <p className="font-semibold">Trình duyệt không hỗ trợ Speech Recognition</p>
-            <p className="text-sm mt-1">Vui lòng sử dụng Chrome hoặc Edge</p>
+            <p className="text-sm font-semibold">Trình duyệt không hỗ trợ</p>
+            <p className="text-xs mt-1">Vui lòng dùng Chrome/Edge</p>
           </div>
         </CardContent>
       </Card>
@@ -180,84 +189,80 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
   }
 
   return (
-    <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-      <CardContent className="p-6 space-y-4">
-        {/* Header */}
+    <Card className="border border-blue-300 bg-white shadow-md max-w-md mx-auto">
+      <CardContent className="p-4 space-y-3">
+        {/* Compact Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-500 rounded-lg">
-              <Mic className="h-5 w-5 text-white" />
+            <div className="p-1.5 bg-blue-500 rounded-lg">
+              <Mic className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-blue-900">Voice Input</h3>
-              <p className="text-xs text-blue-700">Speak your question</p>
+              <h3 className="text-sm font-semibold text-gray-900">Voice Input</h3>
             </div>
           </div>
           <Button
             onClick={onClose}
             size="icon"
             variant="ghost"
-            className="h-8 w-8 rounded-full hover:bg-blue-100"
+            className="h-7 w-7 rounded-full hover:bg-gray-100"
           >
-            <X className="h-4 w-4 text-blue-900" />
+            <X className="h-3.5 w-3.5 text-gray-600" />
           </Button>
         </div>
 
-        {/* Language Selector */}
-        <div className="flex items-center gap-2">
-          <Languages className="h-4 w-4 text-blue-700" />
-          <div className="flex gap-2 flex-wrap">
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <Button
-                key={lang.code}
-                onClick={() => handleChangeLanguage(lang)}
-                size="sm"
-                variant={selectedLanguage.code === lang.code ? "default" : "outline"}
-                className={`${
-                  selectedLanguage.code === lang.code 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                    : 'border-blue-300 hover:bg-blue-100'
-                }`}
-              >
-                <span className="mr-1">{lang.flag}</span>
-                {lang.name}
-              </Button>
-            ))}
-          </div>
+        {/* Compact Language Selector */}
+        <div className="flex items-center justify-center gap-1.5">
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <Button
+              key={lang.code}
+              onClick={() => handleChangeLanguage(lang)}
+              size="sm"
+              variant={selectedLanguage.code === lang.code ? "default" : "outline"}
+              className={`h-8 px-3 text-xs ${
+                selectedLanguage.code === lang.code 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <span className="mr-1">{lang.flag}</span>
+              <span className="hidden sm:inline">{lang.name}</span>
+            </Button>
+          ))}
         </div>
 
-        {/* Recording Status */}
-        <div className="min-h-[100px] bg-white rounded-lg p-4 border-2 border-blue-200">
+        {/* Compact Recording Status */}
+        <div className="min-h-[80px] bg-gray-50 rounded-lg p-3 border border-gray-200">
           {isListening ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-center">
                 <div className="relative">
-                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
-                    <Mic className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                    <Mic className="w-5 h-5 text-white" />
                   </div>
-                  <div className="absolute inset-0 w-12 h-12 bg-red-400 rounded-full animate-ping opacity-75"></div>
+                  <div className="absolute inset-0 w-10 h-10 bg-red-400 rounded-full animate-ping opacity-75"></div>
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-sm font-semibold text-red-600">Listening...</p>
-                <p className="text-xs text-gray-600 mt-1">Speak clearly in {selectedLanguage.name}</p>
+                <p className="text-xs font-semibold text-red-600">Listening...</p>
+                <p className="text-xs text-gray-500">{selectedLanguage.name}</p>
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <Mic className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Click Start to begin</p>
+                <Mic className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                <p className="text-xs text-gray-500">Click Start</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Transcript Display */}
+        {/* Compact Transcript Display */}
         {(transcript || interimTranscript) && (
-          <div className="bg-white rounded-lg p-4 border-2 border-green-200">
-            <p className="text-sm font-semibold text-green-800 mb-2">Transcript:</p>
-            <p className="text-base text-gray-900">
+          <div className="bg-green-50 rounded-lg p-2.5 border border-green-200">
+            <p className="text-xs font-semibold text-green-800 mb-1">Text:</p>
+            <p className="text-sm text-gray-900 max-h-20 overflow-y-auto">
               {transcript}
               {interimTranscript && (
                 <span className="text-gray-400 italic"> {interimTranscript}</span>
@@ -266,30 +271,30 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
           </div>
         )}
 
-        {/* Error Message */}
+        {/* Compact Error Message */}
         {error && (
-          <div className="bg-orange-100 border border-orange-300 rounded-lg p-3">
-            <p className="text-sm text-orange-800">{error}</p>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
+            <p className="text-xs text-orange-700">{error}</p>
           </div>
         )}
 
-        {/* Control Buttons */}
+        {/* Compact Control Buttons */}
         <div className="flex gap-2 justify-center">
           {!isListening ? (
             <Button
               onClick={startListening}
-              size="lg"
-              className="px-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg"
+              size="sm"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
             >
-              <Mic className="w-5 h-5 mr-2" />
-              Start Listening
+              <Mic className="w-4 h-4 mr-1.5" />
+              Start
             </Button>
           ) : (
             <Button
               onClick={stopListening}
-              size="lg"
+              size="sm"
               variant="outline"
-              className="px-8 border-2 border-gray-400 hover:bg-gray-100"
+              className="px-4 py-2 text-sm border border-gray-300"
             >
               Stop
             </Button>
@@ -298,8 +303,8 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
           {transcript && (
             <Button
               onClick={handleDone}
-              size="lg"
-              className="px-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg"
+              size="sm"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
             >
               Done
             </Button>
