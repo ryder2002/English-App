@@ -102,6 +102,8 @@ export async function GET(
         userId: true,
         homeworkId: true,
         answer: true,
+        answers: true, // Array of answers for listening
+        boxResults: true, // Results for listening
         transcribedText: true,
         audioUrl: true,
         audioData: true,
@@ -117,6 +119,7 @@ export async function GET(
             title: true,
             type: true,
             speakingText: true,
+            answerBoxes: true, // Correct answers for listening
             deadline: true,
             status: true,
           }
@@ -155,10 +158,13 @@ export async function GET(
         title: submission.homework.title,
         type: submission.homework.type,
         speakingText: submission.homework.speakingText,
+        answerBoxes: submission.homework.answerBoxes, // Correct answers for listening
         deadline: submission.homework.deadline,
         status: submission.homework.status,
       },
       answer: submission.answer,
+      answers: submission.answers, // Array of student answers for listening
+      boxResults: submission.boxResults, // Array of correct/wrong for listening
       transcribedText: submission.transcribedText,
       audioDataUrl,
       score: submission.score,

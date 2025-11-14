@@ -29,28 +29,39 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ho
       return NextResponse.json({ error: 'Homework is locked or deadline passed' }, { status: 400 });
     }
 
-    // DELETE ALL previous submissions and start fresh from attempt 1
-    await prisma.homeworkSubmission.deleteMany({
-      where: {
-        homeworkId: Number(homeworkId),
-        userId: user.id,
-      },
-    });
+    // DELETE ALL previous submissions based on homework type
+    if (hw.type === 'speaking') {
+      // For speaking homework, delete from speakingSubmission table
+      await prisma.speakingSubmission.deleteMany({
+        where: {
+          homeworkId: Number(homeworkId),
+          userId: user.id,
+        },
+      });
+    } else {
+      // For other homework, delete from homeworkSubmission table
+      await prisma.homeworkSubmission.deleteMany({
+        where: {
+          homeworkId: Number(homeworkId),
+          userId: user.id,
+        },
+      });
 
-    // Create a fresh attempt starting from attempt 1
-    const newAttempt = await prisma.homeworkSubmission.create({
-      data: {
-        homeworkId: Number(homeworkId),
-        userId: user.id,
-        attemptNumber: 1, // Always start from 1 after reset
-        status: 'in_progress',
-        startedAt: new Date(),
-        lastActivityAt: new Date(),
-        timeSpentSeconds: 0,
-      },
-    });
+      // Create a fresh attempt starting from attempt 1
+      const newAttempt = await prisma.homeworkSubmission.create({
+        data: {
+          homeworkId: Number(homeworkId),
+          userId: user.id,
+          attemptNumber: 1, // Always start from 1 after reset
+          status: 'in_progress',
+          startedAt: new Date(),
+          lastActivityAt: new Date(),
+          timeSpentSeconds: 0,
+        },
+      });
+    }
 
-    return NextResponse.json(newAttempt);
+    return NextResponse.json({ success: true, message: 'Retry successful' });
   } catch (error: any) {
     console.error('Retry homework error:', error);
     return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TraditionalSpeakingResult } from '@/components/traditional-speaking-result';
-import { ArrowLeft, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Volume2, VolumeX, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SubmissionDetail {
@@ -17,8 +17,11 @@ interface SubmissionDetail {
     title: string;
     type: string;
     speakingText?: string;
+    answerBoxes?: any; // Correct answers for listening
   };
   answer?: string | null;
+  answers?: string[]; // Student answers for listening
+  boxResults?: boolean[]; // Correct/wrong results for listening
   transcribedText?: string | null;
   score?: number | null;
   status: string;
@@ -249,6 +252,168 @@ export default function StudentSubmissionDetailPage() {
                 <div>Bắt đầu: {detail.startedAt ? new Date(detail.startedAt).toLocaleString('vi-VN') : '-'}</div>
                 <div>Nộp lúc: {detail.submittedAt ? new Date(detail.submittedAt).toLocaleString('vi-VN') : '-'}</div>
               </div>
+
+              {/* Listening homework - show detailed results */}
+              {detail.homework?.type === 'listening' && detail.answers && detail.boxResults && (
+                <div className="space-y-6">
+                  {/* Score Summary Card */}
+                  <Card className="border-0 bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold mb-2">
+                            Kết quả bài nghe
+                          </h3>
+                          <p className="text-indigo-100">
+                            {detail.boxResults.filter((r: boolean) => r).length}/{detail.boxResults.length} câu đúng
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-4 border-white/30">
+                            <span className="text-3xl font-bold">
+                              {Math.round((detail.boxResults.filter((r: boolean) => r).length / detail.boxResults.length) * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Answer Breakdown */}
+                  <Card className="border-2 border-indigo-100">
+                    <CardHeader>
+                      <CardTitle className="text-lg">📋 Chi tiết từng câu trả lời</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {detail.answers.map((userAnswer: string, idx: number) => {
+                        const isCorrect = detail.boxResults![idx];
+                        const correctAnswer = detail.homework.answerBoxes 
+                          ? (Array.isArray(detail.homework.answerBoxes) 
+                              ? detail.homework.answerBoxes[idx] 
+                              : 'N/A')
+                          : 'N/A';
+                        
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-lg border-2 ${
+                              isCorrect
+                                ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
+                                : 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              {isCorrect ? (
+                                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                              )}
+                              <span className={`font-semibold ${
+                                isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
+                              }`}>
+                                Câu {idx + 1}: {isCorrect ? 'Đúng' : 'Sai'}
+                              </span>
+                              <span className="text-sm text-gray-500 ml-auto">
+                                {isCorrect ? '+' : '0'} điểm
+                              </span>
+                            </div>
+                            
+                            <div className="space-y-2 ml-7">
+                              <div className="flex items-start gap-2">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[120px]">
+                                  ✅ Đáp án đúng:
+                                </span>
+                                <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                                  {correctAnswer}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-start gap-2">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[120px]">
+                                  {isCorrect ? '✅' : '❌'} Câu trả lời:
+                                </span>
+                                <span className={`text-sm font-semibold ${
+                                  isCorrect 
+                                    ? 'text-green-700 dark:text-green-300' 
+                                    : 'text-red-700 dark:text-red-300'
+                                }`}>
+                                  {userAnswer || '(Không trả lời)'}
+                                </span>
+                              </div>
+                              
+                              {!isCorrect && (
+                                <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-950/30 rounded border border-yellow-200 dark:border-yellow-800">
+                                  <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                                    💡 <strong>Gợi ý:</strong> Hãy luyện nghe kỹ hơn và chú ý đến từ vựng chính xác.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+
+                  {/* Statistics Card */}
+                  <Card className="border-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+                    <CardHeader>
+                      <CardTitle className="text-lg">📊 Thống kê chi tiết</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                          <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                            {detail.boxResults.length}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Tổng câu hỏi
+                          </div>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {detail.boxResults.filter((r: boolean) => r).length}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Câu đúng
+                          </div>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {detail.boxResults.filter((r: boolean) => !r).length}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Câu sai
+                          </div>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                          <div className={`text-2xl font-bold ${
+                            (detail.boxResults.filter((r: boolean) => r).length / detail.boxResults.length) >= 0.6
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {(detail.boxResults.filter((r: boolean) => r).length / detail.boxResults.length) >= 0.6 ? '✅ Đạt' : '❌ Chưa đạt'}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Kết quả
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {detail.timeSpentSeconds !== undefined && (
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            ⏱️ Thời gian làm bài: <strong>{Math.floor(detail.timeSpentSeconds / 60)} phút {detail.timeSpentSeconds % 60} giây</strong>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* Speaking homework - show detailed comparison */}
               {detail.homework?.type === 'speaking' && detail.homework.speakingText && detail.transcribedText && (

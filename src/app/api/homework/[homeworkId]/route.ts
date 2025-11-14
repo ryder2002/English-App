@@ -60,7 +60,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ hom
         orderBy: { attemptNumber: 'desc' },
       });
 
-      const currentSpeakingSubmission = speakingSubmissions.find(s => s.status === 'graded' || s.status === 'submitted') || speakingSubmissions[0];
+      // Prioritize in_progress submission (after retry), otherwise use latest submitted/graded
+      const inProgressSubmission = speakingSubmissions.find(s => s.status === 'processing' || s.status === 'in_progress');
+      const submittedSubmission = speakingSubmissions.find(s => s.status === 'graded' || s.status === 'submitted');
+      const currentSpeakingSubmission = inProgressSubmission || submittedSubmission || speakingSubmissions[0];
 
       // Parse voiceAnalysis if it's a JSON string
       const parsedSubmissions = speakingSubmissions.map(sub => ({

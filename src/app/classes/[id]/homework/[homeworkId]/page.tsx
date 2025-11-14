@@ -349,7 +349,7 @@ export default function HomeworkPage() {
                     <Badge variant="outline" className="text-xs whitespace-nowrap">⏰ {deadline.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</Badge>
                     {isExpired && <Badge variant="destructive" className="text-xs">⚠️ Quá hạn</Badge>}
                     {isSubmitted && typeof currentSubmission?.score === 'number' && (
-                      <Badge variant="outline" className="text-xs">Điểm: {currentSubmission.score}/1</Badge>
+                      <Badge variant="outline" className="text-xs">Điểm: {Math.round(currentSubmission.score * 100)}/100</Badge>
                     )}
                     {currentSubmission?.attemptNumber && (
                       <Badge variant="outline" className="text-xs">Lần {currentSubmission.attemptNumber}</Badge>
@@ -408,32 +408,7 @@ export default function HomeworkPage() {
                   />
                 )}
 
-                {/* Old listening UI - only show if not using boxes */}
-                {homework.type === 'listening' && homework.audioUrl && (!homework.boxes || homework.boxes === 0) && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 p-2 sm:p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border">
-                    <Button
-                      onClick={handlePlayPause}
-                      disabled={isLocked}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 h-9 sm:h-10 text-sm"
-                    >
-                      {isPlaying ? <Pause className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> : <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />}
-                      {isPlaying ? 'Dừng' : 'Phát'}
-                    </Button>
-                    <audio src={homework.audioUrl} controls className="flex-1 w-full h-9 sm:h-10" />
-                  </div>
-                )}
-
-                {/* Display content/promptText as read-only for listening/reading */}
-                {homework.type !== 'speaking' && (homework.content || homework.promptText || homework.processedAnswerText) && (
-                  <div className="space-y-2">
-                    <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      Văn bản giao cho học viên (có chỗ trống)
-                    </label>
-                    <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 whitespace-pre-wrap text-sm sm:text-base leading-6 sm:leading-7 overflow-x-auto">
-                      {homework.content || homework.promptText || homework.processedAnswerText}
-                    </div>
-                  </div>
-                )}
+                {/* Hide old listening UI - new ListeningHomeworkPlayer handles everything */}
 
                 {/* Speaking homework component */}
                 {homework.type === 'speaking' && homework.speakingText && (
@@ -527,8 +502,8 @@ export default function HomeworkPage() {
                   />
                 )}
 
-                {/* Input area for boxes or textarea (listening/reading only) */}
-                {homework.type !== 'speaking' && (homework.boxes && homework.boxes > 0 ? (
+                {/* Input area for reading homework only (not listening - it uses ListeningHomeworkPlayer) */}
+                {homework.type === 'reading' && (homework.boxes && homework.boxes > 0 ? (
                   <div className="space-y-2 sm:space-y-3">
                     <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
                       Điền đáp án vào các ô tương ứng
