@@ -9,7 +9,7 @@ async function checkChatTables() {
     console.log(`✅ chat_conversations table exists! Count: ${convCount}`);
     
     // Try to query chat_messages
-    const msgCount = await prisma.chat_message.count();
+    const msgCount = await prisma.chatMessage.count();
     console.log(`✅ chat_messages table exists! Count: ${msgCount}`);
     
     console.log('\n✅ All chat history tables are working!');

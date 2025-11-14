@@ -94,8 +94,13 @@ export default function HomeworkPage() {
       setLastResult(null);
       setShowAnswerKey(false);
       setAnswer(''); // Keep answer field empty for student input
+      setBoxes(homework?.boxes ? Array(homework.boxes).fill('') : []); // Reset boxes
       // Refresh submission state
-      fetchHomework();
+      await fetchHomework();
+      toast({ 
+        title: 'Làm lại thành công!', 
+        description: 'Bạn có thể bắt đầu làm bài mới',
+      });
     } catch (e: any) {
       toast({ title: 'Lỗi', description: e.message || 'Không thể làm lại bài', variant: 'destructive' });
     }

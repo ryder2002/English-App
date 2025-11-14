@@ -80,11 +80,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const submission = await prisma.homeworkSubmission.findUnique({
       where: { id: subId },
       include: {
-        homework: { 
-          include: { 
-            clazz: true 
-          }
-        },
+        homework: true,
         user: { select: { id: true, name: true, email: true } },
       },
     });
@@ -109,8 +105,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         title: submission.homework.title,
         type: submission.homework.type,
         speakingText: submission.homework.speakingText,
+        answerBoxes: submission.homework.answerBoxes, // Json array of correct answers for listening
       },
       answer: submission.answer,
+      answers: submission.answers, // Array of student answers for listening
+      boxResults: submission.boxResults, // Array of true/false for each answer
       transcribedText: submission.transcribedText,
       audioDataUrl,
       audioUrl: submission.audioUrl,
