@@ -200,6 +200,11 @@ export function VocabularyList() {
                           <p className="text-primary font-medium text-sm sm:text-base line-clamp-2">
                             {item.vietnameseTranslation}
                           </p>
+                          {item.example && (
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 line-clamp-2 italic">
+                              "{item.example}"
+                            </p>
+                          )}
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -222,16 +227,6 @@ export function VocabularyList() {
                             {item.partOfSpeech && <span className="font-mono text-[10px] sm:text-xs px-1.5 py-0.5 rounded-sm bg-muted">{item.partOfSpeech}</span>}
                             <span className="truncate">{item.ipa || item.pinyin}</span>
                         </p>
-                        <Badge
-                          variant={
-                            item.language === "english"
-                              ? "secondary"
-                              : "outline"
-                          }
-                          className="text-xs"
-                        >
-                          {languageMap[item.language]}
-                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
@@ -243,11 +238,11 @@ export function VocabularyList() {
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-[250px] pl-6">Từ</TableHead>
-                          <TableHead>Ngôn ngữ</TableHead>
-                          <TableHead>Từ loại</TableHead>
-                          <TableHead>Phát âm</TableHead>
-                          <TableHead>Tiếng Việt</TableHead>
+                          <TableHead className="w-[200px] pl-6">Từ</TableHead>
+                          <TableHead className="w-[100px]">Từ loại</TableHead>
+                          <TableHead className="w-[150px]">Phát âm</TableHead>
+                          <TableHead className="w-[180px]">Tiếng Việt</TableHead>
+                          <TableHead>Ví dụ</TableHead>
                           <TableHead className="text-right w-[100px] pr-6">
                             Hành động
                           </TableHead>
@@ -264,20 +259,12 @@ export function VocabularyList() {
                                     </Button>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  item.language === "english"
-                                    ? "secondary"
-                                    : "outline"
-                                }
-                              >
-                                {languageMap[item.language]}
-                              </Badge>
+                            <TableCell><span className="font-mono text-xs px-1.5 py-0.5 rounded-sm bg-muted">{item.partOfSpeech || '-'}</span></TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{item.ipa || item.pinyin || '-'}</TableCell>
+                            <TableCell className="font-medium text-primary">{item.vietnameseTranslation}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground max-w-[300px]">
+                              <span className="line-clamp-2">{item.example || '-'}</span>
                             </TableCell>
-                            <TableCell><span className="font-mono text-xs px-1.5 py-0.5 rounded-sm">{item.partOfSpeech}</span></TableCell>
-                            <TableCell>{item.ipa || item.pinyin}</TableCell>
-                            <TableCell>{item.vietnameseTranslation}</TableCell>
                             <TableCell className="text-right pr-4">
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>

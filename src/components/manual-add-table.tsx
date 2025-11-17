@@ -36,6 +36,7 @@ type SheetRow = {
   partOfSpeechLoading: boolean;
   vietnameseTranslation: string;
   translationLoading: boolean;
+  example: string;
   folder: string;
   hasCustomDefinition?: boolean; // Track if user provided custom definition
 };
@@ -58,6 +59,7 @@ export function ManualAddTable() {
     partOfSpeechLoading: false,
     vietnameseTranslation: "",
     translationLoading: false,
+    example: "",
     folder: defaultFolder,
   });
 
@@ -249,6 +251,7 @@ export function ManualAddTable() {
             vietnameseTranslation: row.vietnameseTranslation,
             partOfSpeech: row.partOfSpeech,
             folder: row.folder,
+            example: row.example || undefined,
             ipa: row.language === 'english' ? row.pronunciation : undefined,
             pinyin: row.language === 'chinese' ? row.pronunciation : undefined,
         }));
@@ -292,10 +295,10 @@ export function ManualAddTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="min-w-[200px]">Từ vựng</TableHead>
-              <TableHead className="w-[150px]">Ngôn ngữ</TableHead>
+              <TableHead className="min-w-[100px]">Từ loại (AI)</TableHead>
               <TableHead className="min-w-[150px]">Phát âm (AI)</TableHead>
               <TableHead className="min-w-[200px]">Nghĩa tiếng Việt (AI)</TableHead>
-              <TableHead className="min-w-[150px]">Từ loại (AI)</TableHead>
+              <TableHead className="min-w-[250px]">Ví dụ</TableHead>
               <TableHead className="w-[200px]">Thư mục</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -363,6 +366,15 @@ export function ManualAddTable() {
                       className="text-base min-h-[80px]"
                     />
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Textarea
+                    value={row.example}
+                    onChange={(e) => handleInputChange(index, "example", e.target.value)}
+                    placeholder="Ví dụ: Hello! How are you?"
+                    disabled={isSaving}
+                    className="text-base min-h-[80px]"
+                  />
                 </TableCell>
                 <TableCell>
                   <Select

@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
       partOfSpeech: item.partOfSpeech || undefined,
       ipa: item.ipa || undefined,
       pinyin: item.pinyin || undefined,
+      example: item.example || undefined,
       createdAt: item.createdAt.toISOString(),
       audioSrc: item.audioSrc || undefined
     }))
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
         partOfSpeech: item.partOfSpeech || null,
         ipa: item.ipa || null,
         pinyin: item.pinyin || null,
+        example: item.example || null,
         audioSrc: item.audioSrc || null,
         userId: payload.userId
       }
@@ -114,6 +116,7 @@ export async function POST(request: NextRequest) {
       partOfSpeech: newItem.partOfSpeech || undefined,
       ipa: newItem.ipa || undefined,
       pinyin: newItem.pinyin || undefined,
+      example: newItem.example || undefined,
       createdAt: newItem.createdAt.toISOString(),
       audioSrc: newItem.audioSrc || undefined
     }

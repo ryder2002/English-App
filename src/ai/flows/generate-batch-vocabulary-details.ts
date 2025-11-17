@@ -25,6 +25,7 @@ const WordDetailSchema = z.object({
     language: z.enum(['english', 'chinese', 'vietnamese']).describe("The source language of the word."),
     partOfSpeech: z.string().optional().describe("The part of speech of the word (e.g., N, V, Adj)."),
     vietnameseTranslation: z.string().describe("The Vietnamese translation of the word."),
+    example: z.string().optional().describe("A simple example sentence using the word in context."),
     folder: z.string().describe("The folder to add the vocabulary to."),
     ipa: z.string().optional().describe("The IPA transcription for the English word, enclosed in slashes."),
     pinyin: z.string().optional().describe("The Pinyin transcription for the Chinese word."),
@@ -71,18 +72,19 @@ For each word in the input list, provide the following details:
     - If the target language is Vietnamese, this is the direct translation.
     - If translating between English and Chinese, you MUST still provide a Vietnamese translation for the source word.
     - If synonym context is provided, use it to give a more accurate translation.
-5. 'folder': The folder name provided ({{{folder}}}).
-6. 'ipa': The International Phonetic Alphabet (IPA) transcription, enclosed in slashes (e.g., /həˈloʊ/). Provide this ONLY if the source language is 'english'. Otherwise, omit this field.
-7. 'pinyin': The Pinyin transcription. Provide this ONLY if the source language is 'chinese'. Otherwise, omit this field.
+5. 'example': A short, simple example sentence using the word in context. Keep it under 15 words. Use natural, everyday language. This field is optional but recommended.
+6. 'folder': The folder name provided ({{{folder}}}).
+7. 'ipa': The International Phonetic Alphabet (IPA) transcription, enclosed in slashes (e.g., /həˈloʊ/). Provide this ONLY if the source language is 'english'. Otherwise, omit this field.
+8. 'pinyin': The Pinyin transcription. Provide this ONLY if the source language is 'chinese'. Otherwise, omit this field.
 
 Input Words: {{{json words}}}
 Source Language: {{{sourceLanguage}}}
 Target Language: {{{targetLanguage}}}
 
 Examples:
-- Input: "hello (synonym: hi)" → Output word: "hello", vietnameseTranslation: "xin chào"
-- Input: "run (synonym: jog)" → Output word: "run", vietnameseTranslation: "chạy"
-- Input: "world" → Output word: "world", vietnameseTranslation: "thế giới"
+- Input: "hello (synonym: hi)" → Output word: "hello", vietnameseTranslation: "xin chào", example: "Hello! How are you today?"
+- Input: "run (synonym: jog)" → Output word: "run", vietnameseTranslation: "chạy", example: "I run every morning."
+- Input: "world" → Output word: "world", vietnameseTranslation: "thế giới", example: "The world is beautiful."
 
 Process all words and return a single, valid JSON array of objects, with each object conforming to the schema. Do not skip any words.
   `,

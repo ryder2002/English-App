@@ -56,6 +56,7 @@ model Vocabulary {
   partOfSpeech          String?  @map("part_of_speech")
   ipa                   String?
   pinyin                String?
+  example               String?  @map("example")
   audioSrc              String?  @map("audio_src")
   userId                Int      @map("user_id")
   createdAt             DateTime @default(now()) @map("created_at")

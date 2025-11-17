@@ -24,17 +24,26 @@ export interface TraditionalAssessment {
 }
 
 /**
- * Normalize text for comparison (lowercase, remove punctuation)
+ * Normalize text for comparison (lowercase, remove punctuation, trim whitespace)
  */
 function normalizeText(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[.,!?;:'"()]/g, '')
+    .replace(/[.,!?;:'"()\-–—]/g, '') // Remove punctuation and dashes
+    .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
     .trim();
 }
 
 /**
- * Calculate similarity between two words (0-1)
+ * Check if a word is a filler word (should be ignored in comparison)
+ */
+function isFillerWord(word: string): boolean {
+  const fillers = ['um', 'uh', 'er', 'ah', 'like', 'you know', 'i mean', 'sort of', 'kind of'];
+  return fillers.includes(normalizeText(word));
+}
+
+/**
+ * Calculate similarity between two words (0-1) with improved tolerance
  */
 function calculateSimilarity(word1: string, word2: string): number {
   const w1 = normalizeText(word1);
@@ -42,12 +51,47 @@ function calculateSimilarity(word1: string, word2: string): number {
   
   if (w1 === w2) return 1.0;
   
-  // Simple Levenshtein distance
-  const maxLen = Math.max(w1.length, w2.length);
-  if (maxLen === 0) return 1.0;
+  // Handle empty strings
+  if (w1.length === 0 || w2.length === 0) return 0.0;
   
+  // Check for common speech recognition errors
+  if (arePhoneticallySimilar(w1, w2)) return 0.9;
+  
+  // Simple Levenshtein distance with improved scoring
+  const maxLen = Math.max(w1.length, w2.length);
   const distance = levenshteinDistance(w1, w2);
-  return 1 - (distance / maxLen);
+  
+  // More forgiving scoring for longer words
+  const lengthBonus = maxLen > 5 ? 0.1 : 0;
+  const similarity = Math.max(0, 1 - (distance / maxLen) + lengthBonus);
+  
+  return Math.min(1.0, similarity);
+}
+
+/**
+ * Check if two words are phonetically similar (common speech recognition errors)
+ */
+function arePhoneticallySimilar(word1: string, word2: string): boolean {
+  const phoneticPairs = [
+    ['there', 'their', 'theyre'],
+    ['to', 'too', 'two'],
+    ['your', 'youre'],
+    ['its', 'its'],
+    ['hear', 'here'],
+    ['no', 'know'],
+    ['write', 'right'],
+    ['see', 'sea'],
+    ['for', 'four'],
+    ['ate', 'eight'],
+  ];
+  
+  for (const group of phoneticPairs) {
+    if (group.includes(word1) && group.includes(word2)) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -86,55 +130,72 @@ export function assessSpeechTraditional(
     transcribedLength: transcribedText.length
   });
 
-  // Split into words
+  // Split into words and filter out filler words
   const referenceWords = referenceText
     .split(/\s+/)
+    .filter(w => w.length > 0)
+    .map(w => normalizeText(w))
     .filter(w => w.length > 0);
   
   const transcribedWords = transcribedText
     .split(/\s+/)
-    .filter(w => w.length > 0);
+    .filter(w => w.length > 0)
+    .map(w => normalizeText(w))
+    .filter(w => !isFillerWord(w) && w.length > 0);
 
   const wordComparisons: WordComparison[] = [];
   let correctCount = 0;
   let incorrectCount = 0;
   let missingCount = 0;
 
-  // Compare each reference word with transcribed words
+  // Compare each reference word with transcribed words using improved matching
   const usedIndices = new Set<number>();
+  const similarityThreshold = 0.7; // Lowered from 0.8 for more forgiving matching
   
   for (let refIndex = 0; refIndex < referenceWords.length; refIndex++) {
     const refWord = referenceWords[refIndex];
     let bestMatch: { index: number; similarity: number; word: string } | null = null;
     
-    // Find best matching transcribed word
-    for (let transIndex = 0; transIndex < transcribedWords.length; transIndex++) {
+    // Find best matching transcribed word within a reasonable window
+    const searchStart = Math.max(0, refIndex - 3);
+    const searchEnd = Math.min(transcribedWords.length, refIndex + 4);
+    
+    for (let transIndex = searchStart; transIndex < searchEnd; transIndex++) {
       if (usedIndices.has(transIndex)) continue;
       
       const transWord = transcribedWords[transIndex];
       const similarity = calculateSimilarity(refWord, transWord);
       
-      if (!bestMatch || similarity > bestMatch.similarity) {
-        bestMatch = { index: transIndex, similarity, word: transWord };
+      // Bonus for matching in nearby position
+      const positionBonus = Math.abs(refIndex - transIndex) <= 1 ? 0.05 : 0;
+      const adjustedSimilarity = Math.min(1.0, similarity + positionBonus);
+      
+      if (!bestMatch || adjustedSimilarity > bestMatch.similarity) {
+        bestMatch = { index: transIndex, similarity: adjustedSimilarity, word: transWord };
       }
     }
 
-    if (bestMatch && bestMatch.similarity >= 0.8) {
-      // Consider it correct if 80%+ similar
+    if (bestMatch && bestMatch.similarity >= similarityThreshold) {
+      // Consider it correct if above threshold
       usedIndices.add(bestMatch.index);
-      const isExact = bestMatch.similarity === 1.0;
+      const isExact = bestMatch.similarity >= 0.95;
       
       wordComparisons.push({
         word: refWord,
-        isCorrect: isExact,
+        isCorrect: true, // Consider similar words as correct
         matchType: isExact ? 'exact' : 'similar'
       });
       
-      if (isExact) {
-        correctCount++;
-      } else {
-        incorrectCount++;
-      }
+      correctCount++;
+    } else if (bestMatch && bestMatch.similarity >= 0.5) {
+      // Partially correct - close but not quite
+      usedIndices.add(bestMatch.index);
+      wordComparisons.push({
+        word: refWord,
+        isCorrect: false,
+        matchType: 'similar'
+      });
+      incorrectCount++;
     } else {
       // Word is missing or very different
       wordComparisons.push({
@@ -149,35 +210,46 @@ export function assessSpeechTraditional(
   // Count extra words (words in transcribed but not in reference)
   const extraCount = transcribedWords.length - usedIndices.size;
 
-  // Calculate scores
+  // Calculate scores with improved weighting
   const totalWords = referenceWords.length;
+  
+  // Accuracy: percentage of correct words
   const accuracyScore = totalWords > 0 
     ? Math.round((correctCount / totalWords) * 100)
     : 0;
   
+  // Completeness: percentage of attempted words (correct + similar)
+  const attemptedWords = correctCount + incorrectCount;
   const completenessScore = totalWords > 0
-    ? Math.round(((correctCount + incorrectCount) / totalWords) * 100)
+    ? Math.round((attemptedWords / totalWords) * 100)
     : 0;
   
-  const overallScore = Math.round((accuracyScore * 0.7) + (completenessScore * 0.3));
+  // Overall: weighted average favoring accuracy but rewarding completeness
+  // 60% accuracy, 40% completeness (more balanced)
+  const overallScore = Math.round((accuracyScore * 0.6) + (completenessScore * 0.4));
 
-  // Generate feedback
+  // Generate improved feedback
   let feedback = '';
-  if (overallScore >= 80) {
-    feedback = 'Excellent pronunciation! Most words are correct.';
+  if (overallScore >= 90) {
+    feedback = '🌟 Xuất sắc! Phát âm rất chính xác và rõ ràng.';
+  } else if (overallScore >= 75) {
+    feedback = '👍 Tốt lắm! Hầu hết các từ đều đúng.';
   } else if (overallScore >= 60) {
-    feedback = 'Good effort! Some words need improvement.';
+    feedback = '✅ Khá tốt! Một số từ cần cải thiện phát âm.';
   } else if (overallScore >= 40) {
-    feedback = 'Fair pronunciation. Practice more to improve accuracy.';
+    feedback = '📚 Cần luyện tập thêm. Hãy nói chậm và rõ ràng hơn.';
   } else {
-    feedback = 'Needs improvement. Try speaking more clearly and slowly.';
+    feedback = '💪 Hãy tiếp tục cố gắng! Luyện tập nhiều hơn sẽ giúp bạn tiến bộ.';
   }
 
   if (missingCount > 0) {
-    feedback += ` ${missingCount} word(s) were not detected.`;
+    feedback += ` Thiếu ${missingCount} từ hoặc không phát hiện được.`;
   }
-  if (extraCount > 0) {
-    feedback += ` ${extraCount} extra word(s) were added.`;
+  if (extraCount > 0 && extraCount > totalWords * 0.2) {
+    feedback += ` Có ${extraCount} từ thừa hoặc không cần thiết.`;
+  }
+  if (incorrectCount > 0) {
+    feedback += ` ${incorrectCount} từ gần đúng nhưng cần cải thiện.`;
   }
 
   const result: TraditionalAssessment = {

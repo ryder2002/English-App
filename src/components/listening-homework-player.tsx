@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Play, Pause, Volume2, Eye, RotateCcw, Send, CheckCircle2, XCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 
 interface ListeningHomeworkPlayerProps {
   audioUrl: string;
@@ -15,8 +17,10 @@ interface ListeningHomeworkPlayerProps {
   isLocked: boolean;
   submittedAnswers?: string[];
   boxResults?: boolean[];
-  onSubmitAction: (answers: string[]) => Promise<void>;
+  onSubmitAction: (answers: string[]) => Promise<any>; // Changed from Promise<void>
   onRedoAction?: () => Promise<void>;
+  classId?: string;
+  homeworkId?: string;
 }
 
 export function ListeningHomeworkPlayer({
@@ -30,12 +34,18 @@ export function ListeningHomeworkPlayer({
   boxResults,
   onSubmitAction,
   onRedoAction,
+  classId,
+  homeworkId,
 }: ListeningHomeworkPlayerProps) {
+  const router = useRouter();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [answers, setAnswers] = useState<string[]>(submittedAnswers || Array(boxes).fill(''));
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
 
   // Parse prompt text to create inline inputs
   const parsePromptText = (text: string) => {
@@ -81,27 +91,72 @@ export function ListeningHomeworkPlayer({
 
   const promptParts = parsePromptText(promptText || '');
 
+  // Initialize audio element
+  useEffect(() => {
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+      audio.pause();
+      audio.src = '';
+    };
+  }, [audioUrl]);
+
   const toggleAudioPlayback = () => {
-    if (!audioElement) {
-      const audio = new Audio(audioUrl);
-      audio.onplay = () => setIsPlaying(true);
-      audio.onpause = () => setIsPlaying(false);
-      audio.onended = () => setIsPlaying(false);
-      setAudioElement(audio);
-      audio.play();
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
     } else {
-      if (isPlaying) {
-        audioElement.pause();
-      } else {
-        audioElement.play();
-      }
+      audioRef.current.play();
     }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = value[0];
+    setCurrentTime(value[0]);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      await onSubmitAction(answers);
+      const result = await onSubmitAction(answers);
+      
+      // Extract submission ID from result if available
+      if (result && typeof result === 'object' && 'submissionId' in result) {
+        const subId = (result as any).submissionId;
+        setSubmissionId(subId);
+        
+        // Redirect to submission detail page
+        if (classId && homeworkId && subId) {
+          router.push(`/classes/${classId}/homework/${homeworkId}/submissions/${subId}`);
+        }
+      }
+      
       setShowResult(true);
     } catch (error) {
       console.error('Submit error:', error);
@@ -130,44 +185,51 @@ export function ListeningHomeworkPlayer({
   const totalCount = boxes;
   const scorePercent = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
 
-  // Cleanup audio on unmount
-  React.useEffect(() => {
-    return () => {
-      if (audioElement) {
-        audioElement.pause();
-        audioElement.src = '';
-      }
-    };
-  }, [audioElement]);
-
   return (
     <div className="space-y-6">
-      {/* Audio Player Card */}
+      {/* Audio Player Card with Seek Bar */}
       <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg">
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-500 rounded-xl">
-              <Volume2 className="h-6 w-6 text-white" />
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-500 rounded-xl">
+                <Volume2 className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-purple-900 mb-2">Nghe audio và điền đáp án</p>
+                <Button
+                  onClick={toggleAudioPlayback}
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg"
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="w-5 h-5 mr-2" />
+                      Pause Audio
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5 mr-2" />
+                      Play Audio
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-purple-900 mb-2">Nghe audio và điền đáp án</p>
-              <Button
-                onClick={toggleAudioPlayback}
-                size="lg"
-                className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 shadow-lg"
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="w-5 h-5 mr-2" />
-                    Pause Audio
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5 mr-2" />
-                    Play Audio
-                  </>
-                )}
-              </Button>
+            
+            {/* Seek Bar */}
+            <div className="space-y-2">
+              <Slider
+                value={[currentTime]}
+                max={duration || 100}
+                step={0.1}
+                onValueChange={handleSeek}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-purple-700">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
             </div>
           </div>
         </CardContent>

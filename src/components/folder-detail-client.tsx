@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { SaveVocabularyDialog } from "@/components/save-vocabulary-dialog";
+import { ImportExcelDialog } from "@/components/import-excel-dialog";
 
 interface FolderDetailClientProps {
     folderName: string;
@@ -12,6 +13,7 @@ interface FolderDetailClientProps {
 
 export function FolderDetailClient({ folderName }: FolderDetailClientProps) {
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+    const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
     return (
         <>
@@ -26,14 +28,25 @@ export function FolderDetailClient({ folderName }: FolderDetailClientProps) {
                         {folderName}
                     </h1>
                 </div>
-                <Button onClick={() => setIsSaveDialogOpen(true)} variant="default">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Thêm từ
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={() => setIsImportDialogOpen(true)} variant="outline">
+                        <span className="hidden sm:inline">📊 Import Excel</span>
+                        <span className="sm:hidden">📊</span>
+                    </Button>
+                    <Button onClick={() => setIsSaveDialogOpen(true)} variant="default">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Thêm từ
+                    </Button>
+                </div>
             </div>
             <SaveVocabularyDialog
                 open={isSaveDialogOpen}
                 onOpenChange={setIsSaveDialogOpen}
+                defaultFolder={folderName}
+            />
+            <ImportExcelDialog
+                open={isImportDialogOpen}
+                onOpenChange={setIsImportDialogOpen}
                 defaultFolder={folderName}
             />
         </>

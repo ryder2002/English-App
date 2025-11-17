@@ -3,6 +3,7 @@ import type { Folder } from "@/lib/types";
 const API_BASE = '/api';
 
 // Helper function to get auth headers
+// Token is sent via HTTP-only cookie, not Authorization header
 const getAuthHeaders = () => {
   return { 'Content-Type': 'application/json' };
 };

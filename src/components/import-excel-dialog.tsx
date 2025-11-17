@@ -50,20 +50,22 @@ type ImportExcelFormValues = z.infer<typeof formSchema>;
 
 interface ExcelRow {
   word: string;
-  language: string;
   partOfSpeech?: string;
   pronunciation?: string;
   vietnameseTranslation: string;
+  example?: string;
 }
 
 interface ImportExcelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultFolder?: string;
 }
 
 export function ImportExcelDialog({
   open,
   onOpenChange,
+  defaultFolder,
 }: ImportExcelDialogProps) {
   const { addVocabularyItem, folderObjects, buildFolderTree, addFolder } = useVocabulary();
   const { toast } = useToast();
@@ -94,11 +96,14 @@ export function ImportExcelDialog({
   
   // Update form when dialog opens - only set default folder once when opening
   useEffect(() => {
-    if (open && defaultFolderName && !form.getValues("folder")) {
-      form.setValue("folder", defaultFolderName);
+    if (open) {
+      const folderToSet = defaultFolder || defaultFolderName;
+      if (folderToSet && !form.getValues("folder")) {
+        form.setValue("folder", folderToSet);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, defaultFolder, defaultFolderName]);
 
   const selectedFolder = form.watch("folder");
 
@@ -114,33 +119,34 @@ export function ImportExcelDialog({
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
           
-          // Expect header row: Từ, ngôn ngữ, từ loại, phát âm, tiếng việt
+          // Expect header row: Từ, Từ loại, Phát âm, Tiếng Việt, Ví dụ
           if (jsonData.length === 0) {
             reject(new Error("File Excel trống hoặc không có dữ liệu."));
             return;
           }
 
           // Skip header row and parse data
+          // New column order: Từ, Từ loại, Phát âm, Tiếng Việt, Ví dụ
           const rows: ExcelRow[] = [];
           for (let i = 1; i < jsonData.length; i++) {
             const row = jsonData[i];
             if (!row || row.length === 0) continue;
             
             const word = String(row[0] || "").trim();
-            const language = String(row[1] || "").trim().toLowerCase();
-            const partOfSpeech = row[2] ? String(row[2]).trim() : undefined;
-            const pronunciation = row[3] ? String(row[3]).trim() : undefined;
-            const vietnameseTranslation = String(row[4] || "").trim();
+            const partOfSpeech = row[1] ? String(row[1]).trim() : undefined;
+            const pronunciation = row[2] ? String(row[2]).trim() : undefined;
+            const vietnameseTranslation = String(row[3] || "").trim();
+            const example = row[4] ? String(row[4]).trim() : undefined;
             
             // Skip empty rows
             if (!word && !vietnameseTranslation) continue;
             
             rows.push({
               word,
-              language,
               partOfSpeech,
               pronunciation,
               vietnameseTranslation,
+              example,
             });
           }
           
@@ -156,12 +162,13 @@ export function ImportExcelDialog({
   };
 
   const downloadTemplate = () => {
-    // Create template data
+    // Create template data with updated columns: Từ, Từ loại, Phát âm, Tiếng Việt, Ví dụ
     const templateData = [
-      ['Từ', 'Ngôn ngữ', 'Từ loại', 'Phát âm', 'Tiếng Việt'],
-      ['hello', 'english', 'noun', '/həˈloʊ/', 'xin chào'],
-      ['你好', 'chinese', 'pronoun', 'nǐ hǎo', 'xin chào'],
-      ['world', 'english', 'noun', '/wɜːrld/', 'thế giới'],
+      ['Từ', 'Từ loại', 'Phát âm', 'Tiếng Việt', 'Ví dụ'],
+      ['hello', 'Intj', '/həˈloʊ/', 'xin chào', 'Hello! How are you?'],
+      ['beautiful', 'Adj', '/ˈbjuːtɪfl/', 'đẹp', 'She has a beautiful smile.'],
+      ['quickly', 'Adv', '/ˈkwɪkli/', 'nhanh chóng', 'He ran quickly to catch the bus.'],
+      ['study', 'Verb', '/ˈstʌdi/', 'học tập', 'I study English every day.'],
     ];
 
     // Create workbook and worksheet
@@ -171,10 +178,10 @@ export function ImportExcelDialog({
     // Set column widths
     ws['!cols'] = [
       { wch: 15 }, // Từ
-      { wch: 12 }, // Ngôn ngữ
-      { wch: 12 }, // Từ loại
+      { wch: 10 }, // Từ loại
       { wch: 18 }, // Phát âm
       { wch: 20 }, // Tiếng Việt
+      { wch: 35 }, // Ví dụ
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
@@ -188,18 +195,17 @@ export function ImportExcelDialog({
     });
   };
 
-  const normalizeLanguage = (lang: string): Language => {
-    const normalized = lang.toLowerCase().trim();
-    if (normalized.includes('english') || normalized.includes('tiếng anh') || normalized === 'en' || normalized === 'english') {
-      return 'english';
-    }
-    if (normalized.includes('chinese') || normalized.includes('tiếng trung') || normalized === 'zh' || normalized === 'chinese') {
+  // Auto-detect language from word characters
+  const detectLanguage = (word: string): Language => {
+    // Check if word contains Chinese characters
+    if (/[\u4e00-\u9fff]/.test(word)) {
       return 'chinese';
     }
-    if (normalized.includes('vietnamese') || normalized.includes('tiếng việt') || normalized === 'vi' || normalized === 'vietnamese') {
+    // Check if word contains Vietnamese characters with diacritics
+    if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(word)) {
       return 'vietnamese';
     }
-    // Default to english if unclear
+    // Default to English
     return 'english';
   };
 
@@ -253,7 +259,8 @@ export function ImportExcelDialog({
             continue;
           }
 
-          const language = normalizeLanguage(row.language || 'english');
+          // Auto-detect language from word
+          const language = detectLanguage(row.word);
           
           // Determine pronunciation field based on language
           let ipa: string | undefined = undefined;
@@ -273,6 +280,7 @@ export function ImportExcelDialog({
             folder: targetFolder,
             vietnameseTranslation: row.vietnameseTranslation.trim(),
             partOfSpeech: row.partOfSpeech?.trim() || undefined,
+            example: row.example?.trim() || undefined, // Add example field
             ipa,
             pinyin,
           };
@@ -329,7 +337,7 @@ export function ImportExcelDialog({
             Import từ vựng từ Excel
           </DialogTitle>
           <DialogDescription>
-            Upload file Excel với các cột: <strong>Từ</strong>, <strong>Ngôn ngữ</strong>, <strong>Từ loại</strong>, <strong>Phát âm</strong>, <strong>Tiếng Việt</strong>
+            Upload file Excel với các cột: <strong>Từ</strong>, <strong>Từ loại</strong>, <strong>Phát âm</strong>, <strong>Tiếng Việt</strong>, <strong>Ví dụ</strong>
             <Button
               type="button"
               variant="link"
@@ -374,7 +382,7 @@ export function ImportExcelDialog({
                   </FormControl>
                   <FormMessage />
                   <p className="text-xs text-muted-foreground mt-1">
-                    💡 Định dạng: Từ | Ngôn ngữ (english/chinese/vietnamese) | Từ loại | Phát âm (IPA cho tiếng Anh, Pinyin cho tiếng Trung) | Tiếng Việt
+                    💡 Định dạng: Từ | Từ loại | Phát âm (IPA cho tiếng Anh, Pinyin cho tiếng Trung) | Tiếng Việt | Ví dụ
                   </p>
                 </FormItem>
               )}

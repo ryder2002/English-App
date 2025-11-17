@@ -178,15 +178,11 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                             {item.partOfSpeech && <span className="font-mono text-xs px-1.5 py-0.5 rounded-sm mr-2">{item.partOfSpeech}</span>}
                             {item.ipa || item.pinyin}
                         </p>
-                        <Badge
-                          variant={
-                            item.language === "english"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {languageMap[item.language]}
-                        </Badge>
+                        {item.example && (
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 line-clamp-2 italic">
+                            &quot;{item.example}&quot;
+                          </p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -198,11 +194,11 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-[250px] pl-6">Từ</TableHead>
-                          <TableHead>Ngôn ngữ</TableHead>
-                          <TableHead>Từ loại</TableHead>
-                          <TableHead>Phát âm</TableHead>
-                          <TableHead>Tiếng Việt</TableHead>
+                          <TableHead className="w-[200px] pl-6">Từ</TableHead>
+                          <TableHead className="w-[100px]">Từ loại</TableHead>
+                          <TableHead className="w-[150px]">Phát âm</TableHead>
+                          <TableHead className="w-[180px]">Tiếng Việt</TableHead>
+                          <TableHead>Ví dụ</TableHead>
                           <TableHead className="text-right w-[100px] pr-6">
                             Hành động
                           </TableHead>
@@ -221,20 +217,12 @@ export function VocabularyFolderList({ folderName }: VocabularyFolderListProps) 
                                 
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  item.language === "english"
-                                    ? "secondary"
-                                    : "outline"
-                                }
-                              >
-                                {languageMap[item.language]}
-                              </Badge>
-                            </TableCell>
                             <TableCell><span className="font-mono text-xs px-1.5 py-0.5 rounded-sm">{item.partOfSpeech}</span></TableCell>
                             <TableCell>{item.ipa || item.pinyin}</TableCell>
                             <TableCell>{item.vietnameseTranslation}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground max-w-[300px]">
+                              <span className="line-clamp-2">{item.example || '-'}</span>
+                            </TableCell>
                             <TableCell className="text-right pr-4">
                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>

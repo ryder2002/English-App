@@ -149,10 +149,10 @@ export function AppShell({ children, hideSidebar = false }: { children: React.Re
       <SidebarInset>
         {/* Top decorative background behind content header (full viewport, low opacity) */}
         <div className="app-hero-bg"></div>
-        {/* Mobile/Tablet Header - Hidden on desktop (lg+) */}
-        <header className="sticky top-0 z-30 flex h-12 md:h-14 lg:hidden items-center gap-2 md:gap-4 border-b bg-background/80 px-3 md:px-6 py-1.5 md:py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-          <SidebarTrigger aria-label="Mở menu" className="h-7 w-7 md:h-8 md:w-8" />
-          <div className="scale-[0.7] md:scale-75 origin-left">
+        {/* Mobile/Tablet Header - Sticky with strong backdrop */}
+        <header className="sticky top-0 z-40 flex h-14 md:h-16 lg:hidden items-center gap-3 md:gap-4 border-b bg-background/95 px-4 md:px-6 py-2 md:py-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/90 shadow-md">
+          <SidebarTrigger aria-label="Mở menu" className="h-8 w-8 md:h-9 md:w-9 shrink-0" />
+          <div className="scale-90 md:scale-100 origin-left">
             <CNLogo />
           </div>
         </header>

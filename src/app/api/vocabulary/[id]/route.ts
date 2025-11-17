@@ -9,13 +9,12 @@ export async function PUT(
   try {
     const { id } = await params;
     
-    // Verify authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    // Verify authentication - READ FROM COOKIE like other APIs
+    const token = request.cookies.get('token')?.value;
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.substring(7)
     const payload = verifyJWT(token)
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
@@ -39,6 +38,7 @@ export async function PUT(
         partOfSpeech: updates.partOfSpeech || null,
         ipa: updates.ipa || null,
         pinyin: updates.pinyin || null,
+        example: updates.example || null,
         audioSrc: updates.audioSrc || null
       }
     })
@@ -57,13 +57,12 @@ export async function DELETE(
   try {
     const { id } = await params;
     
-    // Verify authentication
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    // Verify authentication - READ FROM COOKIE like other APIs
+    const token = request.cookies.get('token')?.value;
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.substring(7)
     const payload = verifyJWT(token)
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })

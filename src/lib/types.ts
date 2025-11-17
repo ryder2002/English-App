@@ -9,6 +9,7 @@ export interface VocabularyItem {
   partOfSpeech?: string;
   ipa?: string;
   pinyin?: string;
+  example?: string;
   createdAt: string; // ISO 8601 date string
   audioSrc?: string; // This field is no longer populated by the server. TTS is client-side.
 }

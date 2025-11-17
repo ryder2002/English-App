@@ -33,6 +33,7 @@ type SheetRow = {
   pronunciationLoading: boolean;
   vietnameseTranslation: string;
   translationLoading: boolean;
+  example: string;
   folder: string;
 };
 
@@ -64,6 +65,7 @@ export function ManualAddTable() {
     pronunciationLoading: false,
     vietnameseTranslation: "",
     translationLoading: false,
+    example: "",
     folder: defaultFolder,
   });
 
@@ -176,6 +178,7 @@ export function ManualAddTable() {
             language: row.language as Language,
             vietnameseTranslation: row.vietnameseTranslation,
             folder: row.folder,
+            example: row.example || undefined,
             ipa: row.language === 'english' ? row.pronunciation : undefined,
             pinyin: row.language === 'chinese' ? row.pronunciation : undefined,
         }));
@@ -215,10 +218,11 @@ export function ManualAddTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[250px]">Từ vựng</TableHead>
-              <TableHead className="w-[180px]">Ngôn ngữ</TableHead>
-              <TableHead className="min-w-[200px]">Phát âm (AI)</TableHead>
-              <TableHead className="min-w-[250px]">Nghĩa tiếng Việt</TableHead>
+              <TableHead className="min-w-[200px]">Từ vựng</TableHead>
+              <TableHead className="w-[100px]">Từ loại</TableHead>
+              <TableHead className="min-w-[150px]">Phát âm (AI)</TableHead>
+              <TableHead className="min-w-[200px]">Nghĩa tiếng Việt</TableHead>
+              <TableHead className="min-w-[250px]">Ví dụ</TableHead>
               <TableHead className="w-[200px]">Thư mục</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -302,6 +306,15 @@ export function ManualAddTable() {
                         {row.translationLoading ? <Loader2 className="h-5 w-5 animate-spin"/> : <Sparkles className="h-5 w-5" />}
                     </Button>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Textarea
+                    value={row.example}
+                    onChange={(e) => handleInputChange(index, "example", e.target.value)}
+                    placeholder="Ví dụ: Hello! How are you?"
+                    disabled={isSaving}
+                    className="text-base min-h-[80px]"
+                  />
                 </TableCell>
                 <TableCell>
                   <Select

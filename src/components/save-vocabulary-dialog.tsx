@@ -43,6 +43,7 @@ const formSchema = z.object({
   }),
   vietnameseTranslation: z.string().optional(),
   partOfSpeech: z.string().optional(),
+  example: z.string().optional(),
   folder: z.string().min(1, { message: "Thư mục không được để trống." }),
 });
 
@@ -86,6 +87,7 @@ export function SaveVocabularyDialog({
       language: "english",
       vietnameseTranslation: "",
       partOfSpeech: "",
+      example: "",
       folder: "",
     },
   });
@@ -111,6 +113,7 @@ export function SaveVocabularyDialog({
           language: itemToEdit.language as "english" | "chinese" | "vietnamese",
           vietnameseTranslation: itemToEdit.vietnameseTranslation,
           partOfSpeech: itemToEdit.partOfSpeech,
+          example: itemToEdit.example || "",
           folder: itemToEdit.folder,
         });
       } else if (initialData) {
@@ -119,6 +122,7 @@ export function SaveVocabularyDialog({
           language: initialData.language || "english",
           vietnameseTranslation: initialData.vietnameseTranslation || "",
           partOfSpeech: initialData.partOfSpeech || "",
+          example: initialData.example || "",
           folder: defaultFolder || initialData.folder || defaultFolderName,
         });
       } else {
@@ -127,6 +131,7 @@ export function SaveVocabularyDialog({
           language: "english",
           vietnameseTranslation: "",
           partOfSpeech: "",
+          example: "",
           folder: defaultFolder || defaultFolderName,
         });
       }
@@ -173,6 +178,7 @@ export function SaveVocabularyDialog({
           folder: targetFolder,
           vietnameseTranslation: values.vietnameseTranslation,
           partOfSpeech: values.partOfSpeech,
+          example: values.example,
           ipa: itemToEdit.ipa,
           pinyin: itemToEdit.pinyin,
         };
@@ -253,6 +259,7 @@ export function SaveVocabularyDialog({
           folder: targetFolder,
           vietnameseTranslation: finalVietnameseTranslation.trim(),
           partOfSpeech: values.partOfSpeech || details.partOfSpeech || undefined,
+          example: values.example?.trim() || undefined,
           ipa: initialData?.ipa || details.ipa || undefined,
           pinyin: initialData?.pinyin || details.pinyin || undefined,
         };
@@ -370,6 +377,19 @@ export function SaveVocabularyDialog({
                   <FormLabel>Từ loại</FormLabel>
                   <FormControl>
                     <Input placeholder={isEditing ? "Chỉnh sửa từ loại..." : "Có thể bỏ trống, AI sẽ tự điền"} {...field} disabled={isSubmitting} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="example"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ví dụ</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ví dụ: Hello! How are you?" {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

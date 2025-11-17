@@ -374,6 +374,8 @@ export default function HomeworkPage() {
                     isLocked={isLocked}
                     submittedAnswers={currentSubmission?.answers as string[] | undefined}
                     boxResults={boxResults || undefined}
+                    classId={classId}
+                    homeworkId={homeworkId}
                     onRedoAction={doRetry}
                     onSubmitAction={async (answers: string[]) => {
                       try {
@@ -395,7 +397,8 @@ export default function HomeworkPage() {
                           description: `Bạn đã làm đúng ${data.boxResults?.filter((r: boolean) => r).length || 0}/${answers.length} câu`,
                         });
                         
-                        fetchHomework();
+                        // Return submission ID for redirect
+                        return { submissionId: data.submissionId };
                       } catch (error: any) {
                         toast({
                           title: 'Lỗi',
