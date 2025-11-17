@@ -9,13 +9,8 @@ export const metadata: Metadata = {
 export default function FoldersPage() {
     return (
         <AppShell>
-            <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 max-w-7xl">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent">
-                        Thư mục của tôi
-                    </h1>
-                </div>
-
+            <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:p-6 lg:p-8">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-6">Quản lý Thư mục</h1>
                 <FolderManagerWithHierarchy />
             </div>
         </AppShell>

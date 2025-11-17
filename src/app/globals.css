@@ -303,4 +303,21 @@
   .nice-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  /* Animated Gradient */
+  @keyframes gradient-x {
+    0%, 100% {
+      background-size: 200% 200%;
+      background-position: left center;
+    }
+    50% {
+      background-size: 200% 200%;
+      background-position: right center;
+    }
+  }
+  
+  .animate-gradient-x {
+    animation: gradient-x 15s ease infinite;
+    background-size: 200% 200%;
+  }
 }

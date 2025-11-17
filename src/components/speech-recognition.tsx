@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { Mic, X, Languages } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
+import Image from 'next/image';
 
 interface SpeechRecognitionProps {
   onTranscript: (transcript: string) => void;
@@ -17,7 +18,7 @@ interface LanguageOption {
 }
 
 const SUPPORTED_LANGUAGES: LanguageOption[] = [
-  { code: 'en-US', name: 'English', flag: '🇺🇸' },
+  { code: 'en-US', name: 'English', flag: '🇬🇧' },
   { code: 'vi-VN', name: 'Tiếng Việt', flag: '🇻🇳' },
   { code: 'zh-CN', name: '中文', flag: '🇨🇳' },
 ];
@@ -48,95 +49,92 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
     setIsSupported(true);
   }, []);
 
-  useEffect(() => {
-    if (!isSupported) return;
-
-    const SpeechRecognition = 
-      (window as any).SpeechRecognition || 
-      (window as any).webkitSpeechRecognition;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = selectedLanguage.code;
-    recognition.maxAlternatives = 1;
-
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcriptPart = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscriptRef.current += transcriptPart + ' ';
-          setTranscript(finalTranscriptRef.current.trim());
-          setInterimTranscript('');
-        } else {
-          interim += transcriptPart;
-        }
-      }
-      
-      if (interim) {
-        setInterimTranscript(interim);
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      
-      switch (event.error) {
-        case 'no-speech':
-          setError('Không phát hiện giọng nói');
-          break;
-        case 'not-allowed':
-          setError('Quyền truy cập microphone bị từ chối');
-          setIsListening(false);
-          break;
-        case 'network':
-          setError('Lỗi kết nối mạng');
-          break;
-        default:
-          setError(`Lỗi: ${event.error}`);
-      }
-    };
-
-    recognition.onend = () => {
-      if (isListening) {
-        try {
-          recognition.start();
-        } catch (error) {
-          console.error('Failed to restart recognition:', error);
-          setIsListening(false);
-        }
-      }
-    };
-
-    recognitionRef.current = recognition;
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, [selectedLanguage, isListening, isSupported]);
+  // Remove the useEffect that creates persistent recognition instance
 
   const startListening = () => {
-    if (!recognitionRef.current) return;
-    
     setError(null);
     finalTranscriptRef.current = '';
     setTranscript('');
     setInterimTranscript('');
     
+    // Check if mediaDevices is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError('⚠️ Trình duyệt không hỗ trợ microphone...');
+      return;
+    }
+    
     // Request microphone permission first
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(() => {
-        setIsListening(true);
-        try {
-          recognitionRef.current.start();
-        } catch (error) {
-          console.error('Failed to start recognition:', error);
-          setError('Không thể bắt đầu ghi âm');
-          setIsListening(false);
+        // Create FRESH recognition instance each time (like hybrid-audio-recorder)
+        const SpeechRecognition = 
+          (window as any).SpeechRecognition || 
+          (window as any).webkitSpeechRecognition;
+        
+        if (SpeechRecognition) {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = selectedLanguage.code;
+          recognition.maxAlternatives = 1;
+
+          recognition.onresult = (event: any) => {
+            let interim = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcriptPart = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalTranscriptRef.current += transcriptPart + ' ';
+                setTranscript(finalTranscriptRef.current.trim());
+                setInterimTranscript('');
+              } else {
+                interim += transcriptPart;
+              }
+            }
+            
+            if (interim) {
+              setInterimTranscript(interim);
+            }
+          };
+
+          recognition.onerror = (event: any) => {
+            console.warn('Speech recognition error:', event.error);
+            // Don't show errors for aborted (common on mobile)
+            if (event.error !== 'aborted') {
+              switch (event.error) {
+                case 'no-speech':
+                  setError('Không phát hiện giọng nói');
+                  break;
+                case 'not-allowed':
+                  setError('Quyền truy cập microphone bị từ chối');
+                  setIsListening(false);
+                  break;
+                case 'network':
+                  setError('Lỗi kết nối mạng');
+                  break;
+                default:
+                  setError(`Lỗi: ${event.error}`);
+              }
+            }
+          };
+
+          recognition.onend = () => {
+            // Don't auto-restart, let user control
+            setIsListening(false);
+          };
+
+          recognitionRef.current = recognition;
+          
+          try {
+            recognition.start();
+            setIsListening(true);
+          } catch (error) {
+            console.error('Failed to start recognition:', error);
+            setError('Không thể bắt đầu ghi âm');
+            setIsListening(false);
+          }
+        } else {
+          setError('Trình duyệt không hỗ trợ Speech Recognition');
         }
       })
       .catch((error) => {
@@ -146,14 +144,15 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
   };
 
   const stopListening = () => {
-    if (!recognitionRef.current) return;
-    
     setIsListening(false);
     
-    try {
-      recognitionRef.current.stop();
-    } catch (error) {
-      console.error('Failed to stop recognition:', error);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+        recognitionRef.current = null; // Clear reference
+      } catch (error) {
+        console.error('Failed to stop recognition:', error);
+      }
     }
   };
 
@@ -170,6 +169,7 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
       stopListening();
     }
     setSelectedLanguage(lang);
+    setError(null);
     if (wasListening) {
       setTimeout(() => startListening(), 100);
     }
@@ -225,8 +225,8 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
                   : 'border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <span className="mr-1">{lang.flag}</span>
-              <span className="hidden sm:inline">{lang.name}</span>
+              <span className="mr-1.5 text-lg">{lang.flag}</span>
+              <span>{lang.name}</span>
             </Button>
           ))}
         </div>
