@@ -5,6 +5,7 @@ import { Mic, X, Languages } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import Image from 'next/image';
+import { UniversalAudioRecorder } from '@/lib/universal-audio-recorder';
 
 interface SpeechRecognitionProps {
   onTranscript: (transcript: string) => void;
@@ -31,7 +32,7 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
   
-  const recognitionRef = useRef<any>(null);
+  const recorderRef = useRef<UniversalAudioRecorder | null>(null);
   const finalTranscriptRef = useRef('');
 
   useEffect(() => {
@@ -47,112 +48,68 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
     }
 
     setIsSupported(true);
+    
+    // Cleanup on unmount
+    return () => {
+      if (recorderRef.current?.isActive()) {
+        recorderRef.current.cancel();
+      }
+    };
   }, []);
 
-  // Remove the useEffect that creates persistent recognition instance
+  const startListening = async () => {
+    try {
+      setError(null);
+      finalTranscriptRef.current = '';
+      setTranscript('');
+      setInterimTranscript('');
+      
+      // Create new recorder instance
+      const recorder = new UniversalAudioRecorder();
+      recorderRef.current = recorder;
 
-  const startListening = () => {
-    setError(null);
-    finalTranscriptRef.current = '';
-    setTranscript('');
-    setInterimTranscript('');
-    
-    // Check if mediaDevices is available
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setError('⚠️ Trình duyệt không hỗ trợ microphone...');
-      return;
-    }
-    
-    // Request microphone permission first
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(() => {
-        // Create FRESH recognition instance each time (like hybrid-audio-recorder)
-        const SpeechRecognition = 
-          (window as any).SpeechRecognition || 
-          (window as any).webkitSpeechRecognition;
-        
-        if (SpeechRecognition) {
-          const recognition = new SpeechRecognition();
-          recognition.continuous = true;
-          recognition.interimResults = true;
-          recognition.lang = selectedLanguage.code;
-          recognition.maxAlternatives = 1;
-
-          recognition.onresult = (event: any) => {
-            let interim = '';
-            
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const transcriptPart = event.results[i][0].transcript;
-              if (event.results[i].isFinal) {
-                finalTranscriptRef.current += transcriptPart + ' ';
-                setTranscript(finalTranscriptRef.current.trim());
-                setInterimTranscript('');
-              } else {
-                interim += transcriptPart;
-              }
-            }
-            
-            if (interim) {
-              setInterimTranscript(interim);
-            }
-          };
-
-          recognition.onerror = (event: any) => {
-            console.warn('Speech recognition error:', event.error);
-            // Don't show errors for aborted (common on mobile)
-            if (event.error !== 'aborted') {
-              switch (event.error) {
-                case 'no-speech':
-                  setError('Không phát hiện giọng nói');
-                  break;
-                case 'not-allowed':
-                  setError('Quyền truy cập microphone bị từ chối');
-                  setIsListening(false);
-                  break;
-                case 'network':
-                  setError('Lỗi kết nối mạng');
-                  break;
-                default:
-                  setError(`Lỗi: ${event.error}`);
-              }
-            }
-          };
-
-          recognition.onend = () => {
-            // Don't auto-restart, let user control
-            setIsListening(false);
-          };
-
-          recognitionRef.current = recognition;
+      // Start recording with transcript callback (no audio saving for AI chat)
+      await recorder.startRecording({
+        language: selectedLanguage.code,
+        onTranscript: (text) => {
+          finalTranscriptRef.current = text;
+          setTranscript(text);
           
-          try {
-            recognition.start();
-            setIsListening(true);
-          } catch (error) {
-            console.error('Failed to start recognition:', error);
-            setError('Không thể bắt đầu ghi âm');
-            setIsListening(false);
+          // Split into final and interim (last few words are interim)
+          const words = text.split(' ');
+          if (words.length > 2) {
+            const finalWords = words.slice(0, -2).join(' ');
+            const interimWords = words.slice(-2).join(' ');
+            setTranscript(finalWords);
+            setInterimTranscript(interimWords);
+          } else {
+            setInterimTranscript(text);
           }
-        } else {
-          setError('Trình duyệt không hỗ trợ Speech Recognition');
-        }
-      })
-      .catch((error) => {
-        console.error('Microphone permission denied:', error);
-        setError('Vui lòng cấp quyền truy cập microphone');
+        },
+        onError: (errorMsg) => {
+          setError(errorMsg);
+          setIsListening(false);
+        },
       });
+
+      setIsListening(true);
+    } catch (error: any) {
+      console.error('Failed to start listening:', error);
+      setError(error.message || 'Không thể bắt đầu ghi âm');
+      setIsListening(false);
+    }
   };
 
-  const stopListening = () => {
-    setIsListening(false);
-    
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-        recognitionRef.current = null; // Clear reference
-      } catch (error) {
-        console.error('Failed to stop recognition:', error);
+  const stopListening = async () => {
+    try {
+      if (recorderRef.current?.isActive()) {
+        // Stop recording (we don't need the audio blob for AI chat)
+        await recorderRef.current.stopRecording();
       }
+      setIsListening(false);
+    } catch (error) {
+      console.error('Error stopping listening:', error);
+      setIsListening(false);
     }
   };
 
@@ -163,10 +120,10 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
     }
   };
 
-  const handleChangeLanguage = (lang: LanguageOption) => {
+  const handleChangeLanguage = async (lang: LanguageOption) => {
     const wasListening = isListening;
     if (wasListening) {
-      stopListening();
+      await stopListening();
     }
     setSelectedLanguage(lang);
     setError(null);
@@ -189,8 +146,8 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
   }
 
   return (
-    <Card className="border border-blue-300 bg-white shadow-md max-w-md mx-auto">
-      <CardContent className="p-4 space-y-3">
+    <Card className="border border-blue-300 bg-white shadow-md max-w-md mx-auto w-full">
+      <CardContent className="p-3 sm:p-4 space-y-3">
         {/* Compact Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -212,21 +169,21 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
         </div>
 
         {/* Compact Language Selector */}
-        <div className="flex items-center justify-center gap-1.5">
+        <div className="flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
           {SUPPORTED_LANGUAGES.map((lang) => (
             <Button
               key={lang.code}
               onClick={() => handleChangeLanguage(lang)}
               size="sm"
               variant={selectedLanguage.code === lang.code ? "default" : "outline"}
-              className={`h-8 px-3 text-xs ${
+              className={`h-8 px-2 sm:px-3 text-xs ${
                 selectedLanguage.code === lang.code 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white' 
                   : 'border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <span className="mr-1.5 text-lg">{lang.flag}</span>
-              <span>{lang.name}</span>
+              <span className="mr-1 sm:mr-1.5 text-sm sm:text-lg">{lang.flag}</span>
+              <span className="hidden xs:inline sm:inline">{lang.name}</span>
             </Button>
           ))}
         </div>
@@ -260,9 +217,9 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
 
         {/* Compact Transcript Display */}
         {(transcript || interimTranscript) && (
-          <div className="bg-green-50 rounded-lg p-2.5 border border-green-200">
+          <div className="bg-green-50 rounded-lg p-2 sm:p-2.5 border border-green-200">
             <p className="text-xs font-semibold text-green-800 mb-1">Text:</p>
-            <p className="text-sm text-gray-900 max-h-20 overflow-y-auto">
+            <p className="text-xs sm:text-sm text-gray-900 max-h-16 sm:max-h-20 overflow-y-auto break-words">
               {transcript}
               {interimTranscript && (
                 <span className="text-gray-400 italic"> {interimTranscript}</span>
@@ -279,14 +236,14 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
         )}
 
         {/* Compact Control Buttons */}
-        <div className="flex gap-2 justify-center">
+        <div className="flex gap-2 justify-center flex-wrap">
           {!isListening ? (
             <Button
               onClick={startListening}
               size="sm"
-              className="px-4 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+              className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 flex-shrink-0"
             >
-              <Mic className="w-4 h-4 mr-1.5" />
+              <Mic className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
               Start
             </Button>
           ) : (
@@ -294,7 +251,7 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
               onClick={stopListening}
               size="sm"
               variant="outline"
-              className="px-4 py-2 text-sm border border-gray-300"
+              className="px-3 sm:px-4 py-2 text-xs sm:text-sm border border-gray-300 flex-shrink-0"
             >
               Stop
             </Button>
@@ -304,7 +261,7 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
             <Button
               onClick={handleDone}
               size="sm"
-              className="px-4 py-2 text-sm bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 flex-shrink-0"
             >
               Done
             </Button>

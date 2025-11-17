@@ -194,26 +194,13 @@ export default function StudentSubmissionDetailPage() {
     <AppShell>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4 md:p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="icon" onClick={() => router.back()}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Chi tiết bài làm
-              </h1>
-            </div>
-            {!isExpired && (
-              <Button
-                variant="outline"
-                onClick={handleRetry}
-                disabled={isRetrying}
-                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white border-0"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                {isRetrying ? 'Đang xử lý...' : 'Làm lại'}
-              </Button>
-            )}
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Chi tiết bài làm
+            </h1>
           </div>
 
           <Card className="border-0 shadow-soft bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
@@ -476,21 +463,30 @@ export default function StudentSubmissionDetailPage() {
                   </Button>
                 </div>
               )}
-
-              {!isExpired && (
-                <div className="pt-4 border-t">
-                  <Button
-                    onClick={handleRetry}
-                    disabled={isRetrying}
-                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    {isRetrying ? 'Đang xử lý...' : 'Làm lại bài tập này'}
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
+
+          {/* Action buttons outside the card */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/classes/${classId}/homework/${homeworkId}`)}
+              className="w-full h-12 text-base font-medium border-2 border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-950/30"
+            >
+              📖 Xem bài làm
+            </Button>
+            
+            {!isExpired && (
+              <Button
+                onClick={handleRetry}
+                disabled={isRetrying}
+                className="w-full h-12 text-base font-medium bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white border-0 shadow-lg"
+              >
+                <RotateCcw className="h-5 w-5 mr-2" />
+                {isRetrying ? 'Đang xử lý...' : '🔄 Làm lại'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </AppShell>

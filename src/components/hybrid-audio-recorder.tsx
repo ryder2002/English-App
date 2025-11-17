@@ -5,6 +5,7 @@ import { Mic, Square, Play, RotateCcw, Send, Volume2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { UniversalAudioRecorder } from '@/lib/universal-audio-recorder';
 
 interface HybridAudioRecorderProps {
   onCompleteAction: (audioBlob: Blob, transcript: string) => void;
@@ -29,9 +30,7 @@ export function HybridAudioRecorder({
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recognitionRef = useRef<any>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const recorderRef = useRef<UniversalAudioRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -40,11 +39,8 @@ export function HybridAudioRecorder({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-      }
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (recorderRef.current?.isActive()) {
+        recorderRef.current.cancel();
       }
     };
   }, [audioUrl]);
@@ -72,79 +68,23 @@ export function HybridAudioRecorder({
   const startRecording = async () => {
     try {
       setError(null);
-      setTranscript(''); // Clear previous transcript but don't show during recording
+      setTranscript('');
       
-      // Request microphone permission
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
-        } 
+      // Create new recorder instance
+      const recorder = new UniversalAudioRecorder();
+      recorderRef.current = recorder;
+
+      // Start recording with transcript callback
+      await recorder.startRecording({
+        language,
+        onTranscript: (text) => {
+          setTranscript(text);
+        },
+        onError: (errorMsg) => {
+          setError(errorMsg);
+        },
       });
 
-      // Initialize MediaRecorder for audio
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
-      
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: mimeType });
-        setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      // Initialize Speech Recognition (hidden from user)
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = language;
-        
-        let finalTranscript = '';
-        
-        recognition.onresult = (event: any) => {
-          let interimTranscript = '';
-          
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + ' ';
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-          
-          // Store transcript but don't display during recording
-          const fullTranscript = (finalTranscript + interimTranscript).trim();
-          setTranscript(fullTranscript);
-        };
-        
-        recognition.onerror = (event: any) => {
-          console.warn('Speech recognition error:', event.error);
-        };
-        
-        recognitionRef.current = recognition;
-        recognition.start();
-      }
-
-      // Start recording
-      mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -153,26 +93,30 @@ export function HybridAudioRecorder({
         setRecordingTime((prev) => prev + 1);
       }, 1000);
 
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      setError('Failed to access microphone. Please check permissions.');
+    } catch (error: any) {
+      console.error('❌ Error starting recording:', error);
+      setError(error.message || 'Failed to start recording');
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
+  const stopRecording = async () => {
+    try {
+      if (recorderRef.current?.isActive()) {
+        const blob = await recorderRef.current.stopRecording();
+        setAudioBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+      }
+      
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      setIsRecording(false);
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      setError('Failed to stop recording');
     }
-    
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
-    setIsRecording(false);
   };
 
   const togglePlayAudio = () => {
@@ -205,7 +149,6 @@ export function HybridAudioRecorder({
       setIsPlaying(false);
       setRecordingTime(0);
       setError(null);
-      audioChunksRef.current = [];
       
       // Call parent reset callback
       if (onResetAction) {
