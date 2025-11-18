@@ -122,13 +122,49 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
 
   const handleChangeLanguage = async (lang: LanguageOption) => {
     const wasListening = isListening;
-    if (wasListening) {
-      await stopListening();
-    }
+    
+    // Update language state immediately for UI responsiveness
     setSelectedLanguage(lang);
     setError(null);
-    if (wasListening) {
-      setTimeout(() => startListening(), 100);
+    
+    if (wasListening && recorderRef.current?.isActive()) {
+      // If currently listening, update the recognition language instantly
+      // This provides immediate feedback without waiting for async operations
+      try {
+        // Use updateRecognitionLanguage for instant switch
+        recorderRef.current.updateRecognitionLanguage(lang.code, (text) => {
+          finalTranscriptRef.current = text;
+          setTranscript(text);
+          
+          // Split into final and interim
+          const words = text.split(' ');
+          if (words.length > 2) {
+            const finalWords = words.slice(0, -2).join(' ');
+            const interimWords = words.slice(-2).join(' ');
+            setTranscript(finalWords);
+            setInterimTranscript(interimWords);
+          } else {
+            setInterimTranscript(text);
+          }
+        });
+        console.log(`✅ Language switched to: ${lang.name} (${lang.code})`);
+      } catch (error) {
+        console.error('❌ Error updating language:', error);
+        setError(`Failed to switch to ${lang.name}. Restarting...`);
+        // Fallback: quick restart (reduced delay from 300ms to 100ms)
+        await stopListening();
+        setTranscript('');
+        setInterimTranscript('');
+        finalTranscriptRef.current = '';
+        setTimeout(() => {
+          startListening();
+        }, 100);
+      }
+    } else {
+      // Not listening, just reset transcript
+      setTranscript('');
+      setInterimTranscript('');
+      finalTranscriptRef.current = '';
     }
   };
 

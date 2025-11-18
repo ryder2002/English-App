@@ -149,6 +149,7 @@ export class UniversalAudioRecorder {
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
       this.recognition.lang = language;
+      this.recognition.maxAlternatives = 1;
 
       let finalTranscript = '';
 
@@ -172,12 +173,24 @@ export class UniversalAudioRecorder {
 
       this.recognition.onerror = (event: any) => {
         if (event.error !== 'aborted' && event.error !== 'no-speech') {
-          console.warn('Speech recognition error:', event.error);
+          console.warn('🔴 Speech recognition error:', event.error);
+        }
+      };
+
+      this.recognition.onend = () => {
+        // Auto-restart if recording is still active
+        if (this.isRecording && this.recognition) {
+          try {
+            console.log('🔄 Auto-restarting speech recognition...');
+            this.recognition.start();
+          } catch (e) {
+            console.warn('Failed to restart recognition:', e);
+          }
         }
       };
 
       this.recognition.start();
-      console.log('🗣️ Speech recognition started');
+      console.log(`🗣️ Speech recognition started with language: ${language}`);
     } catch (error) {
       console.warn('Speech recognition init failed:', error);
     }
@@ -237,6 +250,40 @@ export class UniversalAudioRecorder {
 
     this.isRecording = false;
     console.log('🧹 Cleanup completed');
+  }
+
+  /**
+   * Update Speech Recognition language without stopping recording
+   * Optimized for fast language switching
+   */
+  updateRecognitionLanguage(
+    language: string,
+    onTranscript?: (transcript: string) => void
+  ): void {
+    if (!this.isRecording) {
+      console.warn('⚠️ Cannot update language: not recording');
+      return;
+    }
+
+    console.log(`🔄 Switching recognition language to: ${language}`);
+
+    // Stop existing recognition immediately (no delay)
+    if (this.recognition) {
+      try {
+        this.recognition.onend = null; // Prevent auto-restart during switch
+        this.recognition.stop();
+      } catch (e) {
+        console.warn('Error stopping old recognition:', e);
+      }
+      this.recognition = null;
+    }
+
+    // Start new recognition with updated language immediately
+    // Use setTimeout with 0 to ensure it runs in next tick (prevents timing issues)
+    setTimeout(() => {
+      this.startSpeechRecognition(language, onTranscript);
+      console.log(`✅ Recognition language updated to: ${language}`);
+    }, 0);
   }
 
   /**

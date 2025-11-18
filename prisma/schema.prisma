@@ -19,6 +19,7 @@ model User {
   resetTokenExpiry      DateTime?              @map("reset_token_expiry")
   lastLoginAt           DateTime?              @map("last_login_at")
   role                  Role                   @default(user)
+  chatConversations     ChatConversation[]
   classActivitySessions ClassActivitySession[]
   classesJoined         ClassMember[]
   classesOwned          Clazz[]                @relation("ClassTeacher")
@@ -27,7 +28,6 @@ model User {
   speakingSubmissions   SpeakingSubmission[]
   quizResults           QuizResult[]
   vocabulary            Vocabulary[]
-  chatConversations     ChatConversation[]
 
   @@map("users")
 }
@@ -56,11 +56,11 @@ model Vocabulary {
   partOfSpeech          String?  @map("part_of_speech")
   ipa                   String?
   pinyin                String?
-  example               String?  @map("example")
   audioSrc              String?  @map("audio_src")
   userId                Int      @map("user_id")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
+  example               String?  @map("example")
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -164,21 +164,21 @@ model SystemNotification {
 }
 
 model Homework {
-  id           Int                  @id @default(autoincrement())
-  title        String
-  description  String?
-  type         HomeworkType
-  clazzId      Int                  @map("class_id")
-  deadline     DateTime
-  status       HomeworkStatus       @default(active)
-  createdAt    DateTime             @default(now()) @map("created_at")
-  updatedAt    DateTime             @updatedAt @map("updated_at")
-  audioUrl     String?              @map("audio_url")
-  answerText   String?              @map("answer_text")
-  promptText   String?              @map("prompt_text")
-  hideMode     HomeworkHideMode?    @default(all) @map("hide_mode")
-  content      String?
-  answerBoxes  Json?                @map("answer_boxes")
+  id                  Int                  @id @default(autoincrement())
+  title               String
+  description         String?
+  type                HomeworkType
+  clazzId             Int                  @map("class_id")
+  deadline            DateTime
+  status              HomeworkStatus       @default(active)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  audioUrl            String?              @map("audio_url")
+  answerText          String?              @map("answer_text")
+  promptText          String?              @map("prompt_text")
+  hideMode            HomeworkHideMode?    @default(all) @map("hide_mode")
+  content             String?
+  answerBoxes         Json?                @map("answer_boxes")
   speakingText        String?              @map("speaking_text")
   clazz               Clazz                @relation(fields: [clazzId], references: [id], onDelete: Cascade)
   submissions         HomeworkSubmission[]
@@ -204,8 +204,8 @@ model HomeworkSubmission {
   createdAt        DateTime                 @default(now()) @map("created_at")
   updatedAt        DateTime                 @updatedAt @map("updated_at")
   audioData        Bytes?                   @map("audio_data")
-  audioUrl         String?                  @map("audio_url")
   transcribedText  String?                  @map("transcribed_text")
+  audioUrl         String?                  @map("audio_url")
   voiceAnalysis    Json?                    @map("voice_analysis")
   homework         Homework                 @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
   user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -223,14 +223,13 @@ model SpeakingSubmission {
   score           Float    @default(0)
   audioUrl        String?  @map("audio_url")
   voiceAnalysis   Json?    @map("voice_analysis")
-  status          String   @default("submitted") // submitted, graded, processing
-  attemptNumber   Int      @default(1) @map("attempt_number")
   submittedAt     DateTime @default(now()) @map("submitted_at")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
-
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  attemptNumber   Int      @default(1) @map("attempt_number")
+  status          String   @default("submitted")
+  homework        Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([homeworkId])
   @@index([userId])
@@ -251,6 +250,31 @@ model ClassActivitySession {
   @@index([clazzId])
   @@index([userId])
   @@map("class_activity_sessions")
+}
+
+model ChatConversation {
+  id        Int           @id @default(autoincrement())
+  userId    Int           @map("user_id")
+  title     String        @default("New Chat")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             Int              @id @default(autoincrement())
+  conversationId Int              @map("conversation_id")
+  role           String
+  content        String
+  createdAt      DateTime         @default(now()) @map("created_at")
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("chat_messages")
 }
 
 enum Language {
@@ -311,29 +335,4 @@ enum HomeworkSubmissionStatus {
   in_progress
   submitted
   graded
-}
-
-model ChatConversation {
-  id        Int           @id @default(autoincrement())
-  userId    Int           @map("user_id")
-  title     String        @default("New Chat")
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt @map("updated_at")
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  ChatMessage[]
-
-  @@index([userId])
-  @@map("chat_conversations")
-}
-
-model ChatMessage {
-  id             Int              @id @default(autoincrement())
-  conversationId Int              @map("conversation_id")
-  role           String // 'user' or 'assistant'
-  content        String           @db.Text
-  createdAt      DateTime         @default(now()) @map("created_at")
-  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  @@index([conversationId])
-  @@map("chat_messages")
 }

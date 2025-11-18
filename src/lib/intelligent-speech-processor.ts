@@ -1,7 +1,8 @@
 // Intelligent Speech Processing Service
+// Supports: English, Vietnamese, Chinese (Mandarin)
 export class IntelligentSpeechProcessor {
   private static phoneticMap = new Map([
-    // Homophones and near-homophones
+    // Homophones and near-homophones (English)
     ['to', ['too', 'two']],
     ['there', ['their', 'theyre', 'they\'re']],
     ['your', ['youre', 'you\'re']],
@@ -20,7 +21,7 @@ export class IntelligentSpeechProcessor {
     ['week', ['weak']],
     ['wood', ['would']],
     ['where', ['were', 'wear']],
-    // Common speech recognition errors
+    // Common speech recognition errors (English)
     ['think', ['fink', 'sink']],
     ['the', ['ve', 'de']],
     ['water', ['vater', 'vatter']],
@@ -28,6 +29,21 @@ export class IntelligentSpeechProcessor {
     ['rice', ['lice', 'rice']],
     ['very', ['wery', 'vely']],
     ['with', ['wif', 'vith']],
+  ]);
+
+  // Chinese (Mandarin) common confusions
+  private static chinesePhoneticMap = new Map([
+    // Similar sounds in Mandarin
+    ['是', ['十', '师', '时', 'shi']],
+    ['不', ['步', '部', 'bu']],
+    ['的', ['地', '得', 'de']],
+    ['在', ['再', '载', 'zai']],
+    ['会', ['回', '汇', 'hui']],
+    ['了', ['le', 'liao']],
+    ['有', ['又', 'you']],
+    ['他', ['她', '它', 'ta']],
+    ['这', ['zhe', 'zhei']],
+    ['那', ['na', 'nei']],
   ]);
 
   private static contractionMap = new Map([
@@ -56,63 +72,84 @@ export class IntelligentSpeechProcessor {
     ['shouldnt', 'should not'],
   ]);
 
-  // Enhanced text normalization
-  static normalizeText(text: string): string {
+  // Enhanced text normalization with language support
+  static normalizeText(text: string, language: 'en' | 'zh' | 'vi' = 'en'): string {
     let normalized = text
       .toLowerCase()
-      .trim()
-      // Remove all punctuation
-      .replace(/[.,;:!?'"(){}\[\]\-_+=*&^%$#@~`|\\/<>]/g, '')
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, ' ')
       .trim();
 
-    // Expand contractions
-    this.contractionMap.forEach((expansion, contraction) => {
-      const regex = new RegExp(`\\b${contraction}\\b`, 'g');
-      normalized = normalized.replace(regex, expansion);
-    });
+    // Language-specific normalization
+    if (language === 'zh') {
+      // For Chinese, preserve characters but normalize spaces
+      normalized = normalized
+        .replace(/\s+/g, '')  // Remove all spaces (Chinese doesn't use spaces)
+        .replace(/[。，、；：！？""''（）【】]/g, ''); // Remove Chinese punctuation
+    } else {
+      // For English and Vietnamese
+      normalized = normalized
+        .replace(/[.,;:!?'"(){}\[\]\-_+=*&^%$#@~`|\\/<>]/g, '')
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
 
-    // Handle contractions with apostrophes
-    normalized = normalized
-      .replace(/\bwon't\b/g, 'will not')
-      .replace(/\bcan't\b/g, 'cannot')
-      .replace(/\bdon't\b/g, 'do not')
-      .replace(/\bdoesn't\b/g, 'does not')
-      .replace(/\bdidn't\b/g, 'did not')
-      .replace(/\byou're\b/g, 'you are')
-      .replace(/\bthey're\b/g, 'they are')
-      .replace(/\bwe're\b/g, 'we are')
-      .replace(/\bi'm\b/g, 'i am')
-      .replace(/\bhe's\b/g, 'he is')
-      .replace(/\bshe's\b/g, 'she is')
-      .replace(/\bit's\b/g, 'it is')
-      .replace(/\bthat's\b/g, 'that is')
-      .replace(/\bisn't\b/g, 'is not')
-      .replace(/\baren't\b/g, 'are not')
-      .replace(/\bwasn't\b/g, 'was not')
-      .replace(/\bweren't\b/g, 'were not')
-      .replace(/\bhaven't\b/g, 'have not')
-      .replace(/\bhasn't\b/g, 'has not')
-      .replace(/\bhadn't\b/g, 'had not')
-      .replace(/\bwouldn't\b/g, 'would not')
-      .replace(/\bcouldn't\b/g, 'could not')
-      .replace(/\bshouldn't\b/g, 'should not');
+    // Expand contractions (English only)
+    if (language === 'en') {
+      this.contractionMap.forEach((expansion, contraction) => {
+        const regex = new RegExp(`\\b${contraction}\\b`, 'g');
+        normalized = normalized.replace(regex, expansion);
+      });
+
+      // Handle contractions with apostrophes
+      normalized = normalized
+        .replace(/\bwon't\b/g, 'will not')
+        .replace(/\bcan't\b/g, 'cannot')
+        .replace(/\bdon't\b/g, 'do not')
+        .replace(/\bdoesn't\b/g, 'does not')
+        .replace(/\bdidn't\b/g, 'did not')
+        .replace(/\byou're\b/g, 'you are')
+        .replace(/\bthey're\b/g, 'they are')
+        .replace(/\bwe're\b/g, 'we are')
+        .replace(/\bi'm\b/g, 'i am')
+        .replace(/\bhe's\b/g, 'he is')
+        .replace(/\bshe's\b/g, 'she is')
+        .replace(/\bit's\b/g, 'it is')
+        .replace(/\bthat's\b/g, 'that is')
+        .replace(/\bisn't\b/g, 'is not')
+        .replace(/\baren't\b/g, 'are not')
+        .replace(/\bwasn't\b/g, 'was not')
+        .replace(/\bweren't\b/g, 'were not')
+        .replace(/\bhaven't\b/g, 'have not')
+        .replace(/\bhasn't\b/g, 'has not')
+        .replace(/\bhadn't\b/g, 'had not')
+        .replace(/\bwouldn't\b/g, 'would not')
+        .replace(/\bcouldn't\b/g, 'could not')
+        .replace(/\bshouldn't\b/g, 'should not');
+    }
 
     return normalized;
   }
 
   // Calculate advanced similarity with multiple factors
-  static calculateAdvancedSimilarity(original: string, transcribed: string): number {
-    const normalizedOriginal = this.normalizeText(original);
-    const normalizedTranscribed = this.normalizeText(transcribed);
+  static calculateAdvancedSimilarity(
+    original: string, 
+    transcribed: string,
+    language: 'en' | 'zh' | 'vi' = 'en'
+  ): number {
+    const normalizedOriginal = this.normalizeText(original, language);
+    const normalizedTranscribed = this.normalizeText(transcribed, language);
 
     // Perfect match after normalization
     if (normalizedOriginal === normalizedTranscribed) {
       return 1.0;
     }
 
-    // Word-level comparison
+    // For Chinese, use character-level comparison
+    if (language === 'zh') {
+      return this.calculateChineseCharacterSimilarity(normalizedOriginal, normalizedTranscribed);
+    }
+
+    // Word-level comparison for English and Vietnamese
     const originalWords = normalizedOriginal.split(/\s+/).filter(w => w.length > 0);
     const transcribedWords = normalizedTranscribed.split(/\s+/).filter(w => w.length > 0);
 
@@ -127,6 +164,43 @@ export class IntelligentSpeechProcessor {
     // Calculate word-level similarity using optimal alignment
     const similarity = this.calculateOptimalAlignment(originalWords, transcribedWords);
     return similarity;
+  }
+
+  // Calculate Chinese character-level similarity
+  private static calculateChineseCharacterSimilarity(text1: string, text2: string): number {
+    if (text1.length === 0 && text2.length === 0) return 1.0;
+    if (text1.length === 0 || text2.length === 0) return 0.0;
+
+    const chars1 = Array.from(text1);
+    const chars2 = Array.from(text2);
+    
+    let matches = 0;
+    const maxLen = Math.max(chars1.length, chars2.length);
+    
+    for (let i = 0; i < Math.min(chars1.length, chars2.length); i++) {
+      if (chars1[i] === chars2[i]) {
+        matches++;
+      } else {
+        // Check if characters are phonetically similar
+        if (this.areChineseCharsSimilar(chars1[i], chars2[i])) {
+          matches += 0.8; // Partial credit for similar sounds
+        }
+      }
+    }
+    
+    return matches / maxLen;
+  }
+
+  // Check if Chinese characters are phonetically similar
+  private static areChineseCharsSimilar(char1: string, char2: string): boolean {
+    for (const [key, variants] of this.chinesePhoneticMap) {
+      if ((char1 === key && variants.includes(char2)) ||
+          (char2 === key && variants.includes(char1)) ||
+          (variants.includes(char1) && variants.includes(char2))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // Optimal word alignment using dynamic programming

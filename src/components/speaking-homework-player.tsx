@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TraditionalSpeakingResult } from '@/components/traditional-speaking-result';
 import { HybridAudioRecorder } from '@/components/hybrid-audio-recorder';
-import { Send, Volume2, RotateCcw, Eye, Play, Pause } from 'lucide-react';
+import { Send, Volume2, RotateCcw, Eye, Play, Pause, Languages } from 'lucide-react';
 
 interface SpeakingHomeworkPlayerProps {
   speakingText: string;
@@ -18,6 +18,20 @@ interface SpeakingHomeworkPlayerProps {
   audioUrl?: string;
   onSubmitAction: (audioBlob: Blob, transcript: string) => Promise<void>;
   onRedoAction?: () => Promise<void>;
+}
+
+// Auto-detect language from text
+function detectLanguage(text: string): 'en-US' | 'zh-CN' | 'vi-VN' {
+  // Check for Chinese characters
+  if (/[\u4e00-\u9fa5]/.test(text)) {
+    return 'zh-CN';
+  }
+  // Check for Vietnamese diacritics
+  if (/[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)) {
+    return 'vi-VN';
+  }
+  // Default to English
+  return 'en-US';
 }
 
 export function SpeakingHomeworkPlayer({
@@ -37,6 +51,21 @@ export function SpeakingHomeworkPlayer({
   const [showResult, setShowResult] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  
+  // Auto-detect language but allow manual override
+  const [selectedLanguage, setSelectedLanguage] = useState<'en-US' | 'zh-CN' | 'vi-VN'>(() => 
+    detectLanguage(speakingText)
+  );
+
+  // Memoize detected language
+  const detectedLanguage = useMemo(() => detectLanguage(speakingText), [speakingText]);
+
+  // Language options for manual selection
+  const languageOptions = [
+    { code: 'en-US' as const, name: 'English', flag: '🇬🇧' },
+    { code: 'zh-CN' as const, name: '中文', flag: '🇨🇳' },
+    { code: 'vi-VN' as const, name: 'Tiếng Việt', flag: '🇻🇳' },
+  ];
 
   const handleAudioComplete = async (audioBlob: Blob, transcript: string) => {
     console.log('✅ Audio recorded:', {
@@ -110,13 +139,50 @@ export function SpeakingHomeworkPlayer({
   return (
     <div className="space-y-6">
       {!isSubmitted && !isLocked && (
-        <HybridAudioRecorder
-          referenceText={speakingText}
-          onCompleteAction={handleAudioComplete}
-          onResetAction={handleReset}
-          disabled={isSubmitting}
-          language="en-US"
-        />
+        <>
+          {/* Language Selector */}
+          <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <Languages className="h-5 w-5 text-purple-600" />
+                  <span className="text-sm font-semibold text-gray-700">
+                    Recognition Language:
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {languageOptions.map((lang) => (
+                    <Button
+                      key={lang.code}
+                      onClick={() => setSelectedLanguage(lang.code)}
+                      size="sm"
+                      variant={selectedLanguage === lang.code ? "default" : "outline"}
+                      className={`h-8 px-3 text-xs ${
+                        selectedLanguage === lang.code 
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                          : 'border-purple-300 hover:bg-purple-50'
+                      }`}
+                    >
+                      <span className="mr-1.5">{lang.flag}</span>
+                      <span>{lang.name}</span>
+                      {detectedLanguage === lang.code && (
+                        <span className="ml-1 text-xs opacity-70">(auto)</span>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <HybridAudioRecorder
+            referenceText={speakingText}
+            onCompleteAction={handleAudioComplete}
+            onResetAction={handleReset}
+            disabled={isSubmitting}
+            language={selectedLanguage}
+          />
+        </>
       )}
 
       {isSubmitted && (
