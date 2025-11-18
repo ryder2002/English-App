@@ -29,10 +29,37 @@ export function HybridAudioRecorder({
   const [recordingTime, setRecordingTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   
   const recorderRef = useRef<UniversalAudioRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Auto-resume mic/speech when app returns to foreground (PWA/mobile fix)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 App returned to foreground');
+        
+        // If we were recording, try to resume speech recognition
+        if (isRecording && recorderRef.current?.isActive()) {
+          console.log('🔄 Attempting to resume speech recognition...');
+          try {
+            // Re-initialize speech recognition with current language
+            recorderRef.current.updateRecognitionLanguage(language, (text: string) => {
+              setTranscript(text);
+            });
+            console.log('✅ Speech recognition resumed successfully');
+          } catch (e) {
+            console.warn('⚠️ Could not resume speech recognition:', e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isRecording, language]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -70,6 +97,8 @@ export function HybridAudioRecorder({
       setError(null);
       setTranscript('');
       
+      console.log('🎯 Attempting to start recording...');
+      
       // Create new recorder instance
       const recorder = new UniversalAudioRecorder();
       recorderRef.current = recorder;
@@ -78,13 +107,16 @@ export function HybridAudioRecorder({
       await recorder.startRecording({
         language,
         onTranscript: (text) => {
+          console.log('📝 Transcript update:', text);
           setTranscript(text);
         },
         onError: (errorMsg) => {
+          console.error('🔴 Recording error:', errorMsg);
           setError(errorMsg);
         },
       });
 
+      console.log('✅ Recording started successfully');
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -95,7 +127,25 @@ export function HybridAudioRecorder({
 
     } catch (error: any) {
       console.error('❌ Error starting recording:', error);
-      setError(error.message || 'Failed to start recording');
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+      
+      // Set user-friendly error message
+      const errorMsg = error.message || 'Failed to start recording. Please check your microphone permissions.';
+      setError(errorMsg);
+      
+      // Clean up on error
+      if (recorderRef.current) {
+        try {
+          recorderRef.current.cancel();
+        } catch (e) {
+          console.warn('Cleanup error:', e);
+        }
+        recorderRef.current = null;
+      }
     }
   };
 
@@ -171,6 +221,36 @@ export function HybridAudioRecorder({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const runDiagnostics = async () => {
+    setShowDiagnostics(true);
+    console.log('🔍 Running diagnostics...');
+    console.log('Navigator:', {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      vendor: navigator.vendor,
+    });
+    console.log('MediaDevices:', {
+      available: !!navigator.mediaDevices,
+      getUserMedia: !!navigator.mediaDevices?.getUserMedia,
+    });
+    console.log('Window:', {
+      isSecureContext: window.isSecureContext,
+      protocol: window.location.protocol,
+      origin: window.location.origin,
+    });
+    
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(d => d.kind === 'audioinput');
+      console.log('Audio inputs found:', audioInputs.length);
+      audioInputs.forEach((device, i) => {
+        console.log(`  ${i + 1}. ${device.label || 'Unnamed'} (${device.deviceId})`);
+      });
+    } catch (e) {
+      console.error('Failed to enumerate devices:', e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Reference Text Card */}
@@ -219,6 +299,16 @@ export function HybridAudioRecorder({
                   {formatTime(recordingTime)}
                 </div>
                 <Progress value={(recordingTime % 180) / 180 * 100} className="h-2" />
+                
+                {/* Live Transcript Display */}
+                {transcript && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                    <p className="text-xs font-semibold text-blue-900 mb-2">📝 Transcript:</p>
+                    <p className="text-base text-gray-900 leading-relaxed">
+                      {transcript}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             
@@ -251,8 +341,26 @@ export function HybridAudioRecorder({
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-4 bg-orange-100 border border-orange-300 rounded-lg">
-              <p className="text-sm text-orange-800 text-center">{error}</p>
+            <div className="mb-4 p-4 bg-orange-100 border-2 border-orange-300 rounded-lg">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-orange-900 mb-1">Recording Error</p>
+                  <p className="text-sm text-orange-800 leading-relaxed">{error}</p>
+                  {error.includes('permission') && (
+                    <div className="mt-2 p-3 bg-white rounded border border-orange-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-1">📱 How to fix:</p>
+                      <ul className="text-xs text-gray-600 space-y-1 list-disc list-inside">
+                        <li>Tap the address bar and look for a microphone icon 🎤</li>
+                        <li>Allow microphone access for this website</li>
+                        <li>Reload the page and try again</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -338,10 +446,20 @@ export function HybridAudioRecorder({
 
       {/* Helper Text */}
       {!isRecording && !audioBlob && (
-        <div className="text-center">
+        <div className="text-center space-y-2">
           <p className="text-sm text-gray-500">
             💡 <strong>Tip:</strong> Make sure you're in a quiet environment for better results
           </p>
+          {error && (
+            <Button
+              onClick={runDiagnostics}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              🔍 Run Diagnostics (check console)
+            </Button>
+          )}
         </div>
       )}
     </div>

@@ -35,6 +35,35 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
   const recorderRef = useRef<UniversalAudioRecorder | null>(null);
   const finalTranscriptRef = useRef('');
 
+  // Auto-resume mic/speech when app returns to foreground (PWA/mobile fix)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 App returned to foreground');
+        
+        // If we were listening, try to resume speech recognition
+        if (isListening && recorderRef.current?.isActive()) {
+          console.log('🔄 Attempting to resume speech recognition...');
+          try {
+            // Re-initialize speech recognition with current language
+            recorderRef.current.updateRecognitionLanguage(selectedLanguage.code, (text: string) => {
+              finalTranscriptRef.current = text;
+              // Display all text clearly, no splitting
+              setTranscript(text);
+              setInterimTranscript(''); // Clear interim
+            });
+            console.log('✅ Speech recognition resumed successfully');
+          } catch (e) {
+            console.warn('⚠️ Could not resume speech recognition:', e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isListening, selectedLanguage.code]);
+
   useEffect(() => {
     // Check if Speech Recognition is supported
     const SpeechRecognition = 
@@ -73,18 +102,9 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
         language: selectedLanguage.code,
         onTranscript: (text) => {
           finalTranscriptRef.current = text;
+          // Display all text clearly, no splitting into final/interim
           setTranscript(text);
-          
-          // Split into final and interim (last few words are interim)
-          const words = text.split(' ');
-          if (words.length > 2) {
-            const finalWords = words.slice(0, -2).join(' ');
-            const interimWords = words.slice(-2).join(' ');
-            setTranscript(finalWords);
-            setInterimTranscript(interimWords);
-          } else {
-            setInterimTranscript(text);
-          }
+          setInterimTranscript(''); // Clear interim, show everything in transcript
         },
         onError: (errorMsg) => {
           setError(errorMsg);
@@ -132,20 +152,11 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
       // This provides immediate feedback without waiting for async operations
       try {
         // Use updateRecognitionLanguage for instant switch
-        recorderRef.current.updateRecognitionLanguage(lang.code, (text) => {
+        recorderRef.current.updateRecognitionLanguage(lang.code, (text: string) => {
           finalTranscriptRef.current = text;
+          // Display all text clearly, no splitting into final/interim
           setTranscript(text);
-          
-          // Split into final and interim
-          const words = text.split(' ');
-          if (words.length > 2) {
-            const finalWords = words.slice(0, -2).join(' ');
-            const interimWords = words.slice(-2).join(' ');
-            setTranscript(finalWords);
-            setInterimTranscript(interimWords);
-          } else {
-            setInterimTranscript(text);
-          }
+          setInterimTranscript(''); // Clear interim
         });
         console.log(`✅ Language switched to: ${lang.name} (${lang.code})`);
       } catch (error) {
@@ -252,14 +263,11 @@ export function SpeechRecognition({ onTranscript, onClose }: SpeechRecognitionPr
         </div>
 
         {/* Compact Transcript Display */}
-        {(transcript || interimTranscript) && (
+        {transcript && (
           <div className="bg-green-50 rounded-lg p-2 sm:p-2.5 border border-green-200">
             <p className="text-xs font-semibold text-green-800 mb-1">Text:</p>
             <p className="text-xs sm:text-sm text-gray-900 max-h-16 sm:max-h-20 overflow-y-auto break-words">
               {transcript}
-              {interimTranscript && (
-                <span className="text-gray-400 italic"> {interimTranscript}</span>
-              )}
             </p>
           </div>
         )}

@@ -53,6 +53,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
           take: 1,
           orderBy: { createdAt: 'desc' },
         },
+        speakingSubmissions: {
+          where: { userId: user.id },
+          select: {
+            id: true,
+            status: true,
+            submittedAt: true,
+            attemptNumber: true,
+          },
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -68,8 +79,30 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         hw.status = 'locked';
       }
 
-      // No need to destructure since answerText is not selected
-      sanitized.push(hw);
+      // Merge speaking submissions with regular submissions
+      const allSubmissions = [
+        ...hw.submissions,
+        ...hw.speakingSubmissions.map(ss => ({
+          id: ss.id,
+          status: ss.status as any, // Convert string to enum type
+          submittedAt: ss.submittedAt,
+          attemptNumber: ss.attemptNumber,
+        }))
+      ];
+
+      console.log(`📝 Homework "${hw.title}" (${hw.type}):`, {
+        regularSubmissions: hw.submissions.length,
+        speakingSubmissions: hw.speakingSubmissions.length,
+        mergedSubmissions: allSubmissions.length,
+        allSubmissions,
+      });
+
+      // Remove speakingSubmissions field and replace with merged submissions
+      const { speakingSubmissions, ...rest } = hw;
+      sanitized.push({
+        ...rest,
+        submissions: allSubmissions,
+      });
     }
 
     return NextResponse.json(sanitized);

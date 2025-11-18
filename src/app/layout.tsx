@@ -7,6 +7,7 @@ import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -58,6 +59,21 @@ export default function RootLayout({
             </VocabularyProvider>
           </SettingsProvider>
         </AuthProvider>
+        
+        {/* PWA Audio Debug - Auto-run diagnostics in PWA mode */}
+        <Script id="pwa-audio-debug" strategy="afterInteractive">
+          {`
+            if (typeof window !== 'undefined') {
+              // Import and run PWA audio diagnostics
+              import('/src/lib/pwa-audio-debug.ts').then(module => {
+                if (module.PWAAudioDebug.isPWA()) {
+                  console.log('🔧 PWA Mode Detected');
+                  module.PWAAudioDebug.logDiagnostics();
+                }
+              }).catch(err => console.warn('Could not load PWA debug:', err));
+            }
+          `}
+        </Script>
       </body>
     </html>
   );

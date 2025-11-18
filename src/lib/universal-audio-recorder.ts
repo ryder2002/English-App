@@ -74,29 +74,77 @@ export class UniversalAudioRecorder {
       console.log('🎤 Starting universal audio recording...');
       const platform = UniversalAudioRecorder.detectPlatform();
       console.log('📱 Platform:', platform);
+      console.log('🌐 UserAgent:', navigator.userAgent);
+      console.log('🔌 PWA Mode:', platform.isPWA);
+      console.log('📍 Protocol:', window.location.protocol);
 
-      // Request microphone permission
+      // Check if we're on HTTPS or localhost (required for mobile)
+      const isSecureContext = window.isSecureContext;
+      console.log('🔒 Secure context:', isSecureContext);
+      
+      if (!isSecureContext) {
+        throw new Error('🔴 Microphone access requires HTTPS or localhost');
+      }
+
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('🔴 getUserMedia is not supported in this browser');
+      }
+
+      // Check microphone permission state (for debugging)
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          console.log('🔒 Microphone permission state:', permissionStatus.state);
+        } catch (e) {
+          console.log('⚠️ Cannot query microphone permission (not supported on this browser)');
+        }
+      }
+
+      // Always request microphone permission fresh (critical for PWA)
       const constraints = UniversalAudioRecorder.getAudioConstraints();
       console.log('🔧 Audio constraints:', constraints);
 
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: constraints,
-      });
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: constraints,
+        });
+      } catch (streamError: any) {
+        // If complex constraints fail on mobile, try with minimal constraints
+        console.warn('⚠️ Primary constraints failed, trying minimal constraints...', streamError);
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: true, // Just use basic audio
+        });
+      }
 
-      console.log('✅ Microphone access granted');
+      console.log('✅ Microphone access granted, active tracks:', this.stream.getTracks().length);
 
       // Initialize RecordRTC
-      this.recorder = new RecordRTC(this.stream, {
+      const recorderOptions: any = {
         type: 'audio',
-        mimeType: platform.isIOS
-          ? 'audio/wav' // iOS Safari prefers WAV
-          : 'audio/webm', // Others use WebM
-        recorderType: platform.isIOS
-          ? RecordRTC.StereoAudioRecorder // iOS compatible
-          : undefined, // Auto-detect for others
         numberOfAudioChannels: 1,
         desiredSampRate: 16000, // Good for speech recognition
-      });
+        bufferSize: 16384, // Larger buffer for mobile stability
+        sampleRate: 44100, // Native sample rate
+      };
+
+      if (platform.isIOS) {
+        // iOS Safari specific settings
+        recorderOptions.mimeType = 'audio/wav';
+        recorderOptions.recorderType = RecordRTC.StereoAudioRecorder;
+        recorderOptions.numberOfAudioChannels = 1; // Mono for iOS
+        console.log('📱 Using iOS-optimized settings');
+      } else if (platform.isAndroid) {
+        // Android specific settings
+        recorderOptions.mimeType = 'audio/webm';
+        console.log('📱 Using Android-optimized settings');
+      } else {
+        // Desktop settings
+        recorderOptions.mimeType = 'audio/webm';
+        console.log('💻 Using desktop settings');
+      }
+
+      this.recorder = new RecordRTC(this.stream, recorderOptions);
 
       // Start recording
       this.recorder.startRecording();
@@ -109,16 +157,24 @@ export class UniversalAudioRecorder {
       }
     } catch (error: any) {
       console.error('❌ Recording error:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
       this.cleanup();
 
       let errorMessage = 'Failed to start recording';
-      if (error.name === 'NotAllowedError') {
-        errorMessage = '🔒 Microphone permission denied. Please allow access.';
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = '🎤 No microphone found. Please connect a microphone.';
-      } else if (error.name === 'NotReadableError') {
-        errorMessage =
-          '🔧 Microphone is being used by another app. Please close other apps.';
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = '🔒 Microphone permission denied. Please go to your browser settings and allow microphone access for this site.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = '🎤 No microphone found. Please connect a microphone and try again.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = '🔧 Microphone is being used by another app. Please close other apps and try again.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = '⚙️ Your device microphone does not meet the requirements. Try updating your browser.';
+      } else if (error.name === 'TypeError') {
+        errorMessage = '🌐 Microphone access requires HTTPS or localhost. Please check your connection.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
 
       if (options.onError) {
@@ -152,39 +208,58 @@ export class UniversalAudioRecorder {
       this.recognition.maxAlternatives = 1;
 
       let finalTranscript = '';
+      let recognitionActive = true;
 
       this.recognition.onresult = (event: any) => {
-        let interim = '';
+        let fullTranscript = '';
 
+        // Combine all results (both final and interim) into one transcript
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcriptPart = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcriptPart + ' ';
           } else {
-            interim += transcriptPart;
+            fullTranscript = finalTranscript + transcriptPart;
           }
         }
 
-        const fullTranscript = (finalTranscript + interim).trim();
-        if (onTranscript && fullTranscript) {
-          onTranscript(fullTranscript);
+        // Use the combined transcript (or just final if no interim)
+        const displayTranscript = fullTranscript || finalTranscript.trim();
+        
+        if (onTranscript && displayTranscript) {
+          onTranscript(displayTranscript);
         }
       };
 
       this.recognition.onerror = (event: any) => {
-        if (event.error !== 'aborted' && event.error !== 'no-speech') {
-          console.warn('🔴 Speech recognition error:', event.error);
+        console.warn('🔴 Speech recognition error:', event.error);
+        
+        // Don't restart on critical errors
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          recognitionActive = false;
+          console.error('❌ Microphone permission denied or service unavailable');
+        }
+        
+        // Network errors on PWA - try to recover
+        if (event.error === 'network' && this.isRecording) {
+          console.log('🔄 Network error detected, will auto-restart...');
         }
       };
 
       this.recognition.onend = () => {
-        // Auto-restart if recording is still active
-        if (this.isRecording && this.recognition) {
+        console.log('🛑 Speech recognition ended');
+        
+        // Auto-restart if recording is still active and no critical error
+        if (this.isRecording && this.recognition && recognitionActive) {
           try {
             console.log('🔄 Auto-restarting speech recognition...');
-            this.recognition.start();
+            setTimeout(() => {
+              if (this.recognition && this.isRecording) {
+                this.recognition.start();
+              }
+            }, 100); // Small delay to prevent rapid restart issues
           } catch (e) {
-            console.warn('Failed to restart recognition:', e);
+            console.warn('⚠️ Failed to restart recognition:', e);
           }
         }
       };
@@ -192,7 +267,7 @@ export class UniversalAudioRecorder {
       this.recognition.start();
       console.log(`🗣️ Speech recognition started with language: ${language}`);
     } catch (error) {
-      console.warn('Speech recognition init failed:', error);
+      console.warn('⚠️ Speech recognition init failed:', error);
     }
   }
 
@@ -273,7 +348,7 @@ export class UniversalAudioRecorder {
         this.recognition.onend = null; // Prevent auto-restart during switch
         this.recognition.stop();
       } catch (e) {
-        console.warn('Error stopping old recognition:', e);
+        console.warn('⚠️ Error stopping old recognition:', e);
       }
       this.recognition = null;
     }
@@ -284,6 +359,51 @@ export class UniversalAudioRecorder {
       this.startSpeechRecognition(language, onTranscript);
       console.log(`✅ Recognition language updated to: ${language}`);
     }, 0);
+  }
+
+  /**
+   * Resume recording after app comes back from background (PWA fix)
+   * Call this when app visibility changes to 'visible'
+   */
+  resumeIfNeeded(): boolean {
+    if (!this.isRecording) {
+      return false;
+    }
+
+    console.log('🔄 Checking if audio needs to be resumed...');
+
+    // Check if stream tracks are still active
+    if (this.stream) {
+      const tracks = this.stream.getTracks();
+      const allActive = tracks.every(track => track.readyState === 'live');
+      
+      if (!allActive) {
+        console.warn('⚠️ Audio tracks are not active, stream may have been suspended');
+        return false;
+      }
+      
+      console.log('✅ Audio stream is still active');
+    }
+
+    // Check if speech recognition needs restart
+    if (this.recognition) {
+      try {
+        // Try to restart recognition if it stopped
+        console.log('🔄 Restarting speech recognition...');
+        this.recognition.start();
+        return true;
+      } catch (e: any) {
+        // If already started, that's fine
+        if (e.message && e.message.includes('already started')) {
+          console.log('✅ Speech recognition already running');
+          return true;
+        }
+        console.warn('⚠️ Could not restart speech recognition:', e);
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**

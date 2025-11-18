@@ -295,6 +295,7 @@ export default function HomeworkPage() {
               <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
             <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Buttons for submitted homework */}
               {isSubmitted && currentSubmission && (
                 <>
                   <Button 
@@ -320,7 +321,8 @@ export default function HomeworkPage() {
                   )}
                 </>
               )}
-              {!isLocked && !isSubmitted && homework.type !== 'speaking' && (
+              {/* Submit button for non-speaking homework (listening/reading) */}
+              {!isLocked && !isSubmitted && homework.type !== 'speaking' && homework.type !== 'listening' && (
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || (
@@ -345,7 +347,9 @@ export default function HomeworkPage() {
                     {homework.title}
                   </CardTitle>
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                    <Badge variant="outline" className="text-xs">{homework.type === 'listening' ? '🎧 Nghe' : '📖 Đọc'}</Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {homework.type === 'listening' ? '🎧 Nghe' : homework.type === 'speaking' ? '🎤 Nói' : '📖 Đọc'}
+                    </Badge>
                     <Badge variant="outline" className="text-xs whitespace-nowrap">⏰ {deadline.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</Badge>
                     {isExpired && <Badge variant="destructive" className="text-xs">⚠️ Quá hạn</Badge>}
                     {isSubmitted && typeof currentSubmission?.score === 'number' && (

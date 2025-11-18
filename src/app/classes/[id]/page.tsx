@@ -29,7 +29,7 @@ interface Homework {
   id: number;
   title: string;
   description?: string;
-  type: 'listening' | 'reading';
+  type: 'listening' | 'reading' | 'speaking';
   deadline: string;
   status: string;
   createdAt: string;
@@ -90,6 +90,19 @@ export default function ClassDetailPage() {
     ]);
   }, [classId]);
 
+  // Refetch homework when component becomes visible (e.g., when user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isLoadingHomework) {
+        console.log('🔄 Page visible, refreshing homework...');
+        fetchHomework();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [classId, isLoadingHomework]);
+
   const fetchClassDetail = async () => {
     try {
       const res = await fetch(`/api/classes/${classId}`, {
@@ -128,6 +141,18 @@ export default function ClassDetailPage() {
       }
 
       const data = await res.json();
+      console.log('📚 Homework data loaded:', data);
+      
+      // Log detailed submission info for each homework
+      data.forEach((hw: any) => {
+        console.log(`\n📋 ${hw.title}:`, {
+          id: hw.id,
+          type: hw.type,
+          submissions: hw.submissions,
+          submissionCount: hw.submissions?.length || 0,
+        });
+      });
+      
       setHomework(data);
     } catch (error: any) {
       console.error('Error loading homework:', error);
@@ -514,7 +539,19 @@ export default function ClassDetailPage() {
                       const isExpired = deadline < now;
                       const isLocked = hw.status === 'locked' || isExpired;
                       const submission = hw.submissions?.[0];
-                      const isSubmitted = submission?.status === 'submitted' || submission?.status === 'graded';
+                      
+                      // Handle both HomeworkSubmission status (enum) and SpeakingSubmission status (string)
+                      const submissionStatus = submission?.status?.toString().toLowerCase();
+                      const isSubmitted = submissionStatus === 'submitted' || submissionStatus === 'graded';
+
+                      console.log(`📋 Homework "${hw.title}":`, {
+                        id: hw.id,
+                        type: hw.type,
+                        hasSubmission: !!submission,
+                        submissionStatus,
+                        isSubmitted,
+                        isLocked,
+                      });
 
                       return (
                         <Card 
@@ -544,8 +581,12 @@ export default function ClassDetailPage() {
                                       ? 'bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700' 
                                       : 'bg-white/60 dark:bg-gray-800/60 border border-orange-200 dark:border-orange-800'
                                   }`}>
-                                    <span className="text-muted-foreground">{hw.type === 'listening' ? '🎧' : '📖'}</span>
-                                    <span className="font-semibold">{hw.type === 'listening' ? 'Nghe' : 'Đọc'}</span>
+                                    <span className="text-muted-foreground">
+                                      {hw.type === 'listening' ? '🎧' : hw.type === 'speaking' ? '🎤' : '📖'}
+                                    </span>
+                                    <span className="font-semibold">
+                                      {hw.type === 'listening' ? 'Nghe' : hw.type === 'speaking' ? 'Nói' : 'Đọc'}
+                                    </span>
                                   </div>
                                   <div className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg ${
                                     isLocked 

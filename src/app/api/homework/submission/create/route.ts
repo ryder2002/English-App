@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
         score: 0, // Will be updated after AI assessment
         voiceAnalysis: { status: 'processing' } as any,
         attemptNumber,
+        status: 'submitted', // IMPORTANT: Explicitly set status to 'submitted'
         submittedAt: new Date(), // IMPORTANT: Set exact submission time
       },
     });
