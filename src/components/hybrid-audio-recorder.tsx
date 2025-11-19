@@ -5,7 +5,8 @@ import { Mic, Square, Play, RotateCcw, Send, Volume2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { UniversalAudioRecorder } from '@/lib/universal-audio-recorder';
+import { AdvancedSpeechRecognizer } from '@/lib/advanced-speech-recognizer';
+
 
 interface HybridAudioRecorderProps {
   onCompleteAction: (audioBlob: Blob, transcript: string) => void;
@@ -29,30 +30,48 @@ export function HybridAudioRecorder({
   const [recordingTime, setRecordingTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [speechRecognitionAvailable, setSpeechRecognitionAvailable] = useState(true);
   
-  const recorderRef = useRef<UniversalAudioRecorder | null>(null);
+  const recognizerRef = useRef<AdvancedSpeechRecognizer | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Auto-resume mic/speech when app returns to foreground (PWA/mobile fix)
+  // Check speech recognition support on mount
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('🔄 App returned to foreground');
-        
-        // If we were recording, try to resume speech recognition
-        if (isRecording && recorderRef.current?.isActive()) {
-          console.log('🔄 Attempting to resume speech recognition...');
-          try {
-            // Re-initialize speech recognition with current language
-            recorderRef.current.updateRecognitionLanguage(language, (text: string) => {
-              setTranscript(text);
-            });
-            console.log('✅ Speech recognition resumed successfully');
-          } catch (e) {
-            console.warn('⚠️ Could not resume speech recognition:', e);
-          }
+    const supported = AdvancedSpeechRecognizer.isSupported();
+    setSpeechRecognitionAvailable(supported);
+    
+    if (!supported) {
+      const platform = AdvancedSpeechRecognizer.getPlatform();
+      let message = '⚠️ Chuyển giọng nói thành chữ không khả dụng. ';
+      
+      if (platform.isSamsung) {
+        message += 'Samsung Internet không hỗ trợ tốt. Hãy dùng Chrome.';
+      } else if (platform.isAndroid) {
+        message += 'Hãy dùng Chrome trên Android.';
+      } else {
+        message += 'Hãy dùng Chrome, Edge hoặc Safari.';
+      }
+      
+      message += '\n\n📝 Bạn vẫn ghi âm được, nhưng không có transcript tự động.';
+      
+      console.warn(message);
+    }
+  }, []);
+
+  // Auto-resume speech recognition when app returns to foreground (PWA/mobile fix)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isRecording && recognizerRef.current?.isRecording()) {
+        console.log('🔄 App returned to foreground - resuming speech recognition');
+        try {
+          await recognizerRef.current.updateLanguage(language);
+          console.log('✅ Speech recognition resumed');
+        } catch (e) {
+          console.warn('⚠️ Could not resume speech recognition:', e);
         }
       }
     };
@@ -66,8 +85,11 @@ export function HybridAudioRecorder({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
-      if (recorderRef.current?.isActive()) {
-        recorderRef.current.cancel();
+      if (recognizerRef.current?.isRecording()) {
+        recognizerRef.current.stop();
+      }
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop();
       }
     };
   }, [audioUrl]);
@@ -96,25 +118,72 @@ export function HybridAudioRecorder({
     try {
       setError(null);
       setTranscript('');
+      audioChunksRef.current = [];
       
-      console.log('🎯 Attempting to start recording...');
+      console.log('🎯 Starting recording with language:', language);
       
-      // Create new recorder instance
-      const recorder = new UniversalAudioRecorder();
-      recorderRef.current = recorder;
-
-      // Start recording with transcript callback
-      await recorder.startRecording({
-        language,
-        onTranscript: (text) => {
-          console.log('📝 Transcript update:', text);
-          setTranscript(text);
-        },
-        onError: (errorMsg) => {
-          console.error('🔴 Recording error:', errorMsg);
-          setError(errorMsg);
-        },
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 16000,
+        } 
       });
+
+      // Start MediaRecorder for audio capture
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        setAudioBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+      };
+
+      mediaRecorder.start(100); // Collect data every 100ms
+      mediaRecorderRef.current = mediaRecorder;
+
+      // Start speech recognition for transcript (if available)
+      if (speechRecognitionAvailable) {
+        try {
+          const recognizer = new AdvancedSpeechRecognizer({
+            language,
+            continuous: true,
+            interimResults: true,
+            onResult: (text) => {
+              console.log('📝 Transcript:', text);
+              setTranscript(text);
+            },
+            onError: (errorMsg) => {
+              console.warn('Speech recognition error:', errorMsg);
+              // Don't stop recording on speech errors, just warn
+            },
+            onAudioLevel: (level) => {
+              setAudioLevel(level);
+            },
+          });
+
+          recognizerRef.current = recognizer;
+          await recognizer.start();
+          console.log('✅ Speech recognition started');
+        } catch (speechError) {
+          console.warn('⚠️ Speech recognition failed, continuing with audio-only:', speechError);
+          setTranscript('(Speech-to-text không khả dụng - chỉ ghi âm)');
+        }
+      } else {
+        console.log('ℹ️ Speech recognition not available - audio recording only');
+        setTranscript('(Chỉ ghi âm - không chuyển đổi giọng nói)');
+      }
 
       console.log('✅ Recording started successfully');
       setIsRecording(true);
@@ -127,42 +196,39 @@ export function HybridAudioRecorder({
 
     } catch (error: any) {
       console.error('❌ Error starting recording:', error);
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      });
       
-      // Set user-friendly error message
-      const errorMsg = error.message || 'Failed to start recording. Please check your microphone permissions.';
-      setError(errorMsg);
-      
-      // Clean up on error
-      if (recorderRef.current) {
-        try {
-          recorderRef.current.cancel();
-        } catch (e) {
-          console.warn('Cleanup error:', e);
-        }
-        recorderRef.current = null;
+      let errorMsg = 'Failed to start recording';
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMsg = 'Microphone permission denied. Please allow microphone access and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMsg = 'No microphone found. Please connect a microphone and try again.';
+      } else if (error.message) {
+        errorMsg = error.message;
       }
+      
+      setError(errorMsg);
     }
   };
 
   const stopRecording = async () => {
     try {
-      if (recorderRef.current?.isActive()) {
-        const blob = await recorderRef.current.stopRecording();
-        setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
+      // Stop speech recognition
+      if (recognizerRef.current?.isRecording()) {
+        recognizerRef.current.stop();
       }
       
+      // Stop media recorder
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+      
+      // Stop timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
       
       setIsRecording(false);
+      console.log('✅ Recording stopped');
     } catch (error) {
       console.error('Error stopping recording:', error);
       setError('Failed to stop recording');
@@ -192,6 +258,9 @@ export function HybridAudioRecorder({
         URL.revokeObjectURL(audioUrl);
       }
       
+      // Clean up audio chunks
+      audioChunksRef.current = [];
+      
       // Reset all states
       setAudioBlob(null);
       setAudioUrl(null);
@@ -199,11 +268,10 @@ export function HybridAudioRecorder({
       setIsPlaying(false);
       setRecordingTime(0);
       setError(null);
+      setAudioLevel(0);
       
       // Call parent reset callback
-      if (onResetAction) {
-        onResetAction();
-      }
+      onResetAction();
     } catch (error) {
       console.error('Error resetting recorder:', error);
     }
@@ -222,12 +290,12 @@ export function HybridAudioRecorder({
   };
 
   const runDiagnostics = async () => {
-    setShowDiagnostics(true);
     console.log('🔍 Running diagnostics...');
-    console.log('Navigator:', {
-      userAgent: navigator.userAgent,
-      platform: navigator.platform,
-      vendor: navigator.vendor,
+    console.log('Platform:', AdvancedSpeechRecognizer.getPlatform());
+    console.log('Speech Recognition:', {
+      supported: AdvancedSpeechRecognizer.isSupported(),
+      SpeechRecognition: !!(window as any).SpeechRecognition,
+      webkitSpeechRecognition: !!(window as any).webkitSpeechRecognition,
     });
     console.log('MediaDevices:', {
       available: !!navigator.mediaDevices,
@@ -236,15 +304,14 @@ export function HybridAudioRecorder({
     console.log('Window:', {
       isSecureContext: window.isSecureContext,
       protocol: window.location.protocol,
-      origin: window.location.origin,
     });
     
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices.filter(d => d.kind === 'audioinput');
-      console.log('Audio inputs found:', audioInputs.length);
+      console.log('Audio inputs:', audioInputs.length);
       audioInputs.forEach((device, i) => {
-        console.log(`  ${i + 1}. ${device.label || 'Unnamed'} (${device.deviceId})`);
+        console.log(`  ${i + 1}. ${device.label || 'Unnamed'}`);
       });
     } catch (e) {
       console.error('Failed to enumerate devices:', e);
@@ -264,6 +331,35 @@ export function HybridAudioRecorder({
               <div className="flex-1">
                 <p className="text-sm font-semibold text-blue-900 mb-2">Read aloud:</p>
                 <p className="text-xl leading-relaxed text-blue-900 font-medium">{referenceText}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Speech Recognition Warning */}
+      {!speechRecognitionAvailable && (
+        <Card className="border-2 border-orange-300 bg-gradient-to-br from-orange-50 to-yellow-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-orange-500 rounded-lg flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-orange-900 mb-1">⚠️ Chế độ chỉ ghi âm</p>
+                <p className="text-sm text-orange-800 leading-relaxed mb-2">
+                  Trình duyệt này không hỗ trợ chuyển giọng nói thành chữ. Bạn vẫn ghi âm được bình thường.
+                </p>
+                <div className="bg-white/60 rounded-lg p-2.5 text-xs text-orange-700">
+                  <p className="font-semibold mb-1.5">📱 Để có transcript tự động:</p>
+                  <ul className="list-none space-y-1">
+                    <li>✅ <strong>Chrome</strong> - Android/Windows/Mac</li>
+                    <li>✅ <strong>Safari</strong> - iPhone/iPad/Mac</li>
+                    <li>✅ <strong>Edge</strong> - Windows</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -300,6 +396,17 @@ export function HybridAudioRecorder({
                 </div>
                 <Progress value={(recordingTime % 180) / 180 * 100} className="h-2" />
                 
+                {/* Audio Level Indicator */}
+                <div className="flex items-center justify-center gap-2">
+                  <Volume2 className="h-4 w-4 text-red-600" />
+                  <div className="flex-1 max-w-xs h-2 bg-red-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-red-400 via-red-500 to-red-600 transition-all duration-100"
+                      style={{ width: `${audioLevel * 100}%` }}
+                    />
+                  </div>
+                </div>
+
                 {/* Live Transcript Display */}
                 {transcript && (
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">

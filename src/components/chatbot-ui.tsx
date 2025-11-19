@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import type { Language } from "@/lib/types";
 import { useSettings } from "@/contexts/settings-context";
-import { SpeechRecognition } from "./speech-recognition";
+import { ImprovedSpeechRecognition } from "./improved-speech-recognition";
 
 const formSchema = z.object({
   query: z.string().min(1),
@@ -192,12 +192,13 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
             {/* Speech Recognition Interface */}
             {showSpeechInput && (
               <div className="mb-4">
-                <SpeechRecognition
+                <ImprovedSpeechRecognition
                   onTranscript={(transcript) => {
                     form.setValue('query', transcript);
                     setShowSpeechInput(false);
                   }}
                   onClose={() => setShowSpeechInput(false)}
+                  defaultLanguage="vi-VN"
                 />
               </div>
             )}
