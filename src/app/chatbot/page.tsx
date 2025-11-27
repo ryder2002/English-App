@@ -7,10 +7,18 @@ import * as z from 'zod';
 import { ChatbotUI } from '@/components/chatbot-ui';
 import { ChatHistorySidebar } from '@/components/chat-history-sidebar';
 import { Button } from '@/components/ui/button';
-import { Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Menu, MessageSquarePlus, PanelLeftClose, PanelLeftOpen, BookText, Folder, PlusSquare, GraduationCap, Layers, ClipboardCheck, Users, Search, Bot, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
+import { useLayout } from '@/components/main-layout';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 
 const formSchema = z.object({
     query: z.string().min(1, {
@@ -34,13 +42,14 @@ interface Conversation {
 
 export default function ChatbotPage() {
     const { user } = useAuth();
+    const { setIsMobileOpen } = useLayout();
     const { toast } = useToast();
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -55,8 +64,6 @@ export default function ChatbotPage() {
         const checkMobile = () => {
             const mobile = window.innerWidth < 1024;
             setIsMobile(mobile);
-            // Always start with sidebar hidden
-            setIsSidebarOpen(false);
         };
 
         checkMobile();
@@ -65,6 +72,7 @@ export default function ChatbotPage() {
 
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
 
     useEffect(() => {
         if (user) {
@@ -218,35 +226,92 @@ export default function ChatbotPage() {
     };
 
     return (
-        <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] md:h-screen flex overflow-hidden bg-background">
+        <div className="h-screen flex overflow-hidden bg-background">
             {/* Main Chat Area - Left Side */}
-            <div className="flex-1 flex flex-col min-w-0 relative order-1">
+            <div className="flex-1 flex flex-col min-w-0 relative">
                 {/* Header */}
-                <header className="h-16 border-b flex items-center justify-between px-6 bg-background/50 backdrop-blur-sm sticky top-0 z-20">
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="lg:hidden"
-                            onClick={() => setIsSidebarOpen(true)}
-                        >
-                            <Menu className="w-5 h-5" />
-                        </Button>
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-sm">
-                                <span className="text-xl">🤖</span>
+                <header className="h-16 border-b flex items-center justify-between px-4 bg-white dark:bg-background sticky top-0 z-20 shadow-sm">
+                    {/* Mobile: Left - Hamburger Menu (Boxed) with Navigation Sheet */}
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="lg:hidden rounded-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="w-[280px] p-0 bg-background">
+                            <div className="p-4 space-y-2">
+                                <Link href="/" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                    <span>📚 Danh sách từ</span>
+                                </Link>
+                                <Link href="/folders" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                    <span>📁 Thư mục</span>
+                                </Link>
+                                <Link href="/add-vocabulary" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                    <span>➕ Thêm từ mới</span>
+                                </Link>
+                                <Link href="/flashcards" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                    <span>🃏 Flashcards</span>
+                                </Link>
+                                <Link href="/tests" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                    <span>📝 Kiểm tra</span>
+                                </Link>
+                                <Link href="/classes" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                    <span>👥 Lớp học</span>
+                                </Link>
+                                <Link href="/dictionary" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                    <span>🔍 Từ điển</span>
+                                </Link>
+                                <Link href="/chatbot" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary font-medium">
+                                    <span>🤖 Trợ lý AI</span>
+                                </Link>
+                                <div className="border-t pt-2 mt-2">
+                                    <Link href="/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
+                                        <span>⚙️ Cài đặt</span>
+                                    </Link>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="font-semibold text-base leading-none">
-                                    Trợ lý Ngôn ngữ AI
-                                </h1>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Hỗ trợ học tiếng Anh và tiếng Trung
-                                </p>
-                            </div>
+                        </SheetContent>
+                    </Sheet>
+
+                    {/* Mobile: Center - Empty space for cleaner look */}
+                    <div className="lg:hidden"></div>
+
+                    {/* Desktop: Left - AI Assistant Info */}
+                    <div className="hidden lg:flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-sm">
+                            <span className="text-xl">🤖</span>
+                        </div>
+                        <div>
+                            <h1 className="font-semibold text-base leading-none">
+                                Trợ lý Ngôn ngữ AI
+                            </h1>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Hỗ trợ học tiếng Anh và tiếng Trung
+                            </p>
                         </div>
                     </div>
 
+                    {/* Mobile: Right - Chat History Menu */}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="lg:hidden rounded-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5"
+                        onClick={() => setIsSidebarOpen(true)}
+                    >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </Button>
+
+                    {/* Desktop: Right - Toggle Sidebar */}
                     {!isMobile && (
                         <Button
                             variant="ghost"
@@ -259,6 +324,23 @@ export default function ChatbotPage() {
                         </Button>
                     )}
                 </header>
+
+                {/* Section Title - Mobile Only */}
+                <div className="lg:hidden bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 px-4 py-3 border-b">
+                    <div className="flex items-center justify-between">
+                        <h2 className="font-semibold text-base bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Cuộc trò chuyện mới
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-7 px-3 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-900 font-medium"
+                            onClick={createNewConversation}
+                        >
+                            Xin chào?
+                        </Button>
+                    </div>
+                </div>
 
                 {/* Chat UI */}
                 <div className="flex-1 min-h-0 relative">
@@ -274,25 +356,28 @@ export default function ChatbotPage() {
             </div>
 
             {/* Sidebar - Right Side */}
+            {/* Sidebar - Right Side */}
             <div
                 className={cn(
-                    "fixed inset-y-0 right-0 z-40 w-80 bg-background/95 backdrop-blur-xl border-l transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 order-2",
-                    isSidebarOpen ? "translate-x-0" : "translate-x-full",
-                    isMobile ? "shadow-2xl" : ""
+                    "bg-background/95 backdrop-blur-xl border-l transition-all duration-300 ease-in-out",
+                    // Mobile styles
+                    "fixed inset-y-0 right-0 z-50 w-80 shadow-2xl lg:shadow-none",
+                    isMobile ? (isSidebarOpen ? "translate-x-0" : "translate-x-full") : "",
+                    // Desktop styles
+                    !isMobile ? (isSidebarOpen ? "lg:w-80 lg:translate-x-0" : "lg:w-0 lg:translate-x-0 lg:border-l-0") : "",
+                    !isMobile && "lg:static lg:h-full lg:overflow-hidden"
                 )}
             >
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full w-80">
                     <div className="p-4 border-b flex items-center justify-between">
                         <h2 className="font-semibold text-lg">Lịch sử chat</h2>
                         <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon" onClick={createNewConversation} title="Cuộc trò chuyện mới">
                                 <MessageSquarePlus className="w-5 h-5" />
                             </Button>
-                            {isMobile && (
-                                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)}>
-                                    <PanelLeftClose className="w-5 h-5 rotate-180" />
-                                </Button>
-                            )}
+                            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)}>
+                                <PanelLeftClose className="w-5 h-5 rotate-180" />
+                            </Button>
                         </div>
                     </div>
                     <div className="flex-1 overflow-hidden">

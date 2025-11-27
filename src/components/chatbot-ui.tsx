@@ -150,61 +150,61 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
   };
 
   return (
-    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-full bg-card/50 dark:bg-card/80 rounded-t-lg sm:rounded-t-xl shadow-lg border overflow-hidden" style={{ touchAction: 'pan-y' }} data-chatbot>
+    <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-full bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30 rounded-t-lg sm:rounded-t-xl overflow-hidden" style={{ touchAction: 'pan-y' }} data-chatbot>
       <ScrollArea className="flex-grow p-3 sm:p-4 md:p-6 overflow-y-auto" viewportRef={scrollViewportRef} data-scroll-area>
         <div className="space-y-4 sm:space-y-6">
           {messages.length === 0 && (
-            <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
-              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
-                <AvatarFallback className="bg-transparent text-primary-foreground">
-                  <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+            <div className="flex items-start gap-2 sm:gap-3 md:gap-4 animate-in fade-in duration-500">
+              <Avatar className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 border-2 border-purple-300/50 bg-gradient-to-br from-purple-500 to-pink-600 flex-shrink-0 shadow-lg">
+                <AvatarFallback className="bg-transparent text-white">
+                  <Bot className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
                 </AvatarFallback>
               </Avatar>
-              <div className="max-w-[85%] sm:max-w-[80%] rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md bg-secondary text-secondary-foreground rounded-bl-none">
+              <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl sm:rounded-2xl p-3 sm:p-4 px-4 sm:px-5 text-xs sm:text-sm shadow-lg bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 text-foreground rounded-tl-none border border-purple-200/50 dark:border-purple-700/50">
                 <div className="prose prose-xs sm:prose-sm dark:prose-invert prose-strong:text-foreground break-words">
-                  <p>Chào bạn✌️! Tớ là AI Language Assistant, được phát triển bởi Công Nhất.</p>
+                  <p>Chào bạn✌️! Tớ là AI Language Assistant, được phát triển bởi Công Nhật.</p>
                   <p>Tớ có thể giúp đỡ cậu trong việc học ngoại ngữ, Tiếng Anh và Tiếng Trung, có gì khó khăn trong việc học đừng ngần ngại hãy hỏi tớ nhé, tớ sẽ giúp cậu giải quyết mọi vấn đề "cách phát âm, ngữ pháp, từ vựng..."!</p>
                 </div>
               </div>
             </div>
           )}
           {messages.map((message, index) => (
-            <div key={index} className={cn("flex items-start gap-2 sm:gap-3 md:gap-4", message.role === 'user' ? 'justify-end' : '')}>
+            <div key={index} className={cn("flex items-start gap-2 sm:gap-3 md:gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300", message.role === 'user' ? 'justify-end' : '')}>
               {message.role === 'assistant' && (
-                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
-                  <AvatarFallback className="bg-transparent text-primary-foreground">
-                    <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                <Avatar className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 border-2 border-purple-300/50 bg-gradient-to-br from-purple-500 to-pink-600 flex-shrink-0 shadow-lg">
+                  <AvatarFallback className="bg-transparent text-white">
+                    <Bot className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
                   </AvatarFallback>
                 </Avatar>
               )}
-              <div className={cn("max-w-[85%] sm:max-w-[80%] rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
+              <div className={cn("max-w-[85%] sm:max-w-[80%] rounded-2xl sm:rounded-2xl p-3 sm:p-4 px-4 sm:px-5 text-xs sm:text-sm shadow-lg", message.role === 'user' ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-tr-none border border-blue-400/50' : 'bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 text-foreground rounded-tl-none border border-purple-200/50 dark:border-purple-700/50')}>
                 <div className="prose prose-xs sm:prose-sm dark:prose-invert prose-strong:text-foreground break-words">{formatMessage(message.content, index)}</div>
               </div>
               {message.role === 'user' && (
-                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 flex-shrink-0">
-                  <AvatarFallback>
-                    <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                <Avatar className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 border-2 border-blue-300/50 bg-gradient-to-br from-blue-500 to-cyan-500 flex-shrink-0 shadow-lg">
+                  <AvatarFallback className="bg-transparent text-white">
+                    <User className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
                   </AvatarFallback>
                 </Avatar>
               )}
             </div>
           ))}
           {isLoading && (
-            <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
-              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
-                <AvatarFallback className="bg-transparent text-primary-foreground">
-                  <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+            <div className="flex items-start gap-2 sm:gap-3 md:gap-4 animate-in fade-in duration-300">
+              <Avatar className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 border-2 border-purple-300/50 bg-gradient-to-br from-purple-500 to-pink-600 flex-shrink-0 shadow-lg">
+                <AvatarFallback className="bg-transparent text-white">
+                  <Bot className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
                 </AvatarFallback>
               </Avatar>
-              <div className={cn("rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md", 'bg-secondary rounded-bl-none flex items-center gap-2')}>
-                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-muted-foreground" />
-                <span className="text-muted-foreground">AI đang suy nghĩ...</span>
+              <div className={cn("rounded-2xl sm:rounded-2xl p-3 sm:p-4 px-4 sm:px-5 text-xs sm:text-sm shadow-lg", 'bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 rounded-tl-none flex items-center gap-2 border border-purple-200/50 dark:border-purple-700/50')}>
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-purple-600 dark:text-purple-400" />
+                <span className="text-purple-600 dark:text-purple-400 font-medium">AI đang suy nghĩ...</span>
               </div>
             </div>
           )}
         </div>
       </ScrollArea>
-      <div className="p-3 sm:p-4 md:p-6 border-t bg-card/30 backdrop-blur-sm flex-shrink-0 rounded-b-lg sm:rounded-b-xl">
+      <div className="p-3 sm:p-4 md:p-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex-shrink-0 rounded-b-lg sm:rounded-b-xl border-t">
         {/* Speech Recognition Interface */}
         {showSpeechInput && (
           <div className="mb-4">
@@ -231,7 +231,7 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
                       placeholder="Hỏi về bản dịch, định nghĩa, ngữ pháp..."
                       {...field}
                       disabled={isLoading}
-                      className="h-9 sm:h-10 md:h-11 text-base sm:text-base md:text-base rounded-full px-3 sm:px-4 md:px-5 bg-background/70 dark:bg-card/70"
+                      className="h-11 sm:h-12 md:h-13 text-base rounded-full px-4 sm:px-5 md:px-6 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 focus:border-blue-400 dark:focus:border-blue-500 shadow-sm"
                       style={{ fontSize: '16px' }}
                     />
                   </FormControl>
@@ -244,13 +244,13 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
               size="icon"
               variant="outline"
               onClick={() => setShowSpeechInput(!showSpeechInput)}
-              className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0"
+              className="rounded-full w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 shrink-0 border-2 hover:bg-gray-100 dark:hover:bg-gray-800"
               disabled={isLoading}
             >
-              <Mic className={`h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 ${showSpeechInput ? 'text-red-500' : ''}`} />
+              <Mic className={`h-5 w-5 sm:h-5.5 sm:w-5.5 md:h-6 md:w-6 ${showSpeechInput ? 'text-red-500' : ''}`} />
             </Button>
-            <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0 bg-primary hover:bg-primary/90">
-              <Send className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
+            <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 shrink-0 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg">
+              <Send className="h-5 w-5 sm:h-5.5 sm:w-5.5 md:h-6 md:w-6" />
             </Button>
           </form>
         </Form>
