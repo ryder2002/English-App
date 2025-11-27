@@ -26,8 +26,8 @@ const formSchema = z.object({
 type ChatFormValues = z.infer<typeof formSchema>;
 
 export interface Message {
-    role: 'user' | 'assistant';
-    content: string;
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 interface ChatbotUIProps {
@@ -46,7 +46,7 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
 
   useEffect(() => {
     if (scrollViewportRef.current) {
-        scrollViewportRef.current.scrollTo({ top: scrollViewportRef.current.scrollHeight, behavior: 'smooth'});
+      scrollViewportRef.current.scrollTo({ top: scrollViewportRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -60,52 +60,52 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
       window.speechSynthesis.cancel();
     };
   }, []);
-  
+
   const playAudio = (e: React.MouseEvent, text: string, lang: Language, id: string) => {
     e.stopPropagation();
-    
+
     if (speakingId === id) {
-        window.speechSynthesis.cancel();
-        setSpeakingId(null);
-        return;
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+      return;
     }
 
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
-    
+
     const langCodeMap: Record<Language, string> = {
-        english: 'en-US',
-        chinese: 'zh-CN',
-        vietnamese: 'vi-VN',
+      english: 'en-US',
+      chinese: 'zh-CN',
+      vietnamese: 'vi-VN',
     };
     utterance.lang = langCodeMap[lang];
 
     const voiceURI = selectedVoices[lang];
     if (voiceURI) {
-        const voices = window.speechSynthesis.getVoices();
-        const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-        }
+      const voices = window.speechSynthesis.getVoices();
+      const selectedVoice = voices.find(v => v.voiceURI === voiceURI);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
     }
 
     utterance.onstart = () => {
-        setSpeakingId(id);
+      setSpeakingId(id);
     };
 
     utterance.onend = () => {
-        setSpeakingId(null);
-        utteranceRef.current = null;
+      setSpeakingId(null);
+      utteranceRef.current = null;
     };
 
     utterance.onerror = (event) => {
-        console.error("SpeechSynthesis Error", event);
-        setSpeakingId(null);
-        utteranceRef.current = null;
+      console.error("SpeechSynthesis Error", event);
+      setSpeakingId(null);
+      utteranceRef.current = null;
     };
-    
+
     const speak = () => {
       if (window.speechSynthesis.speaking) {
         setTimeout(speak, 100);
@@ -121,124 +121,140 @@ export function ChatbotUI({ messages, isLoading, form, onSubmit }: ChatbotUIProp
     const parts = content.split(/(<speak word='[^']*' lang='[^']*'>[^<]*<\/speak>)/g);
 
     return parts.map((part, i) => {
-        if (!part) return null;
-        const match = part.match(/<speak word='([^']*)' lang='([^']*)'>([^<]*)<\/speak>/);
-        if (match) {
-            const [_, word, lang, innerText] = match;
-            const audioId = `msg-${index}-part-${i}`;
-            return (
-                <span key={i} className="inline-flex items-center gap-0.5 sm:gap-1">
-                    <span className="font-semibold text-primary text-xs sm:text-sm">{innerText || word}</span>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground"
-                        onClick={(e) => playAudio(e, word, lang as Language, audioId)}
-                    >
-                         {speakingId === audioId ? <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 animate-spin"/> : <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4"/>}
-                    </Button>
-                </span>
-            );
-        }
-        
-        // Basic markdown formatting
-        const bolded = part.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        const html = bolded.replace(/\n/g, '<br />');
+      if (!part) return null;
+      const match = part.match(/<speak word='([^']*)' lang='([^']*)'>([^<]*)<\/speak>/);
+      if (match) {
+        const [_, word, lang, innerText] = match;
+        const audioId = `msg-${index}-part-${i}`;
+        return (
+          <span key={i} className="inline-flex items-center gap-0.5 sm:gap-1">
+            <span className="font-semibold text-primary text-xs sm:text-sm">{innerText || word}</span>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground"
+              onClick={(e) => playAudio(e, word, lang as Language, audioId)}
+            >
+              {speakingId === audioId ? <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 animate-spin" /> : <Volume2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />}
+            </Button>
+          </span>
+        );
+      }
 
-        return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
+      // Basic markdown formatting
+      const bolded = part.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      const html = bolded.replace(/\n/g, '<br />');
+
+      return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
     });
   };
 
   return (
     <div className="flex flex-col h-full flex-grow mx-auto w-full max-w-full bg-card/50 dark:bg-card/80 rounded-t-lg sm:rounded-t-xl shadow-lg border overflow-hidden" style={{ touchAction: 'pan-y' }} data-chatbot>
-        <ScrollArea className="flex-grow p-3 sm:p-4 md:p-6 overflow-y-auto" viewportRef={scrollViewportRef} data-scroll-area>
-            <div className="space-y-4 sm:space-y-6">
-                {messages.map((message, index) => (
-                    <div key={index} className={cn("flex items-start gap-2 sm:gap-3 md:gap-4", message.role === 'user' ? 'justify-end' : '')}>
-                        {message.role === 'assistant' && (
-                             <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
-                                <AvatarFallback className="bg-transparent text-primary-foreground">
-                                    <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5"/>
-                                </AvatarFallback>
-                             </Avatar>
-                        )}
-                         <div className={cn("max-w-[85%] sm:max-w-[80%] rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
-                            <div className="prose prose-xs sm:prose-sm dark:prose-invert prose-strong:text-foreground break-words">{formatMessage(message.content, index)}</div>
-                         </div>
-                         {message.role === 'user' && (
-                             <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 flex-shrink-0">
-                                <AvatarFallback>
-                                    <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5"/>
-                                </AvatarFallback>
-                             </Avatar>
-                        )}
-                    </div>
-                ))}
-                 {isLoading && (
-                    <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
-                        <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
-                            <AvatarFallback className="bg-transparent text-primary-foreground">
-                                <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5"/>
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className={cn("rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md", 'bg-secondary rounded-bl-none flex items-center')}>
-                            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-muted-foreground" />
-                        </div>
-                    </div>
-                )}
-            </div>
-        </ScrollArea>
-        <div className="p-3 sm:p-4 md:p-6 border-t bg-card/30 backdrop-blur-sm flex-shrink-0 rounded-b-lg sm:rounded-b-xl">
-            {/* Speech Recognition Interface */}
-            {showSpeechInput && (
-              <div className="mb-4">
-                <ImprovedSpeechRecognition
-                  onTranscript={(transcript) => {
-                    form.setValue('query', transcript);
-                    setShowSpeechInput(false);
-                  }}
-                  onClose={() => setShowSpeechInput(false)}
-                  defaultLanguage="vi-VN"
-                />
+      <ScrollArea className="flex-grow p-3 sm:p-4 md:p-6 overflow-y-auto" viewportRef={scrollViewportRef} data-scroll-area>
+        <div className="space-y-4 sm:space-y-6">
+          {messages.length === 0 && (
+            <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
+              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
+                <AvatarFallback className="bg-transparent text-primary-foreground">
+                  <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="max-w-[85%] sm:max-w-[80%] rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md bg-secondary text-secondary-foreground rounded-bl-none">
+                <div className="prose prose-xs sm:prose-sm dark:prose-invert prose-strong:text-foreground break-words">
+                  <p>Chào bạn✌️! Tớ là AI Language Assistant, được phát triển bởi Công Nhất.</p>
+                  <p>Tớ có thể giúp đỡ cậu trong việc học ngoại ngữ, Tiếng Anh và Tiếng Trung, có gì khó khăn trong việc học đừng ngần ngại hãy hỏi tớ nhé, tớ sẽ giúp cậu giải quyết mọi vấn đề "cách phát âm, ngữ pháp, từ vựng..."!</p>
+                </div>
               </div>
-            )}
-
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2 sm:gap-3 md:gap-4">
-            <FormField
-                control={form.control}
-                name="query"
-                render={({ field }) => (
-                    <FormItem className="flex-grow">
-                        <FormControl>
-                        <Input
-                            placeholder="Hỏi về bản dịch, định nghĩa, ngữ pháp..."
-                            {...field}
-                            disabled={isLoading}
-                            className="h-9 sm:h-10 md:h-11 text-base sm:text-base md:text-base rounded-full px-3 sm:px-4 md:px-5 bg-background/70 dark:bg-card/70"
-                            style={{ fontSize: '16px' }}
-                        />
-                        </FormControl>
-                    </FormItem>
-                )}
-                />
-                {/* Microphone Button */}
-                <Button 
-                  type="button"
-                  size="icon" 
-                  variant="outline"
-                  onClick={() => setShowSpeechInput(!showSpeechInput)}
-                  className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0"
-                  disabled={isLoading}
-                >
-                  <Mic className={`h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 ${showSpeechInput ? 'text-red-500' : ''}`} />
-                </Button>
-                <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0 bg-primary hover:bg-primary/90">
-                    <Send className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
-                </Button>
-            </form>
-            </Form>
+            </div>
+          )}
+          {messages.map((message, index) => (
+            <div key={index} className={cn("flex items-start gap-2 sm:gap-3 md:gap-4", message.role === 'user' ? 'justify-end' : '')}>
+              {message.role === 'assistant' && (
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
+                  <AvatarFallback className="bg-transparent text-primary-foreground">
+                    <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <div className={cn("max-w-[85%] sm:max-w-[80%] rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none')}>
+                <div className="prose prose-xs sm:prose-sm dark:prose-invert prose-strong:text-foreground break-words">{formatMessage(message.content, index)}</div>
+              </div>
+              {message.role === 'user' && (
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 flex-shrink-0">
+                  <AvatarFallback>
+                    <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex items-start gap-2 sm:gap-3 md:gap-4">
+              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 border-2 border-primary/50 bg-gradient-to-br from-cyan-400 to-teal-600 flex-shrink-0">
+                <AvatarFallback className="bg-transparent text-primary-foreground">
+                  <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div className={cn("rounded-lg sm:rounded-xl p-2.5 sm:p-3 px-3 sm:px-4 text-xs sm:text-sm shadow-md", 'bg-secondary rounded-bl-none flex items-center gap-2')}>
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-muted-foreground" />
+                <span className="text-muted-foreground">AI đang suy nghĩ...</span>
+              </div>
+            </div>
+          )}
         </div>
+      </ScrollArea>
+      <div className="p-3 sm:p-4 md:p-6 border-t bg-card/30 backdrop-blur-sm flex-shrink-0 rounded-b-lg sm:rounded-b-xl">
+        {/* Speech Recognition Interface */}
+        {showSpeechInput && (
+          <div className="mb-4">
+            <ImprovedSpeechRecognition
+              onTranscript={(transcript) => {
+                form.setValue('query', transcript);
+                setShowSpeechInput(false);
+              }}
+              onClose={() => setShowSpeechInput(false)}
+              defaultLanguage="vi-VN"
+            />
+          </div>
+        )}
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2 sm:gap-3 md:gap-4">
+            <FormField
+              control={form.control}
+              name="query"
+              render={({ field }) => (
+                <FormItem className="flex-grow">
+                  <FormControl>
+                    <Input
+                      placeholder="Hỏi về bản dịch, định nghĩa, ngữ pháp..."
+                      {...field}
+                      disabled={isLoading}
+                      className="h-9 sm:h-10 md:h-11 text-base sm:text-base md:text-base rounded-full px-3 sm:px-4 md:px-5 bg-background/70 dark:bg-card/70"
+                      style={{ fontSize: '16px' }}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            {/* Microphone Button */}
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={() => setShowSpeechInput(!showSpeechInput)}
+              className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0"
+              disabled={isLoading}
+            >
+              <Mic className={`h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 ${showSpeechInput ? 'text-red-500' : ''}`} />
+            </Button>
+            <Button type="submit" disabled={isLoading} size="icon" className="rounded-full w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 shrink-0 bg-primary hover:bg-primary/90">
+              <Send className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
+            </Button>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }

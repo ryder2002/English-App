@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import { VocabularyProvider } from "@/contexts/vocabulary-context";
@@ -6,7 +5,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SettingsProvider } from "@/contexts/settings-context";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { MainLayout } from "@/components/main-layout";
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -36,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-       <head>
+      <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"></meta>
         <meta name="referrer" content="no-referrer" />
         <meta name="application-name" content="CN" />
@@ -54,26 +53,11 @@ export default function RootLayout({
         <AuthProvider>
           <SettingsProvider>
             <VocabularyProvider>
-              <SidebarProvider>{children}</SidebarProvider>
+              <MainLayout>{children}</MainLayout>
               <Toaster />
             </VocabularyProvider>
           </SettingsProvider>
         </AuthProvider>
-        
-        {/* PWA Audio Debug - Auto-run diagnostics in PWA mode */}
-        <Script id="pwa-audio-debug" strategy="afterInteractive">
-          {`
-            if (typeof window !== 'undefined') {
-              // Import and run PWA audio diagnostics
-              import('/src/lib/pwa-audio-debug.ts').then(module => {
-                if (module.PWAAudioDebug.isPWA()) {
-                  console.log('🔧 PWA Mode Detected');
-                  module.PWAAudioDebug.logDiagnostics();
-                }
-              }).catch(err => console.warn('Could not load PWA debug:', err));
-            }
-          `}
-        </Script>
       </body>
     </html>
   );
