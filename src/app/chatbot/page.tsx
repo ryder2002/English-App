@@ -19,12 +19,44 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const formSchema = z.object({
     query: z.string().min(1, {
         message: "Vui lòng nhập tin nhắn.",
     }),
 });
+
+// Navigation Items Structure
+type NavItemType = {
+  label: string;
+  icon: any;
+  href?: string;
+  children?: { href: string; label: string; icon: any }[];
+};
+
+const navItems: NavItemType[] = [
+  {
+    label: "Từ vựng của tôi",
+    icon: BookText,
+    children: [
+      { href: "/", label: "Danh sách từ", icon: BookText },
+      { href: "/folders", label: "Thư mục", icon: Folder },
+      { href: "/add-vocabulary", label: "Thêm từ mới", icon: PlusSquare },
+    ],
+  },
+  {
+    label: "Ôn tập",
+    icon: GraduationCap,
+    children: [
+      { href: "/flashcards", label: "Flashcards", icon: Layers },
+      { href: "/tests", label: "Kiểm tra", icon: ClipboardCheck },
+    ],
+  },
+  { href: "/classes", label: "Lớp học", icon: Users },
+  { href: "/dictionary", label: "Từ điển", icon: Search },
+  { href: "/chatbot", label: "Trợ lý AI", icon: Bot },
+];
 
 interface Message {
     role: 'user' | 'assistant';
@@ -41,8 +73,8 @@ interface Conversation {
 }
 
 export default function ChatbotPage() {
-    const { user } = useAuth();
-    const { setIsMobileOpen } = useLayout();
+    const { user, signOut } = useAuth();
+    const { isMobileOpen, setIsMobileOpen } = useLayout();
     const { toast } = useToast();
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +84,120 @@ export default function ChatbotPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
+    const pathname = usePathname();
+
+    // State for collapsible sections
+    const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+        "Từ vựng của tôi": true,
+        "Ôn tập": true,
+    });
+
+    const toggleSection = (label: string) => {
+        setOpenSections((prev) => ({ ...prev, [label]: !prev[label] }));
+    };
+
+    const getInitials = (email: string | null | undefined) => {
+        if (!email) return "U";
+        return email.charAt(0).toUpperCase();
+    };
+
+    const NavItem = ({
+        item,
+        isMobile = false,
+    }: {
+        item: NavItemType;
+        isMobile?: boolean;
+    }) => {
+        const hasChildren = item.children && item.children.length > 0;
+        const isActive = item.href
+            ? item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href)
+            : false;
+        const isOpen = openSections[item.label];
+
+        if (hasChildren) {
+            return (
+                <Collapsible
+                    open={isOpen}
+                    onOpenChange={() => toggleSection(item.label)}
+                    className="w-full"
+                >
+                    <CollapsibleTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className={cn(
+                                "w-full justify-between px-3 py-2.5 h-auto font-medium hover:bg-accent/50 rounded-xl mb-1",
+                                isOpen ? "text-primary" : "text-muted-foreground",
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <item.icon className="w-5 h-5" />
+                                <span>{item.label}</span>
+                            </div>
+                            <ChevronDown
+                                className={cn(
+                                    "w-4 h-4 transition-transform duration-200",
+                                    isOpen ? "" : "-rotate-90",
+                                )}
+                            />
+                        </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-1 pl-4 animate-collapsible-down">
+                        {item.children?.map((child) => {
+                            const isChildActive =
+                                child.href === "/"
+                                    ? pathname === "/"
+                                    : pathname.startsWith(child.href);
+                            return (
+                                <Link
+                                    key={child.href}
+                                    href={child.href}
+                                    onClick={() => isMobile && setIsMobileOpen(false)}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 relative overflow-hidden",
+                                        isChildActive
+                                            ? "bg-primary/10 text-primary font-medium"
+                                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                                    )}
+                                >
+                                    <child.icon className="w-4 h-4" />
+                                    <span>{child.label}</span>
+                                    {isChildActive && (
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-primary rounded-r-full" />
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </CollapsibleContent>
+                </Collapsible>
+            );
+        }
+
+        return (
+            <Link
+                href={item.href!}
+                onClick={() => isMobile && setIsMobileOpen(false)}
+                className={cn(
+                    "group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative overflow-hidden mb-1",
+                    isActive
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                )}
+            >
+                <item.icon
+                    className={cn(
+                        "w-5 h-5 transition-transform duration-200 group-hover:scale-110",
+                        isActive && "animate-pulse-slow",
+                    )}
+                />
+                <span className="flex-1">{item.label}</span>
+                {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] animate-[shimmer_2s_infinite]" />
+                )}
+            </Link>
+        );
+    };
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -232,7 +378,7 @@ export default function ChatbotPage() {
                 {/* Header */}
                 <header className="h-16 border-b flex items-center justify-between px-4 bg-white dark:bg-background sticky top-0 z-20 shadow-sm">
                     {/* Mobile: Left - Hamburger Menu (Boxed) with Navigation Sheet */}
-                    <Sheet>
+                    <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                         <SheetTrigger asChild>
                             <Button
                                 variant="outline"
@@ -246,52 +392,99 @@ export default function ChatbotPage() {
                                 </svg>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[280px] p-0 bg-background">
-                            <div className="p-4 space-y-2">
-                                <Link href="/" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                    <span>📚 Danh sách từ</span>
-                                </Link>
-                                <Link href="/folders" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                    <span>📁 Thư mục</span>
-                                </Link>
-                                <Link href="/add-vocabulary" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                    <span>➕ Thêm từ mới</span>
-                                </Link>
-                                <Link href="/flashcards" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                    <span>🃏 Flashcards</span>
-                                </Link>
-                                <Link href="/tests" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                    <span>📝 Kiểm tra</span>
-                                </Link>
-                                <Link href="/classes" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                    <span>👥 Lớp học</span>
-                                </Link>
-                                <Link href="/dictionary" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                    <span>🔍 Từ điển</span>
-                                </Link>
-                                <Link href="/chatbot" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary font-medium">
-                                    <span>🤖 Trợ lý AI</span>
-                                </Link>
-                                <div className="border-t pt-2 mt-2">
-                                    <Link href="/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent">
-                                        <span>⚙️ Cài đặt</span>
+                        <SheetContent side="left" className="w-[300px] p-0 border-r border-border/40 bg-background/95 backdrop-blur-xl">
+                            <div className="flex flex-col h-full">
+                                <div className="p-6 flex items-center gap-3 border-b border-border/40">
+                                    <div className="relative">
+                                        <div className="w-16 h-16 flex items-center justify-center">
+                                            <Image
+                                                src="/Logo.png"
+                                                alt="Logo"
+                                                width={64}
+                                                height={64}
+                                                className="object-contain"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+                                    {navItems.map((item, index) => (
+                                        <NavItem key={index} item={item} isMobile />
+                                    ))}
+
+                                    <div className="my-2 border-t border-border/40" />
+
+                                    <Link
+                                        href="/settings"
+                                        onClick={() => setIsMobileOpen(false)}
+                                        className={cn(
+                                            "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                                            pathname === "/settings" &&
+                                            "bg-accent/50 text-foreground font-medium",
+                                        )}
+                                    >
+                                        <Settings className="w-5 h-5" />
+                                        <span>Cài đặt</span>
                                     </Link>
+                                </div>
+
+                                <div className="p-6 border-t border-border/40 bg-muted/30">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        {user?.id ? (
+                                            <UserAvatar
+                                                userId={user.id}
+                                                userName={user.name || undefined}
+                                                userEmail={user.email}
+                                                size="md"
+                                                showName={false}
+                                            />
+                                        ) : (
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback className="bg-primary text-primary-foreground">
+                                                    {getInitials(user?.email)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium truncate">
+                                                {user?.name || user?.email || "Người dùng"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                                {user?.email || ""}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                                        onClick={signOut}
+                                    >
+                                        <LogOut className="w-4 h-4 mr-2" />
+                                        Đăng xuất
+                                    </Button>
                                 </div>
                             </div>
                         </SheetContent>
                     </Sheet>
 
-                    {/* Mobile: Center - Empty space for cleaner look */}
-                    <div className="lg:hidden"></div>
+                    {/* Mobile: Center - Logo */}
+                    <div className="flex items-center gap-2">
+                        <Image
+                            src="/Logo.png"
+                            alt="Logo"
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                        />
+                    </div>
 
                     {/* Desktop: Left - AI Assistant Info */}
                     <div className="hidden lg:flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white shadow-sm">
-                            <span className="text-xl">🤖</span>
-                        </div>
                         <div>
-                            <h1 className="font-semibold text-base leading-none">
-                                Trợ lý Ngôn ngữ AI
+                            <h1 className="font-semibold text-base leading-none flex items-center gap-2">
+                                <span className="text-xl">🤖</span>
+                                Trợ lý AI
                             </h1>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Hỗ trợ học tiếng Anh và tiếng Trung
@@ -326,21 +519,7 @@ export default function ChatbotPage() {
                 </header>
 
                 {/* Section Title - Mobile Only */}
-                <div className="lg:hidden bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 px-4 py-3 border-b">
-                    <div className="flex items-center justify-between">
-                        <h2 className="font-semibold text-base bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Cuộc trò chuyện mới
-                        </h2>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs h-7 px-3 rounded-full bg-cyan-100 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-900 font-medium"
-                            onClick={createNewConversation}
-                        >
-                            Xin chào?
-                        </Button>
-                    </div>
-                </div>
+                {/* Removed Xin chào button */}
 
                 {/* Chat UI */}
                 <div className="flex-1 min-h-0 relative">
