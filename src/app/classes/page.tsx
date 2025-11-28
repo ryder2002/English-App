@@ -46,6 +46,16 @@ export default function ClassesPage() {
     try {
       const res = await fetch('/api/classes/my-classes', { credentials: 'include' });
       const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast({ title: 'Cần đăng nhập', description: 'Vui lòng đăng nhập để xem lớp', variant: 'warning' });
+          router.push('/login');
+        } else {
+          console.error('Failed to fetch classes:', data);
+          toast({ title: 'Lỗi', description: data.error || 'Không thể lấy danh sách lớp', variant: 'destructive' });
+        }
+        return;
+      }
       if (res.ok) {
         setClasses(data);
       }
