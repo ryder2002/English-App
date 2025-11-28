@@ -48,7 +48,7 @@ export default function ClassesPage() {
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 401) {
-          toast({ title: 'Cần đăng nhập', description: 'Vui lòng đăng nhập để xem lớp', variant: 'warning' });
+          toast({ title: 'Cần đăng nhập', description: 'Vui lòng đăng nhập để xem lớp' });
           router.push('/login');
         } else {
           console.error('Failed to fetch classes:', data);
