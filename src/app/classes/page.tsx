@@ -44,7 +44,7 @@ export default function ClassesPage() {
 
   const fetchClasses = async () => {
     try {
-      const res = await fetch('/api/classes');
+      const res = await fetch('/api/classes/my-classes', { credentials: 'include' });
       const data = await res.json();
       if (res.ok) {
         setClasses(data);
