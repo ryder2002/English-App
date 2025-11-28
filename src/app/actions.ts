@@ -50,6 +50,7 @@ type Message = {
 type InteractWithLanguageChatbotInput = {
     query: string;
     history: Message[];
+    useRag?: boolean;
 };
 
 
@@ -94,8 +95,9 @@ export async function batchAddVocabularyAction(
 export async function getChatbotResponseAction(
   query: string,
   history: Message[],
+  useRag?: boolean,
 ): Promise<string> {
-  const input: InteractWithLanguageChatbotInput = { query, history };
+  const input: InteractWithLanguageChatbotInput = { query, history, useRag };
   const result = await interactWithLanguageChatbot(input);
   return result.response;
 }
