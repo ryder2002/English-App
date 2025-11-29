@@ -7,7 +7,7 @@
     "genkit:dev": "tsx --require dotenv/config src/ai/dev.ts dotenv_config_path=.env.local",
     "genkit:watch": "tsx --watch --require dotenv/config src/ai/dev.ts dotenv_config_path=.env.local",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 2002",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:setup": "bash scripts/setup-database.sh",
