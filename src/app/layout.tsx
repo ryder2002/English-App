@@ -6,7 +6,6 @@ import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { MainLayout } from "@/components/main-layout";
-import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 

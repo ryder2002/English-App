@@ -90,6 +90,16 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Skip MainLayout for admin routes and auth pages
+  if (pathname.startsWith('/admin') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/create-account')) {
+    return <>{children}</>;
+  }
+
   return (
     <LayoutContext.Provider value={{ isMobileOpen, setIsMobileOpen }}>
       <MainLayoutContent
