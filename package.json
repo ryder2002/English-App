@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 2002",
     "genkit:dev": "tsx --require dotenv/config src/ai/dev.ts dotenv_config_path=.env.local",
     "genkit:watch": "tsx --watch --require dotenv/config src/ai/dev.ts dotenv_config_path=.env.local",
     "build": "next build",
