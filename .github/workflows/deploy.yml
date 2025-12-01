@@ -1,21 +1,23 @@
-name: Auto Deploy
+name: Auto Deploy Local
 
-# Chạy khi có code push lên nhánh main
 on:
   push:
     branches: [ main ]
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # QUAN TRỌNG NHẤT: Đổi thành self-hosted
+    runs-on: self-hosted
+
     steps:
-    - name: Deploy to Server via SSH
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.KEY }}
-        port: 22
-        # Lệnh sẽ chạy trên server sau khi kết nối thành công
-        script: |
-          /home/congnhat/english-app/English-App/deploy.sh
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Run Deploy Script
+      # Chạy file deploy.sh bằng đường dẫn tuyệt đối
+      run: |
+        # Cấp quyền thực thi (cho chắc chắn)
+        chmod +x /home/congnhat/english-app/English-App/deploy.sh
+
+        # Chạy file deploy
+        /home/congnhat/english-app/English-App/deploy.sh
