@@ -5,7 +5,6 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { SettingsProvider } from "@/contexts/settings-context";
-import { MainLayout } from "@/components/main-layout";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -52,7 +51,7 @@ export default function RootLayout({
         <AuthProvider>
           <SettingsProvider>
             <VocabularyProvider>
-              <MainLayout>{children}</MainLayout>
+              {children}
               <Toaster />
             </VocabularyProvider>
           </SettingsProvider>
