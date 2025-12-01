@@ -1,0 +1,21 @@
+name: Auto Deploy
+
+# Chạy khi có code push lên nhánh main
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy to Server via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        port: 22
+        # Lệnh sẽ chạy trên server sau khi kết nối thành công
+        script: |
+          /home/congnhat/english-app/English-App/deploy.sh
