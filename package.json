@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 2002",
     "genkit:dev": "tsx --require dotenv/config src/ai/dev.ts dotenv_config_path=.env.local",
     "genkit:watch": "tsx --watch --require dotenv/config src/ai/dev.ts dotenv_config_path=.env.local",
     "build": "next build",
-    "start": "next start -p 3001",
+    "start": "next start -p 2002",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:setup": "bash scripts/setup-database.sh",
